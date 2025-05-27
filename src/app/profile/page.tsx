@@ -13,7 +13,7 @@ import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Building, Mail, Phone, MapPin, Image as ImageIcon } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 const LOCAL_STORAGE_KEY = 'userProfileData';
 
@@ -23,13 +23,15 @@ const profileSchema = z.object({
   phone: z.string().optional(),
   address: z.string().optional(),
   agencyDetails: z.string().optional(),
-  agencyLogoUrl: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
+  agencyLogoUrl: z.string().optional().or(z.literal('')), // Will store Data URI
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
 export default function ProfilePage() {
   const { toast } = useToast();
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
@@ -46,8 +48,11 @@ export default function ProfilePage() {
     const storedData = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (storedData) {
       try {
-        const parsedData = JSON.parse(storedData);
+        const parsedData: ProfileFormValues = JSON.parse(storedData);
         form.reset(parsedData);
+        if (parsedData.agencyLogoUrl) {
+          setLogoPreview(parsedData.agencyLogoUrl);
+        }
       } catch (error) {
         console.error("Failed to parse profile data from localStorage", error);
       }
@@ -61,6 +66,32 @@ export default function ProfilePage() {
       title: "Profile Updated",
       description: "Your agency details have been saved. Changes to your agency name or logo in the top bar may require a page refresh or navigation.",
     });
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>, fieldChange: (value: string) => void) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) { // 2MB limit
+        toast({
+          variant: "destructive",
+          title: "File too large",
+          description: "Please upload an image smaller than 2MB.",
+        });
+        setLogoPreview(form.getValues('agencyLogoUrl') || null); // Revert to old preview or null
+        event.target.value = ""; // Clear the file input
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const dataUri = reader.result as string;
+        fieldChange(dataUri); // Update RHF field value
+        setLogoPreview(dataUri);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      fieldChange(''); // Update RHF field value
+      setLogoPreview(null);
+    }
   };
 
   return (
@@ -107,15 +138,29 @@ export default function ProfilePage() {
                   name="agencyLogoUrl"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="flex items-center"><ImageIcon className="mr-2 h-4 w-4 text-muted-foreground" />Agency Logo URL (Optional)</FormLabel>
+                      <FormLabel className="flex items-center"><ImageIcon className="mr-2 h-4 w-4 text-muted-foreground" />Agency Logo</FormLabel>
                       <FormControl>
-                        <Input type="url" placeholder="https://example.com/logo.png" {...field} />
+                        <Input 
+                          type="file" 
+                          accept="image/*" 
+                          onChange={(e) => handleFileChange(e, field.onChange)}
+                          // field.value is not used directly for file inputs for setting, but it's good for RHF to track it.
+                          // field.ref is important for RHF to manage the input.
+                        />
                       </FormControl>
-                       <FormDescription>Paste a URL to your agency's logo. This will appear in the top navigation.</FormDescription>
+                       <FormDescription>Upload your agency's logo (max 2MB). This will appear in the top navigation.</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+                
+                {logoPreview && (
+                  <div className="mt-4 space-y-1">
+                    <Label>Logo Preview:</Label>
+                    <img src={logoPreview} alt="Agency Logo Preview" className="mt-1 h-20 w-auto rounded-md border object-contain" data-ai-hint="logo preview"/>
+                  </div>
+                )}
+
                 <FormField
                   control={form.control}
                   name="phone"
