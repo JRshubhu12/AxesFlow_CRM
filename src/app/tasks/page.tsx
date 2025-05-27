@@ -38,6 +38,8 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import type { TeamMember } from '@/app/team/page'; // Import TeamMember interface
 
+const UNASSIGNED_VALUE = "__UNASSIGNED__";
+
 interface Task {
   id: string;
   title: string;
@@ -147,17 +149,20 @@ export default function TasksPage() {
     defaultValues: {
       title: "",
       description: "",
-      assigneeName: "",
+      assigneeName: "", // Keep as empty string for placeholder to work correctly
       priority: "Medium",
+      dueDate: undefined,
     },
   });
 
   const handleAddTaskSubmit = (values: TaskFormValues) => {
+    const assigneeNameValue = values.assigneeName && values.assigneeName !== UNASSIGNED_VALUE ? values.assigneeName : undefined;
+    
     const newTask: Task = {
       id: `task-${Date.now()}`,
       title: values.title,
       description: values.description,
-      assignee: values.assigneeName ? { name: values.assigneeName, avatar: `https://placehold.co/32x32.png?text=${values.assigneeName.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase()}` } : undefined,
+      assignee: assigneeNameValue ? { name: assigneeNameValue, avatar: `https://placehold.co/32x32.png?text=${assigneeNameValue.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase()}` } : undefined,
       dueDate: values.dueDate ? format(values.dueDate, "yyyy-MM-dd") : undefined,
       priority: values.priority,
     };
@@ -172,7 +177,13 @@ export default function TasksPage() {
     setColumns(updatedColumns);
     localStorage.setItem('kanbanColumns', JSON.stringify(updatedColumns));
     toast({ title: "Task Added", description: `${newTask.title} has been added to To Do.` });
-    form.reset();
+    form.reset({ 
+        title: "", 
+        description: "", 
+        assigneeName: "", // Reset to empty string to show placeholder
+        priority: "Medium",
+        dueDate: undefined 
+    });
     setIsAddTaskOpen(false);
   };
 
@@ -207,6 +218,7 @@ export default function TasksPage() {
     
     const finalColumns = newColumnsState.map(col => {
       if (col.id === targetColumnId && taskToMove) {
+        // Add to the beginning of the target column's tasks array
         return { ...col, tasks: [taskToMove, ...col.tasks] };
       }
       return col;
@@ -271,7 +283,7 @@ export default function TasksPage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Assignee (Optional)</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value || ""} >
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Select an assignee" />
@@ -280,7 +292,7 @@ export default function TasksPage() {
                           <SelectContent>
                             <SelectGroup>
                               <SelectLabel>Team Members</SelectLabel>
-                              <SelectItem value="">Unassigned</SelectItem>
+                              <SelectItem value={UNASSIGNED_VALUE}>Unassigned</SelectItem>
                               {availableAssignees.map((member) => (
                                 <SelectItem key={member.id} value={member.name}>
                                   {member.name}
@@ -388,5 +400,6 @@ export default function TasksPage() {
     </MainLayout>
   );
 }
+    
 
     
