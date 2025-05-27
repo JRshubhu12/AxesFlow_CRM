@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { PlusCircle, Filter, Users, Eye, Edit3 } from 'lucide-react';
+import { PlusCircle, Filter, Users, Eye, Edit3, MessageCircle, CalendarPlus } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -117,7 +117,7 @@ export default function LeadsPage() {
   const handleEditLeadSubmit = (values: LeadFormValues) => {
     if (!selectedLead) return;
     const updatedLeads = leads.map(lead =>
-      lead.id === selectedLead.id ? { ...selectedLead, ...values } : lead
+      lead.id === selectedLead.id ? { ...selectedLead, ...values, lastContact: new Date().toISOString().split('T')[0] } : lead
     );
     setLeads(updatedLeads);
     localStorage.setItem('leads', JSON.stringify(updatedLeads));
@@ -143,6 +143,14 @@ export default function LeadsPage() {
     setIsViewLeadOpen(true);
   };
 
+  const handleStartChat = (leadName: string) => {
+    toast({ title: "Start Chat", description: `Initiating chat with ${leadName}... This would open in the Communications Hub.` });
+  };
+
+  const handleScheduleMeeting = (leadName: string) => {
+    toast({ title: "Schedule Meeting", description: `Opening meeting scheduler for ${leadName}... Details would appear in the Communications Hub.` });
+  };
+
   const filteredLeads = useMemo(() => {
     if (statusFilter === "All") {
       return leads;
@@ -161,6 +169,7 @@ export default function LeadsPage() {
           <div className="flex gap-2 items-center">
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-[180px]">
+                <Filter className="mr-2 h-4 w-4" />
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
               <SelectContent>
@@ -405,8 +414,14 @@ export default function LeadsPage() {
                     </TableCell>
                     <TableCell>{lead.lastContact}</TableCell>
                     <TableCell className="text-right space-x-1">
-                      <Button variant="ghost" size="sm" onClick={() => openViewModal(lead)}><Eye className="mr-1 h-4 w-4" />View</Button>
-                      <Button variant="ghost" size="sm" className="text-primary hover:text-primary/80" onClick={() => openEditModal(lead)}><Edit3 className="mr-1 h-4 w-4" />Edit</Button>
+                      <Button variant="ghost" size="sm" onClick={() => handleStartChat(lead.name)} title="Start Chat">
+                        <MessageCircle className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => handleScheduleMeeting(lead.name)} title="Schedule Meeting">
+                        <CalendarPlus className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => openViewModal(lead)} title="View Lead"><Eye className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="sm" className="text-primary hover:text-primary/80" onClick={() => openEditModal(lead)} title="Edit Lead"><Edit3 className="h-4 w-4" /></Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -423,3 +438,5 @@ export default function LeadsPage() {
     </MainLayout>
   );
 }
+
+    

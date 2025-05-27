@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Users2, UserPlus, MessageSquarePlus, Eye } from 'lucide-react';
+import { Users2, UserPlus, MessageSquarePlus, Eye, MessageCircle, CalendarPlus } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -105,6 +105,14 @@ export default function TeamPage() {
   const openViewModal = (member: TeamMember) => {
     setSelectedMember(member);
     setIsViewMemberOpen(true);
+  };
+
+  const handleStartChat = (memberName: string) => {
+    toast({ title: "Start Chat", description: `Initiating chat with ${memberName}... This would open in the Communications Hub.` });
+  };
+
+  const handleScheduleMeeting = (memberName: string) => {
+    toast({ title: "Schedule Meeting", description: `Opening meeting scheduler for ${memberName}... Details would appear in the Communications Hub.` });
   };
 
 
@@ -267,10 +275,16 @@ export default function TeamPage() {
                       <Badge variant={member.status === 'Active' ? 'default' : 'destructive'} className={member.status === 'Active' ? 'bg-green-500 text-white hover:bg-green-600' : ''}>{member.status}</Badge>
                     </TableCell>
                     <TableCell className="text-right space-x-1">
-                      <Button variant="outline" size="sm" onClick={() => handleAssignTask(member.name)}>
-                        <MessageSquarePlus className="mr-1 h-3 w-3" /> Assign Task
+                       <Button variant="ghost" size="sm" onClick={() => handleStartChat(member.name)} title="Start Chat">
+                        <MessageCircle className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="sm" className="text-primary hover:text-primary/80" onClick={() => openViewModal(member)}><Eye className="mr-1 h-4 w-4" />View Profile</Button>
+                      <Button variant="ghost" size="sm" onClick={() => handleScheduleMeeting(member.name)} title="Schedule Meeting">
+                        <CalendarPlus className="h-4 w-4" />
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => handleAssignTask(member.name)} title="Assign Task">
+                        <MessageSquarePlus className="mr-1 h-3 w-3" /> Assign
+                      </Button>
+                      <Button variant="ghost" size="sm" className="text-primary hover:text-primary/80" onClick={() => openViewModal(member)} title="View Profile"><Eye className="h-4 w-4" /></Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -282,3 +296,5 @@ export default function TeamPage() {
     </MainLayout>
   );
 }
+
+    
