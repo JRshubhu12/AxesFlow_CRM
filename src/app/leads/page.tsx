@@ -32,6 +32,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useState, useEffect, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useRouter } from 'next/navigation'; // Added for redirection
+import { format } from 'date-fns'; // For formatting dates
 
 const leadSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -46,6 +48,28 @@ export interface Lead extends LeadFormValues {
   id: string;
   lastContact: string;
 }
+
+// These interfaces would ideally be shared from communications/page.tsx if it exports them
+interface Chat {
+  id: string;
+  contact?: string;
+  title?: string;
+  lastMessage: string;
+  timestamp: string;
+  status: 'Unread' | 'Read' | 'Replied';
+  unreadCount: number;
+}
+
+interface Meeting {
+  id: string;
+  title: string;
+  type: 'Video Call' | 'In-Person' | 'Phone Call';
+  dateTime: string;
+  status: 'Scheduled' | 'Completed' | 'Pending Confirmation' | 'Cancelled';
+  participants: string[];
+  googleMeetLink?: string;
+}
+
 
 const initialLeadsData: Lead[] = [
   { id: 'L001', name: 'John Doe', company: 'Innovate Corp', email: 'john.doe@innovate.com', status: 'New', lastContact: '2024-07-20' },
@@ -75,6 +99,7 @@ export default function LeadsPage() {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("All");
   const { toast } = useToast();
+  const router = useRouter();
 
   useEffect(() => {
     const storedLeads = localStorage.getItem('leads');
@@ -104,7 +129,7 @@ export default function LeadsPage() {
     const newLead: Lead = {
       ...values,
       id: `L${Date.now()}`,
-      lastContact: new Date().toISOString().split('T')[0], // YYYY-MM-DD
+      lastContact: format(new Date(), "yyyy-MM-dd"),
     };
     const updatedLeads = [...leads, newLead];
     setLeads(updatedLeads);
@@ -117,7 +142,7 @@ export default function LeadsPage() {
   const handleEditLeadSubmit = (values: LeadFormValues) => {
     if (!selectedLead) return;
     const updatedLeads = leads.map(lead =>
-      lead.id === selectedLead.id ? { ...selectedLead, ...values, lastContact: new Date().toISOString().split('T')[0] } : lead
+      lead.id === selectedLead.id ? { ...selectedLead, ...values, lastContact: format(new Date(), "yyyy-MM-dd") } : lead
     );
     setLeads(updatedLeads);
     localStorage.setItem('leads', JSON.stringify(updatedLeads));
@@ -143,12 +168,39 @@ export default function LeadsPage() {
     setIsViewLeadOpen(true);
   };
 
-  const handleStartChat = (leadName: string) => {
-    toast({ title: "Start Chat", description: `Initiating chat with ${leadName}... This would open in the Communications Hub.` });
+  const handleStartChat = (lead: Lead) => {
+    const storedChats = localStorage.getItem('chatsData');
+    const currentChats: Chat[] = storedChats ? JSON.parse(storedChats) : [];
+    const newChat: Chat = {
+      id: `C-${Date.now()}`,
+      contact: `${lead.name} (${lead.company})`,
+      lastMessage: 'Chat initiated...',
+      timestamp: 'Just now',
+      status: 'Unread',
+      unreadCount: 1,
+    };
+    const updatedChats = [newChat, ...currentChats]; // Add new chat to the beginning
+    localStorage.setItem('chatsData', JSON.stringify(updatedChats));
+    toast({ title: "Chat Initiated", description: `Chat with ${lead.name} started. Redirecting...` });
+    router.push('/communications?tab=chats');
   };
 
-  const handleScheduleMeeting = (leadName: string) => {
-    toast({ title: "Schedule Meeting", description: `Opening meeting scheduler for ${leadName}... Details would appear in the Communications Hub.` });
+  const handleScheduleMeeting = (lead: Lead) => {
+    const storedMeetings = localStorage.getItem('meetingsData');
+    const currentMeetings: Meeting[] = storedMeetings ? JSON.parse(storedMeetings) : [];
+    const newMeeting: Meeting = {
+      id: `M-${Date.now()}`,
+      title: `Meeting with ${lead.name}`,
+      type: 'Video Call',
+      dateTime: `Scheduled on ${format(new Date(), 'PPp')}`, // Or a placeholder like 'To be confirmed'
+      status: 'Scheduled',
+      participants: ['You', lead.name],
+      googleMeetLink: 'https://meet.google.com/new', // Placeholder link
+    };
+    const updatedMeetings = [newMeeting, ...currentMeetings]; // Add new meeting to the beginning
+    localStorage.setItem('meetingsData', JSON.stringify(updatedMeetings));
+    toast({ title: "Meeting Scheduled", description: `Meeting with ${lead.name} scheduled. Redirecting...` });
+    router.push('/communications?tab=meetings');
   };
 
   const filteredLeads = useMemo(() => {
@@ -414,10 +466,10 @@ export default function LeadsPage() {
                     </TableCell>
                     <TableCell>{lead.lastContact}</TableCell>
                     <TableCell className="text-right space-x-1">
-                      <Button variant="ghost" size="sm" onClick={() => handleStartChat(lead.name)} title="Start Chat">
+                      <Button variant="ghost" size="sm" onClick={() => handleStartChat(lead)} title="Start Chat">
                         <MessageCircle className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleScheduleMeeting(lead.name)} title="Schedule Meeting">
+                      <Button variant="ghost" size="sm" onClick={() => handleScheduleMeeting(lead)} title="Schedule Meeting">
                         <CalendarPlus className="h-4 w-4" />
                       </Button>
                       <Button variant="ghost" size="sm" onClick={() => openViewModal(lead)} title="View Lead"><Eye className="h-4 w-4" /></Button>
@@ -438,5 +490,7 @@ export default function LeadsPage() {
     </MainLayout>
   );
 }
+
+    
 
     

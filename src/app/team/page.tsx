@@ -33,6 +33,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useRouter } from 'next/navigation'; // Added for redirection
+import { format } from 'date-fns'; // For formatting dates
 
 const teamMemberSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -49,6 +51,28 @@ export interface TeamMember extends TeamMemberFormValues {
   avatar: string;
 }
 
+// These interfaces would ideally be shared from communications/page.tsx
+interface Chat {
+  id: string;
+  contact?: string;
+  title?: string;
+  lastMessage: string;
+  timestamp: string;
+  status: 'Unread' | 'Read' | 'Replied';
+  unreadCount: number;
+}
+
+interface Meeting {
+  id: string;
+  title: string;
+  type: 'Video Call' | 'In-Person' | 'Phone Call';
+  dateTime: string;
+  status: 'Scheduled' | 'Completed' | 'Pending Confirmation' | 'Cancelled';
+  participants: string[];
+  googleMeetLink?: string;
+}
+
+
 const initialTeamMembersData: TeamMember[] = [
   { id: 'T001', name: 'Alice Wonderland', role: 'Project Manager', email: 'alice@example.com', tasksAssigned: 5, avatar: 'https://placehold.co/40x40.png?text=AW', status: 'Active' },
   { id: 'T002', name: 'Bob The Builder', role: 'Lead Developer', email: 'bob@example.com', tasksAssigned: 8, avatar: 'https://placehold.co/40x40.png?text=BB', status: 'Active' },
@@ -62,6 +86,7 @@ export default function TeamPage() {
   const [isViewMemberOpen, setIsViewMemberOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
   const { toast } = useToast();
+  const router = useRouter();
 
   useEffect(() => {
     const storedTeamMembers = localStorage.getItem('teamMembers');
@@ -87,7 +112,7 @@ export default function TeamPage() {
     const newMember: TeamMember = {
       ...values,
       id: `T${Date.now()}`,
-      tasksAssigned: 0,
+      tasksAssigned: 0, // New members start with 0 tasks
       avatar: `https://placehold.co/40x40.png?text=${values.name.split(' ').map(n => n[0]).join('').toUpperCase()}`,
     };
     const updatedTeamMembers = [...teamMembers, newMember];
@@ -99,7 +124,9 @@ export default function TeamPage() {
   };
 
   const handleAssignTask = (memberName: string) => {
-    toast({ title: "Assign Task", description: `Task assignment for ${memberName} is a feature coming soon!` });
+    // For now, this remains a placeholder as full task assignment is complex
+    toast({ title: "Assign Task", description: `Navigating to task assignment for ${memberName}... (Feature in development)` });
+    // router.push(`/tasks?assignTo=${memberName}`); // Possible future enhancement
   };
 
   const openViewModal = (member: TeamMember) => {
@@ -107,12 +134,39 @@ export default function TeamPage() {
     setIsViewMemberOpen(true);
   };
 
-  const handleStartChat = (memberName: string) => {
-    toast({ title: "Start Chat", description: `Initiating chat with ${memberName}... This would open in the Communications Hub.` });
+  const handleStartChat = (member: TeamMember) => {
+    const storedChats = localStorage.getItem('chatsData');
+    const currentChats: Chat[] = storedChats ? JSON.parse(storedChats) : [];
+    const newChat: Chat = {
+      id: `C-${Date.now()}`,
+      contact: member.name, // Chatting with the team member
+      lastMessage: 'Chat initiated with team member...',
+      timestamp: 'Just now',
+      status: 'Unread',
+      unreadCount: 1,
+    };
+    const updatedChats = [newChat, ...currentChats];
+    localStorage.setItem('chatsData', JSON.stringify(updatedChats));
+    toast({ title: "Chat Initiated", description: `Chat with ${member.name} started. Redirecting...` });
+    router.push('/communications?tab=chats');
   };
 
-  const handleScheduleMeeting = (memberName: string) => {
-    toast({ title: "Schedule Meeting", description: `Opening meeting scheduler for ${memberName}... Details would appear in the Communications Hub.` });
+  const handleScheduleMeeting = (member: TeamMember) => {
+    const storedMeetings = localStorage.getItem('meetingsData');
+    const currentMeetings: Meeting[] = storedMeetings ? JSON.parse(storedMeetings) : [];
+    const newMeeting: Meeting = {
+      id: `M-${Date.now()}`,
+      title: `Meeting with ${member.name}`,
+      type: 'Video Call',
+      dateTime: `Scheduled on ${format(new Date(), 'PPp')}`,
+      status: 'Scheduled',
+      participants: ['You', member.name],
+      googleMeetLink: 'https://meet.google.com/new', // Placeholder
+    };
+    const updatedMeetings = [newMeeting, ...currentMeetings];
+    localStorage.setItem('meetingsData', JSON.stringify(updatedMeetings));
+    toast({ title: "Meeting Scheduled", description: `Meeting with ${member.name} scheduled. Redirecting...` });
+    router.push('/communications?tab=meetings');
   };
 
 
@@ -218,7 +272,7 @@ export default function TeamPage() {
               <div className="py-4 space-y-3">
                 <div className="flex items-center gap-3 mb-4">
                     <Avatar className="h-16 w-16">
-                        <AvatarImage src={selectedMember.avatar} alt={selectedMember.name} data-ai-hint="person portrait" />
+                        <AvatarImage src={selectedMember.avatar} alt={selectedMember.name} data-ai-hint="person portrait"/>
                         <AvatarFallback>{selectedMember.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
                     </Avatar>
                     <div>
@@ -275,10 +329,10 @@ export default function TeamPage() {
                       <Badge variant={member.status === 'Active' ? 'default' : 'destructive'} className={member.status === 'Active' ? 'bg-green-500 text-white hover:bg-green-600' : ''}>{member.status}</Badge>
                     </TableCell>
                     <TableCell className="text-right space-x-1">
-                       <Button variant="ghost" size="sm" onClick={() => handleStartChat(member.name)} title="Start Chat">
+                       <Button variant="ghost" size="sm" onClick={() => handleStartChat(member)} title="Start Chat">
                         <MessageCircle className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleScheduleMeeting(member.name)} title="Schedule Meeting">
+                      <Button variant="ghost" size="sm" onClick={() => handleScheduleMeeting(member)} title="Schedule Meeting">
                         <CalendarPlus className="h-4 w-4" />
                       </Button>
                       <Button variant="outline" size="sm" onClick={() => handleAssignTask(member.name)} title="Assign Task">
@@ -290,11 +344,18 @@ export default function TeamPage() {
                 ))}
               </TableBody>
             </Table>
+            {teamMembers.length === 0 && (
+                <div className="text-center py-10 text-muted-foreground">
+                    No team members found.
+                </div>
+            )}
           </CardContent>
         </Card>
       </div>
     </MainLayout>
   );
 }
+
+    
 
     
