@@ -53,11 +53,11 @@ interface Column {
 }
 
 const initialTasksData: Task[] = [
-  { id: 'task-1', title: 'Design homepage mockups', assignee: { name: 'Carol D.', avatar: 'https://placehold.co/32x32.png?text=CD' }, dueDate: '2024-08-10', priority: 'High' },
-  { id: 'task-2', title: 'Develop API endpoints for user auth', assignee: { name: 'Bob B.', avatar: 'https://placehold.co/32x32.png?text=BB' }, dueDate: '2024-08-15', priority: 'High' },
-  { id: 'task-3', title: 'Write blog post about new feature', description: 'Cover benefits and how to use it.', dueDate: '2024-08-05', priority: 'Medium' },
-  { id: 'task-4', title: 'Setup staging server', assignee: { name: 'Bob B.', avatar: 'https://placehold.co/32x32.png?text=BB' }, priority: 'Medium' },
-  { id: 'task-5', title: 'Client feedback meeting prep', assignee: { name: 'Alice W.', avatar: 'https://placehold.co/32x32.png?text=AW' }, dueDate: '2024-08-02', priority: 'Low' },
+  { id: 'task-1', title: 'Design homepage mockups for the new campaign launch focusing on Q3 deliverables', assignee: { name: 'Carol D.', avatar: 'https://placehold.co/32x32.png?text=CD' }, dueDate: '2024-08-10', priority: 'High' },
+  { id: 'task-2', title: 'Develop API endpoints for user authentication and profile management', assignee: { name: 'Bob B.', avatar: 'https://placehold.co/32x32.png?text=BB' }, dueDate: '2024-08-15', priority: 'High' },
+  { id: 'task-3', title: 'Write blog post about new feature', description: 'Cover benefits and how to use it. Make sure to include screenshots and a call to action.', dueDate: '2024-08-05', priority: 'Medium' },
+  { id: 'task-4', title: 'Setup staging server and CI/CD pipeline', assignee: { name: 'Bob B.', avatar: 'https://placehold.co/32x32.png?text=BB' }, priority: 'Medium' },
+  { id: 'task-5', title: 'Client feedback meeting preparation and agenda finalization', assignee: { name: 'Alice W.', avatar: 'https://placehold.co/32x32.png?text=AW' }, dueDate: '2024-08-02', priority: 'Low' },
 ];
 
 const initialColumnsData: Column[] = [
@@ -94,11 +94,13 @@ function KanbanCard({ task }: { task: Task }) {
       onDragStart={(e) => handleDragStart(e, task.id)}
       className="mb-3 p-3 shadow-md hover:shadow-lg transition-shadow cursor-grab active:cursor-grabbing bg-card group"
     >
-      <CardTitle className="text-md mb-1 flex justify-between items-center">
-        {task.title}
-        <GripVertical className="h-4 w-4 text-muted-foreground invisible group-hover:visible" />
-      </CardTitle>
-      {task.description && <CardDescription className="text-xs mb-2">{task.description}</CardDescription>}
+      <div className="flex justify-between items-start mb-1">
+        <h3 className="text-md font-semibold flex-1 break-words pr-2">{task.title}</h3>
+        <GripVertical className="h-4 w-4 text-muted-foreground invisible group-hover:visible shrink-0" />
+      </div>
+
+      {task.description && <p className="text-xs text-muted-foreground mt-1 mb-2 break-words">{task.description}</p>}
+      
       <div className="flex justify-between items-center text-xs text-muted-foreground mt-2">
         <div>
           {task.dueDate && <span>Due: {task.dueDate}</span>}
@@ -109,7 +111,7 @@ function KanbanCard({ task }: { task: Task }) {
         <div className="mt-2 flex items-center">
           <Avatar className="h-6 w-6 mr-2">
             <AvatarImage src={task.assignee.avatar} data-ai-hint="person avatar" alt={task.assignee.name} />
-            <AvatarFallback>{task.assignee.name.slice(0,1)}</AvatarFallback>
+            <AvatarFallback>{task.assignee.name ? task.assignee.name.slice(0,1).toUpperCase() : 'N'}</AvatarFallback>
           </Avatar>
           <span className="text-xs">{task.assignee.name}</span>
         </div>
@@ -154,8 +156,8 @@ export default function TasksPage() {
     };
 
     const updatedColumns = columns.map(column => {
-      if (column.id === 'todo') { // Add to "To Do" column by default
-        return { ...column, tasks: [...column.tasks, newTask] };
+      if (column.id === 'todo') { 
+        return { ...column, tasks: [newTask, ...column.tasks] }; // Add to the beginning of "To Do"
       }
       return column;
     });
@@ -190,8 +192,6 @@ export default function TasksPage() {
     });
 
     if (!taskToMove || !sourceColumnId || sourceColumnId === targetColumnId) {
-        // If task not found or attempt to drop in the same column, do nothing.
-        // Or if taskToMove is somehow undefined (should not happen if drag started correctly)
         if (!taskToMove && taskId) {
             console.warn("Task to move not found, but taskId was present. TaskId:", taskId);
         }
@@ -200,7 +200,6 @@ export default function TasksPage() {
     
     const finalColumns = newColumnsState.map(col => {
       if (col.id === targetColumnId && taskToMove) {
-        // Add task to the beginning of the target column's task list
         return { ...col, tasks: [taskToMove, ...col.tasks] };
       }
       return col;
@@ -364,3 +363,4 @@ export default function TasksPage() {
     </MainLayout>
   );
 }
+
