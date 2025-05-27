@@ -2,7 +2,7 @@ import MainLayout from '@/components/layout/MainLayout';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CalendarDays, MessageCircle, FileText, Video, Phone, Users, Clock } from 'lucide-react';
+import { CalendarDays, MessageCircle, FileText, Video, Phone, Users, Clock, MessageSquare } from 'lucide-react';
 
 const meetingsData = [
   { id: 'M001', title: 'Client Kick-off: Project Alpha', type: 'Video Call', dateTime: '2024-08-01 10:00 AM', status: 'Scheduled', participants: ['John D.', 'Sarah P.'] },
