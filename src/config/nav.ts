@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
-import { LayoutDashboard, User, Users, Mail, MessageSquare, Briefcase, Users2, GanttChartSquare, Settings } from 'lucide-react';
+import { LayoutDashboard, User, Users, Mail, MessageSquare, Briefcase, Users2, GanttChartSquare, Settings, DollarSign } from 'lucide-react';
 
 export interface NavItem {
   title: string;
@@ -18,6 +18,7 @@ export const navItems: NavItem[] = [
   { title: 'Projects', href: '/projects', icon: Briefcase, tooltip: 'Manage Projects' },
   { title: 'Team', href: '/team', icon: Users2, tooltip: 'Team Members' },
   { title: 'Tasks', href: '/tasks', icon: GanttChartSquare, tooltip: 'Task Board' },
+  { title: 'Finance', href: '/finance', icon: DollarSign, tooltip: 'Invoices & Finance' },
 ];
 
 export const settingsNavItem: NavItem = { title: 'Settings', href: '/settings', icon: Settings, tooltip: 'App Settings' };
