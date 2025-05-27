@@ -16,8 +16,12 @@ import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { useState } from 'react';
-import { DollarSign, CalendarIcon, TrendingUp, AlertCircle, Receipt } from 'lucide-react';
+import { DollarSign, CalendarIcon, TrendingUp, AlertCircle, Receipt } from 'lucide-react'; // DollarSign can be kept if we want a generic currency icon or replaced if a rupee icon is available in lucide
 import { Badge } from '@/components/ui/badge';
+
+// If a Rupee icon is available in lucide-react, import it:
+// import { IndianRupee } from 'lucide-react';
+// Otherwise, we'll use the text symbol '₹'
 
 const invoiceSchema = z.object({
   clientName: z.string().min(2, { message: "Client name must be at least 2 characters." }),
@@ -73,7 +77,11 @@ export default function FinancePage() {
       <div className="space-y-8">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold flex items-center gap-2"><DollarSign className="h-8 w-8 text-primary" /> Finance Hub</h1>
+            <h1 className="text-3xl font-bold flex items-center gap-2">
+              {/* <IndianRupee className="h-8 w-8 text-primary" /> You can use this if lucide-react has it */}
+              <span className="h-8 w-8 text-primary font-semibold text-3xl">₹</span> 
+              Finance Hub
+            </h1>
             <p className="text-muted-foreground">Manage invoices and track financial performance.</p>
           </div>
         </div>
@@ -118,9 +126,9 @@ export default function FinancePage() {
                     name="amount"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Amount ($)</FormLabel>
+                        <FormLabel>Amount (₹)</FormLabel>
                         <FormControl>
-                          <Input type="number" placeholder="e.g., 1500.00" {...field} step="0.01" />
+                          <Input type="number" placeholder="e.g., 125000.00" {...field} step="0.01" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -186,11 +194,12 @@ export default function FinancePage() {
                    <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium flex items-center justify-between">
                       <span>Total Revenue</span>
-                      <DollarSign className="h-4 w-4 text-muted-foreground" />
+                       {/* <IndianRupee className="h-4 w-4 text-muted-foreground" /> */}
+                       <span className="h-4 w-4 text-muted-foreground font-semibold">₹</span>
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">$125,670.00</div>
+                    <div className="text-2xl font-bold">₹1,25,67,000</div>
                     <p className="text-xs text-muted-foreground">+15.2% from last month</p>
                   </CardContent>
                 </Card>
@@ -202,7 +211,7 @@ export default function FinancePage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">$12,345.00</div>
+                    <div className="text-2xl font-bold">₹12,34,500</div>
                     <p className="text-xs text-muted-foreground">5 invoices overdue</p>
                    </CardContent>
                 </Card>
@@ -211,9 +220,9 @@ export default function FinancePage() {
                 <h3 className="text-lg font-semibold mb-2 text-foreground">Recent Invoices (Placeholder)</h3>
                 <div className="border rounded-md p-4 space-y-3 bg-muted/30">
                   {[
-                    {id: 'INV-001', client: 'Alpha Solutions', amount: '$2,500.00', status: 'Paid'},
-                    {id: 'INV-002', client: 'Beta Innovations', amount: '$1,200.00', status: 'Pending'},
-                    {id: 'INV-003', client: 'Gamma Services', amount: '$3,000.00', status: 'Overdue'},
+                    {id: 'INV-001', client: 'Alpha Solutions', amount: '₹2,50,000', status: 'Paid'},
+                    {id: 'INV-002', client: 'Beta Innovations', amount: '₹1,20,000', status: 'Pending'},
+                    {id: 'INV-003', client: 'Gamma Services', amount: '₹3,00,000', status: 'Overdue'},
                   ].map(inv => (
                     <div key={inv.id} className="flex justify-between items-center text-sm p-2 rounded-md hover:bg-background/50">
                       <div>
@@ -232,4 +241,3 @@ export default function FinancePage() {
     </MainLayout>
   );
 }
-
