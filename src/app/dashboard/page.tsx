@@ -3,7 +3,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowRight, User, Briefcase, Mail, Users, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
-import Image from 'next/image';
 
 export default function DashboardPage() {
   return (
@@ -30,7 +29,7 @@ export default function DashboardPage() {
             Setup Profile <ArrowRight className="h-5 w-5" />
           </Link>
         </Button>
-        <Button variant="outline" size="lg" asChild className="text-white border-gray-500 hover:bg-gray-800">
+        <Button variant="outline" size="lg" asChild className="text-foreground border-gray-500 hover:bg-gray-800 hover:text-white">
           <Link href="/dashboard" className="flex items-center gap-2">
             View Dashboard
           </Link>
