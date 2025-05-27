@@ -1,0 +1,142 @@
+"use client";
+
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import type { ReactNode } from 'react';
+import {
+  SidebarProvider,
+  Sidebar,
+  SidebarHeader,
+  SidebarContent,
+  SidebarFooter,
+  SidebarTrigger,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarInset,
+  useSidebar,
+} from '@/components/ui/sidebar';
+import { AppLogo } from '@/components/AppLogo';
+import { navItems, settingsNavItem } from '@/config/nav';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { LogOut, UserCircle } from 'lucide-react';
+import { Toaster } from '../ui/toaster';
+
+function UserNav() {
+  // Simple router usage for prototype, no actual logout logic
+  const handleLogout = () => {
+    if (typeof window !== 'undefined') {
+      // In a real app, clear auth tokens, etc.
+      window.location.href = '/'; 
+    }
+  };
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" className="relative h-9 w-9 rounded-full">
+          <Avatar className="h-9 w-9">
+            <AvatarImage src="https://placehold.co/40x40.png" alt="User Avatar" data-ai-hint="user avatar" />
+            <AvatarFallback>ME</AvatarFallback>
+          </Avatar>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent className="w-56" align="end" forceMount>
+        <DropdownMenuLabel className="font-normal">
+          <div className="flex flex-col space-y-1">
+            <p className="text-sm font-medium leading-none">My Agency</p>
+            <p className="text-xs leading-none text-muted-foreground">
+              agency@example.com
+            </p>
+          </div>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => window.location.href = '/profile'}>
+          <UserCircle className="mr-2 h-4 w-4" />
+          <span>Profile</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={handleLogout}>
+          <LogOut className="mr-2 h-4 w-4" />
+          <span>Log out</span>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+
+function LayoutContent({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
+  const { isMobile } = useSidebar();
+
+  return (
+    <>
+      <Sidebar>
+        <SidebarHeader className="p-4">
+          <AppLogo />
+        </SidebarHeader>
+        <SidebarContent className="p-2">
+          <SidebarMenu>
+            {navItems.map((item) => (
+              <SidebarMenuItem key={item.title}>
+                <SidebarMenuButton
+                  asChild
+                  isActive={pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))}
+                  tooltip={{content: item.tooltip}}
+                  variant="default"
+                  size="default"
+                >
+                  <Link href={item.href} className="flex items-center gap-3">
+                    <item.icon className="h-5 w-5" />
+                    <span>{item.title}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
+          </SidebarMenu>
+        </SidebarContent>
+        <SidebarFooter className="p-2 border-t border-sidebar-border">
+           <SidebarMenu>
+            <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={pathname === settingsNavItem.href}
+                  tooltip={{content: settingsNavItem.tooltip}}
+                  variant="default"
+                  size="default"
+                >
+                  <Link href={settingsNavItem.href} className="flex items-center gap-3">
+                    <settingsNavItem.icon className="h-5 w-5" />
+                    <span>{settingsNavItem.title}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+           </SidebarMenu>
+        </SidebarFooter>
+      </Sidebar>
+      <SidebarInset>
+        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-background/80 backdrop-blur-md px-4 sm:px-6">
+          <div className="md:hidden">
+            <SidebarTrigger />
+          </div>
+          <div className="flex-1" /> {/* Spacer */}
+          <UserNav />
+        </header>
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 bg-background">
+          {children}
+        </main>
+      </SidebarInset>
+    </>
+  );
+}
+
+export default function MainLayout({ children }: { children: ReactNode }) {
+  return (
+    <SidebarProvider defaultOpen>
+      <LayoutContent>{children}</LayoutContent>
+      <Toaster />
+    </SidebarProvider>
+  );
+}
