@@ -1,3 +1,4 @@
+
 "use client";
 
 import MainLayout from '@/components/layout/MainLayout';
@@ -11,7 +12,10 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Building, Mail, Phone, MapPin } from 'lucide-react';
+import { Building, Mail, Phone, MapPin, Image as ImageIcon } from 'lucide-react';
+import { useEffect } from 'react';
+
+const LOCAL_STORAGE_KEY = 'userProfileData';
 
 const profileSchema = z.object({
   agencyName: z.string().min(2, { message: "Agency name must be at least 2 characters." }),
@@ -19,6 +23,7 @@ const profileSchema = z.object({
   phone: z.string().optional(),
   address: z.string().optional(),
   agencyDetails: z.string().optional(),
+  agencyLogoUrl: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -33,17 +38,28 @@ export default function ProfilePage() {
       phone: '',
       address: '',
       agencyDetails: '',
+      agencyLogoUrl: '',
     },
   });
 
-  // In a real app, this would be a server action
+  useEffect(() => {
+    const storedData = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (storedData) {
+      try {
+        const parsedData = JSON.parse(storedData);
+        form.reset(parsedData);
+      } catch (error) {
+        console.error("Failed to parse profile data from localStorage", error);
+      }
+    }
+  }, [form]);
+
   const onSubmit = async (data: ProfileFormValues) => {
     console.log('Profile data submitted:', data);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data));
     toast({
       title: "Profile Updated",
-      description: "Your agency details have been saved.",
+      description: "Your agency details have been saved. Changes to your agency name or logo in the top bar may require a page refresh or navigation.",
     });
   };
 
@@ -82,6 +98,20 @@ export default function ProfilePage() {
                       <FormControl>
                         <Input type="email" placeholder="contact@agency.com" {...field} />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="agencyLogoUrl"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center"><ImageIcon className="mr-2 h-4 w-4 text-muted-foreground" />Agency Logo URL (Optional)</FormLabel>
+                      <FormControl>
+                        <Input type="url" placeholder="https://example.com/logo.png" {...field} />
+                      </FormControl>
+                       <FormDescription>Paste a URL to your agency's logo. This will appear in the top navigation.</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}

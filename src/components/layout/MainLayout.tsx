@@ -1,8 +1,10 @@
+
 "use client";
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
+import { useState, useEffect } from 'react';
 import {
   SidebarProvider,
   Sidebar,
@@ -24,31 +26,62 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { LogOut, UserCircle } from 'lucide-react';
 import { Toaster } from '../ui/toaster';
 
+const USER_PROFILE_STORAGE_KEY = 'userProfileData';
+
+interface UserProfile {
+  agencyName?: string;
+  contactEmail?: string;
+  agencyLogoUrl?: string;
+}
+
 function UserNav() {
-  // Simple router usage for prototype, no actual logout logic
+  const [userProfile, setUserProfile] = useState<UserProfile>({});
+
+  useEffect(() => {
+    const storedData = localStorage.getItem(USER_PROFILE_STORAGE_KEY);
+    if (storedData) {
+      try {
+        const parsedData: UserProfile = JSON.parse(storedData);
+        setUserProfile(parsedData);
+      } catch (error) {
+        console.error("Failed to parse user profile data from localStorage", error);
+      }
+    }
+  }, []);
+
   const handleLogout = () => {
     if (typeof window !== 'undefined') {
-      // In a real app, clear auth tokens, etc.
       window.location.href = '/'; 
     }
   };
+
+  const getAvatarFallback = () => {
+    if (userProfile.agencyName) {
+      return userProfile.agencyName.substring(0, 2).toUpperCase();
+    }
+    return "ME";
+  }
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-9 w-9 rounded-full">
           <Avatar className="h-9 w-9">
-            <AvatarImage src="https://placehold.co/40x40.png" alt="User Avatar" data-ai-hint="user avatar" />
-            <AvatarFallback>ME</AvatarFallback>
+            <AvatarImage 
+              src={userProfile.agencyLogoUrl || "https://placehold.co/40x40.png?text=Logo"} 
+              alt={userProfile.agencyName || "User Avatar"} 
+              data-ai-hint="agency logo" 
+            />
+            <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">My Agency</p>
+            <p className="text-sm font-medium leading-none">{userProfile.agencyName || 'My Agency'}</p>
             <p className="text-xs leading-none text-muted-foreground">
-              agency@example.com
+              {userProfile.contactEmail || 'agency@example.com'}
             </p>
           </div>
         </DropdownMenuLabel>
