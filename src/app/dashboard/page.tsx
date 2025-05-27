@@ -22,15 +22,7 @@ export default function DashboardPage() {
               </Link>
             </Button>
           </div>
-          <div className="absolute right-0 top-0 h-full w-1/3">
-            <Image 
-              src="/images/dashboard-illustration.svg" 
-              alt="Workflow illustration" 
-              fill
-              className="object-cover object-left"
-              data-ai-hint="abstract workflow" 
-            />
-          </div>
+          {/* The illustration div and Image component were here */}
           <div className="absolute inset-0 bg-gradient-to-l from-transparent to-blue-600/50 z-0"></div>
         </div>
 
