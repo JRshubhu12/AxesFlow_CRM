@@ -1,3 +1,4 @@
+
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -95,9 +96,9 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {[
-                { title: 'Add New Lead', href: '/leads/new', icon: Users },
-                { title: 'Start Campaign', href: '/email-campaigns/new', icon: Mail },
-                { title: 'Create Project', href: '/projects/new', icon: Briefcase },
+                { title: 'Add New Lead', href: '/leads', icon: Users }, // Points to main leads page, where add is
+                { title: 'Start Campaign', href: '/email-campaigns', icon: Mail },
+                { title: 'Create Project', href: '/projects', icon: Briefcase }, // Points to main projects page
               ].map((action, index) => (
                 <Button 
                   key={index} 

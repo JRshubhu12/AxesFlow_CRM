@@ -1,12 +1,41 @@
+
 "use client";
 
 import MainLayout from '@/components/layout/MainLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { GanttChartSquare, PlusCircle, GripVertical } from 'lucide-react';
-import { useState, type DragEvent } from 'react';
+import { GanttChartSquare, PlusCircle, GripVertical, CalendarIcon } from 'lucide-react';
+import { useState, type DragEvent, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 
 interface Task {
   id: string;
@@ -38,13 +67,21 @@ const initialColumnsData: Column[] = [
   { id: 'done', title: 'Done', tasks: initialTasksData.filter((_, i) => i === 4) },
 ];
 
-
 const priorityBadgeVariant = (priority?: 'Low' | 'Medium' | 'High'): "default" | "secondary" | "destructive" | "outline" => {
   if (priority === 'High') return 'destructive';
-  if (priority === 'Medium') return 'default'; // Primary color (violet)
+  if (priority === 'Medium') return 'default'; 
   return 'secondary';
 }
 
+const taskSchema = z.object({
+  title: z.string().min(1, "Title is required."),
+  description: z.string().optional(),
+  assigneeName: z.string().optional(),
+  dueDate: z.date().optional(),
+  priority: z.enum(["Low", "Medium", "High"]).optional(),
+});
+
+type TaskFormValues = z.infer<typeof taskSchema>;
 
 function KanbanCard({ task }: { task: Task }) {
   const handleDragStart = (e: DragEvent<HTMLDivElement>, taskId: string) => {
@@ -52,26 +89,26 @@ function KanbanCard({ task }: { task: Task }) {
   };
 
   return (
-    <Card 
-      draggable 
+    <Card
+      draggable
       onDragStart={(e) => handleDragStart(e, task.id)}
-      className="mb-3 p-3 shadow-md hover:shadow-lg transition-shadow cursor-grab active:cursor-grabbing bg-card"
+      className="mb-3 p-3 shadow-md hover:shadow-lg transition-shadow cursor-grab active:cursor-grabbing bg-card group"
     >
       <CardTitle className="text-md mb-1 flex justify-between items-center">
         {task.title}
         <GripVertical className="h-4 w-4 text-muted-foreground invisible group-hover:visible" />
       </CardTitle>
       {task.description && <CardDescription className="text-xs mb-2">{task.description}</CardDescription>}
-      <div className="flex justify-between items-center text-xs text-muted-foreground">
+      <div className="flex justify-between items-center text-xs text-muted-foreground mt-2">
         <div>
           {task.dueDate && <span>Due: {task.dueDate}</span>}
         </div>
-        {task.priority && <Badge variant={priorityBadgeVariant(task.priority)}>{task.priority}</Badge>}
+        {task.priority && <Badge variant={priorityBadgeVariant(task.priority)} className={task.priority === 'Medium' ? 'bg-primary text-primary-foreground' : ''}>{task.priority}</Badge>}
       </div>
       {task.assignee && (
         <div className="mt-2 flex items-center">
           <Avatar className="h-6 w-6 mr-2">
-            <AvatarImage src={task.assignee.avatar} data-ai-hint="person avatar"/>
+            <AvatarImage src={task.assignee.avatar} data-ai-hint="person avatar" alt={task.assignee.name} />
             <AvatarFallback>{task.assignee.name.slice(0,1)}</AvatarFallback>
           </Avatar>
           <span className="text-xs">{task.assignee.name}</span>
@@ -82,41 +119,95 @@ function KanbanCard({ task }: { task: Task }) {
 }
 
 export default function TasksPage() {
-  const [columns, setColumns] = useState<Column[]>(initialColumnsData);
+  const [columns, setColumns] = useState<Column[]>([]);
+  const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const storedColumns = localStorage.getItem('kanbanColumns');
+    if (storedColumns) {
+      setColumns(JSON.parse(storedColumns));
+    } else {
+      setColumns(initialColumnsData);
+      localStorage.setItem('kanbanColumns', JSON.stringify(initialColumnsData));
+    }
+  }, []);
+
+  const form = useForm<TaskFormValues>({
+    resolver: zodResolver(taskSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      assigneeName: "",
+      priority: "Medium",
+    },
+  });
+
+  const handleAddTaskSubmit = (values: TaskFormValues) => {
+    const newTask: Task = {
+      id: `task-${Date.now()}`,
+      title: values.title,
+      description: values.description,
+      assignee: values.assigneeName ? { name: values.assigneeName, avatar: `https://placehold.co/32x32.png?text=${values.assigneeName.substring(0,2).toUpperCase()}` } : undefined,
+      dueDate: values.dueDate ? format(values.dueDate, "yyyy-MM-dd") : undefined,
+      priority: values.priority,
+    };
+
+    const updatedColumns = columns.map(column => {
+      if (column.id === 'todo') { // Add to "To Do" column by default
+        return { ...column, tasks: [...column.tasks, newTask] };
+      }
+      return column;
+    });
+    
+    setColumns(updatedColumns);
+    localStorage.setItem('kanbanColumns', JSON.stringify(updatedColumns));
+    toast({ title: "Task Added", description: `${newTask.title} has been added to To Do.` });
+    form.reset();
+    setIsAddTaskOpen(false);
+  };
+
 
   const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
-    e.preventDefault(); // Necessary to allow dropping
+    e.preventDefault(); 
   };
 
   const handleDrop = (e: DragEvent<HTMLDivElement>, targetColumnId: string) => {
     e.preventDefault();
     const taskId = e.dataTransfer.getData('taskId');
     
-    setColumns(prevColumns => {
-      let taskToMove: Task | undefined;
-      let sourceColumnId: string | undefined;
+    let taskToMove: Task | undefined;
+    let sourceColumnId: string | undefined;
 
-      // Find and remove task from source column
-      const newColumns = prevColumns.map(col => {
-        const taskIndex = col.tasks.findIndex(t => t.id === taskId);
-        if (taskIndex > -1) {
-          taskToMove = col.tasks[taskIndex];
-          sourceColumnId = col.id;
-          return { ...col, tasks: col.tasks.filter(t => t.id !== taskId) };
-        }
-        return col;
-      });
-
-      if (!taskToMove || sourceColumnId === targetColumnId) return prevColumns; // No move if same column or task not found
-
-      // Add task to target column
-      return newColumns.map(col => {
-        if (col.id === targetColumnId && taskToMove) {
-          return { ...col, tasks: [...col.tasks, taskToMove] };
-        }
-        return col;
-      });
+    const newColumnsState = columns.map(col => {
+      const taskIndex = col.tasks.findIndex(t => t.id === taskId);
+      if (taskIndex > -1) {
+        taskToMove = col.tasks[taskIndex];
+        sourceColumnId = col.id;
+        return { ...col, tasks: col.tasks.filter(t => t.id !== taskId) };
+      }
+      return col;
     });
+
+    if (!taskToMove || !sourceColumnId || sourceColumnId === targetColumnId) {
+        // If task not found or attempt to drop in the same column, do nothing.
+        // Or if taskToMove is somehow undefined (should not happen if drag started correctly)
+        if (!taskToMove && taskId) {
+            console.warn("Task to move not found, but taskId was present. TaskId:", taskId);
+        }
+        return; 
+    }
+    
+    const finalColumns = newColumnsState.map(col => {
+      if (col.id === targetColumnId && taskToMove) {
+        // Add task to the beginning of the target column's task list
+        return { ...col, tasks: [taskToMove, ...col.tasks] };
+      }
+      return col;
+    });
+    
+    setColumns(finalColumns);
+    localStorage.setItem('kanbanColumns', JSON.stringify(finalColumns));
   };
 
   return (
@@ -127,21 +218,139 @@ export default function TasksPage() {
             <h1 className="text-3xl font-bold flex items-center gap-2"><GanttChartSquare className="h-8 w-8 text-primary" /> Task Board</h1>
             <p className="text-muted-foreground">Visualize and manage your team&apos;s tasks.</p>
           </div>
-          <Button>
-            <PlusCircle className="mr-2 h-4 w-4" /> Add New Task
-          </Button>
+          <Dialog open={isAddTaskOpen} onOpenChange={setIsAddTaskOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <PlusCircle className="mr-2 h-4 w-4" /> Add New Task
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[480px]">
+              <DialogHeader>
+                <DialogTitle>Add New Task</DialogTitle>
+                <DialogDescription>
+                  Fill in the details for the new task.
+                </DialogDescription>
+              </DialogHeader>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(handleAddTaskSubmit)} className="space-y-4 py-4">
+                  <FormField
+                    control={form.control}
+                    name="title"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Title</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g., Finalize proposal" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Description (Optional)</FormLabel>
+                        <FormControl>
+                          <Textarea placeholder="Add more details about the task" {...field} rows={3} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="assigneeName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Assignee Name (Optional)</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g., John Doe" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="dueDate"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Due Date (Optional)</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant={"outline"}
+                                className={cn(
+                                  "w-full pl-3 text-left font-normal",
+                                  !field.value && "text-muted-foreground"
+                                )}
+                              >
+                                {field.value ? (
+                                  format(field.value, "PPP")
+                                ) : (
+                                  <span>Pick a date</span>
+                                )}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={field.value}
+                              onSelect={field.onChange}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="priority"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Priority (Optional)</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select priority" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="Low">Low</SelectItem>
+                            <SelectItem value="Medium">Medium</SelectItem>
+                            <SelectItem value="High">High</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <DialogFooter>
+                    <Button type="submit">Add Task</Button>
+                  </DialogFooter>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
         </div>
 
         <div className="flex-grow grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 overflow-x-auto pb-4">
           {columns.map(column => (
-            <div 
-              key={column.id} 
+            <div
+              key={column.id}
               className="bg-muted/50 p-4 rounded-lg shadow-inner min-w-[300px] flex flex-col h-full"
               onDragOver={handleDragOver}
               onDrop={(e) => handleDrop(e, column.id)}
             >
               <h2 className="text-lg font-semibold mb-4 px-1 text-foreground">{column.title} ({column.tasks.length})</h2>
-              <div className="flex-grow overflow-y-auto space-y-3 pr-1 group"> {/* Added group class for hover effects on cards */}
+              <div className="flex-grow overflow-y-auto space-y-3 pr-1">
                 {column.tasks.length > 0 ? (
                   column.tasks.map(task => <KanbanCard key={task.id} task={task} />)
                 ) : (

@@ -102,6 +102,18 @@ export default function LeadsPage() {
     setIsAddLeadOpen(false);
   };
 
+  const handleFilter = () => {
+    toast({ title: "Filter Leads", description: "Filtering functionality is coming soon!" });
+  };
+
+  const handleViewLead = (leadName: string) => {
+    toast({ title: "View Lead", description: `Viewing details for ${leadName}... (Feature coming soon)` });
+  };
+
+  const handleEditLead = (leadName: string) => {
+    toast({ title: "Edit Lead", description: `Editing details for ${leadName}... (Feature coming soon)` });
+  };
+
   return (
     <MainLayout>
       <div className="space-y-6">
@@ -111,7 +123,7 @@ export default function LeadsPage() {
             <p className="text-muted-foreground">Manage and track your prospective clients.</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline">
+            <Button variant="outline" onClick={handleFilter}>
               <Filter className="mr-2 h-4 w-4" /> Filter
             </Button>
             <Dialog open={isAddLeadOpen} onOpenChange={setIsAddLeadOpen}>
@@ -240,9 +252,9 @@ export default function LeadsPage() {
                       </Badge>
                     </TableCell>
                     <TableCell>{lead.lastContact}</TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="sm">View</Button>
-                      <Button variant="ghost" size="sm" className="text-primary hover:text-primary/80">Edit</Button>
+                    <TableCell className="text-right space-x-1">
+                      <Button variant="ghost" size="sm" onClick={() => handleViewLead(lead.name)}>View</Button>
+                      <Button variant="ghost" size="sm" className="text-primary hover:text-primary/80" onClick={() => handleEditLead(lead.name)}>Edit</Button>
                     </TableCell>
                   </TableRow>
                 ))}
