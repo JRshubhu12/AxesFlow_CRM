@@ -5,11 +5,12 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Progress } from '@/components/ui/progress';
 import { Briefcase, PlusCircle, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
+import { Label } from '@/components/ui/label';
 
 const projectsData = [
   { id: 'P001', name: 'Website Redesign for Alpha Corp', client: 'Alpha Corp', status: 'In Progress', dueDate: '2024-09-15', progress: 60 },
   { id: 'P002', name: 'Mobile App Development for Beta LLC', client: 'Beta LLC', status: 'Planning', dueDate: '2024-11-01', progress: 15 },
-  { id: 'P003', name: 'Marketing Campaign for Gamma Inc.', client: 'Gamma Inc.', status: 'Completed', dueDate: '2024-07-20', progress: 100 },
+  { id: 'P003', name: 'Marketing Campaign for Gamma Inc.', client: 'Gamma Inc', status: 'Completed', dueDate: '2024-07-20', progress: 100 },
   { id: 'P004', name: 'Branding for Delta Co.', client: 'Delta Co.', status: 'On Hold', dueDate: '2024-10-01', progress: 30 },
 ];
 
