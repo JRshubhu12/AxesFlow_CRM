@@ -5,18 +5,19 @@ import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label'; // Ensure Label is imported
+import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { useState } from 'react';
 import { DollarSign, CalendarIcon, TrendingUp, AlertCircle, Receipt } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 const invoiceSchema = z.object({
   clientName: z.string().min(2, { message: "Client name must be at least 2 characters." }),
@@ -52,6 +53,19 @@ export default function FinancePage() {
     });
     form.reset(); // Reset form after submission
     setIsLoading(false);
+  };
+
+  const getInvoiceStatusBadge = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'paid':
+        return <Badge className="bg-green-500 text-white hover:bg-green-600">Paid</Badge>;
+      case 'pending':
+        return <Badge className="bg-yellow-500 text-white hover:bg-yellow-600">Pending</Badge>;
+      case 'overdue':
+        return <Badge variant="destructive">Overdue</Badge>;
+      default:
+        return <Badge variant="secondary">{status}</Badge>;
+    }
   };
 
   return (
@@ -168,22 +182,26 @@ export default function FinancePage() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Card className="p-4 bg-muted/30">
-                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-0">
-                    <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-                    <DollarSign className="h-4 w-4 text-muted-foreground" />
+                <Card className="bg-muted/30 shadow-md">
+                   <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium flex items-center justify-between">
+                      <span>Total Revenue</span>
+                      <DollarSign className="h-4 w-4 text-muted-foreground" />
+                    </CardTitle>
                   </CardHeader>
-                  <CardContent className="p-0">
+                  <CardContent>
                     <div className="text-2xl font-bold">$125,670.00</div>
                     <p className="text-xs text-muted-foreground">+15.2% from last month</p>
                   </CardContent>
                 </Card>
-                <Card className="p-4 bg-muted/30">
-                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-0">
-                    <CardTitle className="text-sm font-medium">Pending Payments</CardTitle>
-                    <AlertCircle className="h-4 w-4 text-muted-foreground" />
+                <Card className="bg-muted/30 shadow-md">
+                   <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium flex items-center justify-between">
+                      <span>Pending Payments</span>
+                      <AlertCircle className="h-4 w-4 text-muted-foreground" />
+                    </CardTitle>
                   </CardHeader>
-                  <CardContent className="p-0">
+                  <CardContent>
                     <div className="text-2xl font-bold">$12,345.00</div>
                     <p className="text-xs text-muted-foreground">5 invoices overdue</p>
                    </CardContent>
@@ -202,11 +220,7 @@ export default function FinancePage() {
                         <p className="font-medium text-foreground">{inv.id} - {inv.client}</p>
                         <p className="text-muted-foreground">Amount: {inv.amount}</p>
                       </div>
-                      <span className={cn("px-2 py-0.5 rounded-full text-xs", 
-                        inv.status === 'Paid' && 'bg-green-100 text-green-700',
-                        inv.status === 'Pending' && 'bg-yellow-100 text-yellow-700',
-                        inv.status === 'Overdue' && 'bg-red-100 text-red-700'
-                      )}>{inv.status}</span>
+                      {getInvoiceStatusBadge(inv.status)}
                     </div>
                   ))}
                 </div>
