@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { useForm } from "react-hook-form";
@@ -36,6 +36,7 @@ import * as z from "zod";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import type { TeamMember } from '@/app/team/page'; // Import TeamMember interface
 
 interface Task {
   id: string;
@@ -76,7 +77,7 @@ const priorityBadgeVariant = (priority?: 'Low' | 'Medium' | 'High'): "default" |
 const taskSchema = z.object({
   title: z.string().min(1, "Title is required."),
   description: z.string().optional(),
-  assigneeName: z.string().optional(),
+  assigneeName: z.string().optional(), // Storing the name as a string
   dueDate: z.date().optional(),
   priority: z.enum(["Low", "Medium", "High"]).optional(),
 });
@@ -123,6 +124,7 @@ function KanbanCard({ task }: { task: Task }) {
 export default function TasksPage() {
   const [columns, setColumns] = useState<Column[]>([]);
   const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
+  const [availableAssignees, setAvailableAssignees] = useState<TeamMember[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -132,6 +134,11 @@ export default function TasksPage() {
     } else {
       setColumns(initialColumnsData);
       localStorage.setItem('kanbanColumns', JSON.stringify(initialColumnsData));
+    }
+
+    const storedTeamMembers = localStorage.getItem('teamMembers');
+    if (storedTeamMembers) {
+      setAvailableAssignees(JSON.parse(storedTeamMembers));
     }
   }, []);
 
@@ -150,14 +157,14 @@ export default function TasksPage() {
       id: `task-${Date.now()}`,
       title: values.title,
       description: values.description,
-      assignee: values.assigneeName ? { name: values.assigneeName, avatar: `https://placehold.co/32x32.png?text=${values.assigneeName.substring(0,2).toUpperCase()}` } : undefined,
+      assignee: values.assigneeName ? { name: values.assigneeName, avatar: `https://placehold.co/32x32.png?text=${values.assigneeName.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase()}` } : undefined,
       dueDate: values.dueDate ? format(values.dueDate, "yyyy-MM-dd") : undefined,
       priority: values.priority,
     };
 
     const updatedColumns = columns.map(column => {
       if (column.id === 'todo') { 
-        return { ...column, tasks: [newTask, ...column.tasks] }; // Add to the beginning of "To Do"
+        return { ...column, tasks: [newTask, ...column.tasks] }; 
       }
       return column;
     });
@@ -263,10 +270,25 @@ export default function TasksPage() {
                     name="assigneeName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Assignee Name (Optional)</FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g., John Doe" {...field} />
-                        </FormControl>
+                        <FormLabel>Assignee (Optional)</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select an assignee" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectGroup>
+                              <SelectLabel>Team Members</SelectLabel>
+                              <SelectItem value="">Unassigned</SelectItem>
+                              {availableAssignees.map((member) => (
+                                <SelectItem key={member.id} value={member.name}>
+                                  {member.name}
+                                </SelectItem>
+                              ))}
+                            </SelectGroup>
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -301,6 +323,9 @@ export default function TasksPage() {
                               mode="single"
                               selected={field.value}
                               onSelect={field.onChange}
+                              disabled={(date) =>
+                                date < new Date(new Date().setDate(new Date().getDate() - 1)) 
+                              }
                               initialFocus
                             />
                           </PopoverContent>
@@ -364,3 +389,4 @@ export default function TasksPage() {
   );
 }
 
+    
