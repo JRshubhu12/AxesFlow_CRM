@@ -10,21 +10,48 @@ export default function DashboardPage() {
     <MainLayout>
       <div className="space-y-8">
         {/* Hero Section */}
-        <div className="relative rounded-xl bg-gradient-to-r from-blue-600 to-indigo-700 p-8 text-white overflow-hidden">
-          <div className="relative z-10">
-            <h1 className="text-4xl font-bold tracking-tight mb-2">Welcome back to AxesFlow</h1>
-            <p className="text-lg text-blue-100 max-w-2xl mb-6">
-              Your integrated solution for streamlining agency operations. Let's make today productive.
-            </p>
-            <Button variant="secondary" size="lg" asChild>
-              <Link href="/profile" className="flex items-center">
-                Setup Your Profile <ArrowRight className="ml-2 h-5 w-5" />
-              </Link>
-            </Button>
+        <div className="relative rounded-xl bg-gradient-to-br from-gray-900 to-gray-800 p-8 text-white overflow-hidden">
+  <div className="absolute inset-0 opacity-10">
+    <div className="absolute inset-0 bg-[url('/images/grid-pattern.svg')] bg-[length:40px_40px]"></div>
+  </div>
+  
+  <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+    <div>
+      <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-3">
+        Welcome back to <span className="text-blue-400">AxesFlow</span>
+      </h1>
+      <p className="text-lg text-gray-300 max-w-2xl mb-6 leading-relaxed">
+        Your integrated solution for streamlined agency operations. 
+        Monitor performance and accelerate growth with our unified platform.
+      </p>
+      <div className="flex gap-3">
+        <Button variant="default" size="lg" asChild className="bg-blue-600 hover:bg-blue-700">
+          <Link href="/profile" className="flex items-center gap-2">
+            Setup Profile <ArrowRight className="h-5 w-5" />
+          </Link>
+        </Button>
+        <Button variant="outline" size="lg" asChild className="text-white border-gray-500 hover:bg-gray-800">
+          <Link href="/dashboard" className="flex items-center gap-2">
+            View Dashboard
+          </Link>
+        </Button>
+      </div>
+    </div>
+    
+    <div className="hidden md:block relative w-64 h-64">
+      <div className="absolute -right-6 -top-6 w-full h-full bg-blue-500/10 rounded-full blur-xl"></div>
+      <div className="relative w-full h-full flex items-center justify-center">
+        <div className="w-48 h-48 bg-blue-600/20 rounded-full flex items-center justify-center">
+          <div className="w-32 h-32 bg-blue-600/30 rounded-full flex items-center justify-center">
+            <Briefcase className="h-16 w-16 text-blue-400" strokeWidth={1.5} />
           </div>
-          {/* The illustration div and Image component were here */}
-          <div className="absolute inset-0 bg-gradient-to-l from-transparent to-blue-600/50 z-0"></div>
         </div>
+      </div>
+    </div>
+  </div>
+  
+  <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-purple-600"></div>
+</div>
 
         {/* Stats Overview */}
         <div className="grid gap-6 md:grid-cols-4">

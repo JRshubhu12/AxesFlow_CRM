@@ -4,17 +4,30 @@ import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { generateEmailCampaign, type GenerateEmailCampaignOutput } from '@/ai/flows/generate-email-campaign';
 import { useState } from 'react';
 import { Sparkles, Copy, Download } from 'lucide-react';
 
+// --- API helper calling our own backend ---
+async function generateEmailCampaignWithGemini(
+  data: { targetIndustry: string; messageTemplates: string; campaignGoal: string }
+): Promise<{ emailCampaign: string }> {
+  const res = await fetch("/api/generate-campaign", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  const result = await res.json();
+  if (!res.ok) throw new Error(result.error || "Failed to generate email campaign.");
+  return result;
+}
+
+// --- Form Validation Schema ---
 const campaignSchema = z.object({
   targetIndustry: z.string().min(3, { message: "Target industry must be at least 3 characters." }),
   messageTemplates: z.string().min(10, { message: "Message templates must be at least 10 characters." }),
@@ -25,7 +38,7 @@ type CampaignFormValues = z.infer<typeof campaignSchema>;
 
 export default function EmailCampaignsPage() {
   const { toast } = useToast();
-  const [generatedCampaign, setGeneratedCampaign] = useState<GenerateEmailCampaignOutput | null>(null);
+  const [generatedCampaign, setGeneratedCampaign] = useState<{ emailCampaign: string } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<CampaignFormValues>({
@@ -41,17 +54,17 @@ export default function EmailCampaignsPage() {
     setIsLoading(true);
     setGeneratedCampaign(null);
     try {
-      const result = await generateEmailCampaign(data);
+      const result = await generateEmailCampaignWithGemini(data);
       setGeneratedCampaign(result);
       toast({
         title: "Campaign Generated!",
         description: "Your AI-powered email campaign is ready.",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to generate email campaign:", error);
       toast({
         title: "Error",
-        description: "Failed to generate email campaign. Please try again.",
+        description: error.message ?? "Failed to generate email campaign. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -72,7 +85,7 @@ export default function EmailCampaignsPage() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold flex items-center gap-2"><Sparkles className="h-8 w-8 text-primary" /> AI Email Campaign Generator</h1>
-            <p className="text-muted-foreground">Craft compelling email campaigns with the power of AI.</p>
+            <p className="text-muted-foreground">Craft compelling email campaigns with the power of Gemini AI.</p>
           </div>
         </div>
 
