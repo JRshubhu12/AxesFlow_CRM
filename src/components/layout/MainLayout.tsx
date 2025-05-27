@@ -34,19 +34,82 @@ interface UserProfile {
   agencyLogoUrl?: string;
 }
 
+function AgencyNameDisplay() {
+  const [agencyName, setAgencyName] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadAgencyName = () => {
+      const storedData = localStorage.getItem(USER_PROFILE_STORAGE_KEY);
+      if (storedData) {
+        try {
+          const parsedData: UserProfile = JSON.parse(storedData);
+          setAgencyName(parsedData.agencyName || null);
+        } catch (error) {
+          console.error("Failed to parse agency name from localStorage", error);
+          setAgencyName(null);
+        }
+      } else {
+        setAgencyName(null);
+      }
+    };
+
+    loadAgencyName(); // Initial load
+
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === USER_PROFILE_STORAGE_KEY) {
+        loadAgencyName();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
+
+  if (!agencyName) {
+    return null; // Don't render anything if no agency name
+  }
+
+  return (
+    <div className="hidden md:flex items-center mr-4">
+      <span className="text-sm font-semibold text-foreground">{agencyName}</span>
+    </div>
+  );
+}
+
 function UserNav() {
   const [userProfile, setUserProfile] = useState<UserProfile>({});
 
   useEffect(() => {
-    const storedData = localStorage.getItem(USER_PROFILE_STORAGE_KEY);
-    if (storedData) {
-      try {
-        const parsedData: UserProfile = JSON.parse(storedData);
-        setUserProfile(parsedData);
-      } catch (error) {
-        console.error("Failed to parse user profile data from localStorage", error);
+    const loadProfile = () => {
+      const storedData = localStorage.getItem(USER_PROFILE_STORAGE_KEY);
+      if (storedData) {
+        try {
+          const parsedData: UserProfile = JSON.parse(storedData);
+          setUserProfile(parsedData);
+        } catch (error) {
+          console.error("Failed to parse user profile data from localStorage", error);
+          setUserProfile({}); // Reset if parsing fails
+        }
+      } else {
+        setUserProfile({}); // Reset if no data
       }
-    }
+    };
+    
+    loadProfile(); // Initial load
+
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === USER_PROFILE_STORAGE_KEY) {
+        loadProfile();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
   const handleLogout = () => {
@@ -108,7 +171,7 @@ function LayoutContent({ children }: { children: ReactNode }) {
     <>
       <Sidebar>
         <SidebarHeader className="p-4">
-          <AppLogo />
+          <AppLogo /> {/* This already shows "AxesFlow" */}
         </SidebarHeader>
         <SidebarContent className="p-2">
           <SidebarMenu>
@@ -151,11 +214,18 @@ function LayoutContent({ children }: { children: ReactNode }) {
       </Sidebar>
       <SidebarInset>
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-background/80 backdrop-blur-md px-4 sm:px-6">
-          <div className="md:hidden">
-            <SidebarTrigger />
+          <div className="flex items-center"> {/* Left group for mobile trigger and agency name */}
+            <div className="md:hidden">
+              <SidebarTrigger />
+            </div>
+            <AgencyNameDisplay /> {/* Displays agency name, hidden on mobile by its own class */}
           </div>
-          <div className="flex-1" /> {/* Spacer */}
-          <UserNav />
+          
+          <div className="flex-1" /> {/* Spacer, pushes UserNav to the right */}
+
+          <div className="flex items-center"> {/* Right group for UserNav */}
+            <UserNav />
+          </div>
         </header>
         <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 bg-background">
           {children}
