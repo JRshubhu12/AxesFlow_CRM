@@ -5,10 +5,13 @@ import MainLayout from '@/components/layout/MainLayout';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CalendarDays, MessageCircle, FileText, Video, Phone, Users, Clock, MessageSquare, Link as LinkIcon } from 'lucide-react';
+import { CalendarDays, MessageCircle, FileText, Video, Phone, Users, Clock, MessageSquare, Link as LinkIcon, Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { supabase } from '@/lib/supabaseClient';
+import { format, parseISO } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
 
 // Interfaces for data structures
 interface Meeting {
@@ -21,20 +24,22 @@ interface Meeting {
   googleMeetLink?: string;
 }
 
-interface Chat {
-  id: string;
-  contact?: string;
-  title?: string; // For group/channel chats
+// Updated Chat interface to align with Supabase and UI needs
+export interface Chat {
+  id: string; // Supabase ID (number) converted to string for React keys
+  contact?: string; // Derived from lead_name or contact_name
   lastMessage: string;
-  timestamp: string;
+  timestamp: string; // Formatted last_message_at
   status: 'Unread' | 'Read' | 'Replied';
   unreadCount: number;
+  lead_id?: number; // Optional, if we want to link back to a lead
 }
+
 
 interface FileData {
   id: string;
   name: string;
-  type: 'Document' | 'Archive' | 'Image' | string; // Allow other types
+  type: 'Document' | 'Archive' | 'Image' | string;
   size: string;
   uploaded: string;
   status: 'Shared' | 'Internal' | 'Draft';
@@ -46,11 +51,7 @@ const initialMeetingsData: Meeting[] = [
   { id: 'M003', title: 'Follow-up with Lead X', type: 'Phone Call', dateTime: '2024-08-05 11:30 AM', status: 'Pending Confirmation', participants: ['You', 'Lead X'] },
 ];
 
-const initialChatsData: Chat[] = [
-  { id: 'C001', contact: 'Jane Smith (Solutions Inc.)', lastMessage: 'Sounds great, let\'s proceed!', timestamp: '2 hours ago', status: 'Unread', unreadCount: 2 },
-  { id: 'C002', title: 'Project Beta Channel', lastMessage: 'Mike: I\'ve uploaded the designs.', timestamp: 'Yesterday', status: 'Read', unreadCount: 0 },
-  { id: 'C003', contact: 'Support Team', lastMessage: 'We are looking into your query.', timestamp: '3 days ago', status: 'Replied', unreadCount: 0 },
-];
+// initialChatsData will be removed as we fetch from Supabase
 
 const initialFilesData: FileData[] = [
   { id: 'F001', name: 'Project Alpha Proposal.pdf', type: 'Document', size: '2.5 MB', uploaded: '2024-07-25', status: 'Shared' },
@@ -62,7 +63,7 @@ const getStatusBadgeVariant = (status: string): "default" | "secondary" | "destr
   switch (status.toLowerCase()) {
     case 'scheduled':
     case 'shared':
-    case 'unread': // Make unread more prominent
+    case 'unread': 
       return 'default';
     case 'completed':
     case 'read':
@@ -82,32 +83,64 @@ const getStatusBadgeVariant = (status: string): "default" | "secondary" | "destr
 export default function CommunicationsPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'meetings');
 
   const [meetingsData, setMeetingsData] = useState<Meeting[]>([]);
   const [chatsData, setChatsData] = useState<Chat[]>([]);
+  const [isLoadingChats, setIsLoadingChats] = useState(false);
   const [filesData, setFilesData] = useState<FileData[]>([]);
 
   useEffect(() => {
+    // Load meetings from localStorage (remains localStorage for now)
     const storedMeetings = localStorage.getItem('meetingsData');
     setMeetingsData(storedMeetings ? JSON.parse(storedMeetings) : initialMeetingsData);
 
-    const storedChats = localStorage.getItem('chatsData');
-    setChatsData(storedChats ? JSON.parse(storedChats) : initialChatsData);
-
+    // Load files from localStorage (remains localStorage for now)
     const storedFiles = localStorage.getItem('filesData');
     setFilesData(storedFiles ? JSON.parse(storedFiles) : initialFilesData);
   }, []);
 
-  // Update localStorage when data changes (e.g., after an external update and redirect)
+  // Fetch chats from Supabase
+  const fetchChats = async () => {
+    setIsLoadingChats(true);
+    const { data, error } = await supabase
+      .from('chats')
+      .select('*')
+      .order('last_message_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching chats:', error);
+      toast({ title: "Error Fetching Chats", description: error.message, variant: "destructive" });
+      setChatsData([]);
+    } else if (data) {
+      const mappedChats: Chat[] = data.map(chat => ({
+        id: chat.id.toString(),
+        contact: chat.contact_name,
+        lastMessage: chat.last_message || '',
+        timestamp: chat.last_message_at ? format(parseISO(chat.last_message_at), "PPp") : 'N/A',
+        status: chat.status as Chat['status'] || 'Read',
+        unreadCount: chat.unread_count || 0,
+        lead_id: chat.lead_id,
+      }));
+      setChatsData(mappedChats);
+    }
+    setIsLoadingChats(false);
+  };
+  
+  useEffect(() => {
+    if (activeTab === 'chats') {
+      fetchChats();
+    }
+  }, [activeTab]);
+
+
+  // Update localStorage when meetingsData changes (e.g., after an external update and redirect)
   useEffect(() => {
     localStorage.setItem('meetingsData', JSON.stringify(meetingsData));
   }, [meetingsData]);
 
-  useEffect(() => {
-    localStorage.setItem('chatsData', JSON.stringify(chatsData));
-  }, [chatsData]);
-
+  // Update localStorage when filesData changes
   useEffect(() => {
     localStorage.setItem('filesData', JSON.stringify(filesData));
   }, [filesData]);
@@ -181,26 +214,34 @@ export default function CommunicationsPage() {
             <Card className="shadow-lg">
               <CardHeader>
                 <CardTitle>Recent Chats</CardTitle>
-                <CardDescription>Stay updated with your latest conversations.</CardDescription>
+                <CardDescription>Stay updated with your latest conversations from Supabase.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {chatsData.length === 0 && <p className="text-muted-foreground text-center py-4">No chats found.</p>}
-                {chatsData.map(chat => (
-                  <Card key={chat.id} className="p-4 hover:shadow-md transition-shadow">
-                     <div className="flex justify-between items-start">
-                        <div>
-                          <h3 className="font-semibold text-lg">{chat.contact || chat.title}</h3>
-                          <p className="text-sm text-muted-foreground italic">&quot;{chat.lastMessage}&quot; - {chat.timestamp}</p>
+                {isLoadingChats ? (
+                  <div className="flex justify-center items-center py-10">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <p className="ml-2 text-muted-foreground">Loading chats...</p>
+                  </div>
+                ) : chatsData.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-4">No chats found.</p>
+                ) : (
+                  chatsData.map(chat => (
+                    <Card key={chat.id} className="p-4 hover:shadow-md transition-shadow">
+                       <div className="flex justify-between items-start">
+                          <div>
+                            <h3 className="font-semibold text-lg">{chat.contact || 'Chat'}</h3>
+                            <p className="text-sm text-muted-foreground italic">&quot;{chat.lastMessage}&quot; - {chat.timestamp}</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {chat.unreadCount > 0 && <Badge variant="destructive">{chat.unreadCount}</Badge>}
+                            <Badge variant={getStatusBadgeVariant(chat.status)}
+                             className={chat.status === 'Unread' ? 'bg-accent text-accent-foreground' : ''}
+                            >{chat.status}</Badge>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          {chat.unreadCount > 0 && <Badge variant="destructive">{chat.unreadCount}</Badge>}
-                          <Badge variant={getStatusBadgeVariant(chat.status)}
-                           className={chat.status === 'Unread' ? 'bg-accent text-accent-foreground' : ''}
-                          >{chat.status}</Badge>
-                        </div>
-                      </div>
-                  </Card>
-                ))}
+                    </Card>
+                  ))
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -234,3 +275,4 @@ export default function CommunicationsPage() {
     </MainLayout>
   );
 }
+

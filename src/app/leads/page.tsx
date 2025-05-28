@@ -62,27 +62,18 @@ const leadSchema = z.object({
 
 type LeadFormValues = z.infer<typeof leadSchema>;
 
-// Interface for UI state, maps Supabase columns if needed
 export interface Lead {
-  id: number; // From Supabase (integer PK)
+  id: number;
   name: string;
   company: string;
   email: string;
   status: "New" | "Contacted" | "Qualified" | "Proposal Sent" | "Closed - Won" | "Closed - Lost";
-  lastContact: string; // Mapped from Supabase last_contact (YYYY-MM-DD string)
-  created_at?: string; // From Supabase
-}
-
-
-// Interfaces for chat/meeting remain for localStorage interaction
-interface Chat {
-  id: string;
-  contact?: string;
-  title?: string;
-  lastMessage: string;
-  timestamp: string;
-  status: 'Unread' | 'Read' | 'Replied';
-  unreadCount: number;
+  lastContact: string; 
+  created_at?: string;
+  website?: string;
+  reasoning?: string;
+  estimated_company_size?: string;
+  key_product_or_service?: string;
 }
 
 interface Meeting {
@@ -108,7 +99,6 @@ const statusVariantMap: { [key: string]: "default" | "secondary" | "destructive"
   'Closed - Lost': 'destructive',
 };
 
-// AI Lead Finder Form Schema
 const aiLeadFinderSchema = z.object({
   industry: z.string().min(3, { message: "Target industry must be at least 3 characters." }),
   location: z.string().optional(),
@@ -150,8 +140,12 @@ export default function LeadsPage() {
         company: lead.company,
         email: lead.email,
         status: lead.status,
-        lastContact: lead.last_contact, // Map from Supabase snake_case
+        lastContact: lead.last_contact,
         created_at: lead.created_at,
+        website: lead.website,
+        reasoning: lead.reasoning,
+        estimated_company_size: lead.estimated_company_size,
+        key_product_or_service: lead.key_product_or_service,
       })) as Lead[];
       setLeads(mappedLeads);
     }
@@ -160,7 +154,7 @@ export default function LeadsPage() {
 
   useEffect(() => {
     fetchLeadsFromSupabase();
-  }, []); // Removed toast from dependency array as it's stable
+  }, []);
 
   const form = useForm<LeadFormValues>({
     resolver: zodResolver(leadSchema),
@@ -198,18 +192,8 @@ export default function LeadsPage() {
     if (error) {
       toast({ title: "Error Adding Lead", description: error.message, variant: "destructive" });
     } else if (data && data.length > 0) {
-      const addedLeadSupabase = data[0];
-      const newLeadForUI: Lead = {
-        id: addedLeadSupabase.id,
-        name: addedLeadSupabase.name,
-        company: addedLeadSupabase.company,
-        email: addedLeadSupabase.email,
-        status: addedLeadSupabase.status,
-        lastContact: addedLeadSupabase.last_contact,
-        created_at: addedLeadSupabase.created_at,
-      };
-      setLeads(prevLeads => [newLeadForUI, ...prevLeads]);
-      toast({ title: "Lead Added", description: `${newLeadForUI.name} has been added.` });
+      await fetchLeadsFromSupabase(); // Refetch to get the latest list including the new one
+      toast({ title: "Lead Added", description: `${values.name} has been added.` });
       form.reset();
       setIsAddLeadOpen(false);
     }
@@ -222,7 +206,7 @@ export default function LeadsPage() {
       company: values.company,
       email: values.email,
       status: values.status,
-      last_contact: format(new Date(), "yyyy-MM-dd"),
+      last_contact: format(new Date(), "yyyy-MM-dd"), // Or keep existing if not changed
     };
     const { data, error } = await supabase
       .from('leads')
@@ -233,18 +217,8 @@ export default function LeadsPage() {
     if (error) {
       toast({ title: "Error Updating Lead", description: error.message, variant: "destructive" });
     } else if (data && data.length > 0) {
-      const updatedLeadSupabase = data[0];
-       const updatedLeadForUI: Lead = {
-        id: updatedLeadSupabase.id,
-        name: updatedLeadSupabase.name,
-        company: updatedLeadSupabase.company,
-        email: updatedLeadSupabase.email,
-        status: updatedLeadSupabase.status,
-        lastContact: updatedLeadSupabase.last_contact,
-        created_at: updatedLeadSupabase.created_at,
-      };
-      setLeads(prevLeads => prevLeads.map(l => l.id === updatedLeadForUI.id ? updatedLeadForUI : l));
-      toast({ title: "Lead Updated", description: `${updatedLeadForUI.name} has been updated.` });
+      await fetchLeadsFromSupabase();
+      toast({ title: "Lead Updated", description: `${values.name} has been updated.` });
       editForm.reset();
       setIsEditLeadOpen(false);
       setSelectedLead(null);
@@ -261,18 +235,9 @@ export default function LeadsPage() {
     if (error) {
       toast({ title: "Error Updating Status", description: error.message, variant: "destructive" });
     } else if (data && data.length > 0) {
-      const updatedLeadSupabase = data[0];
-      const updatedLeadForUI: Lead = {
-        id: updatedLeadSupabase.id,
-        name: updatedLeadSupabase.name,
-        company: updatedLeadSupabase.company,
-        email: updatedLeadSupabase.email,
-        status: updatedLeadSupabase.status,
-        lastContact: updatedLeadSupabase.last_contact,
-        created_at: updatedLeadSupabase.created_at,
-      };
-      setLeads(prevLeads => prevLeads.map(l => l.id === updatedLeadForUI.id ? updatedLeadForUI : l));
-      toast({ title: "Status Updated", description: `Lead ${updatedLeadForUI.name} status changed to ${newStatus}.` });
+      await fetchLeadsFromSupabase();
+      const leadName = leads.find(l => l.id === leadId)?.name || 'Lead';
+      toast({ title: "Status Updated", description: `${leadName} status changed to ${newStatus}.` });
     }
   };
 
@@ -293,25 +258,28 @@ export default function LeadsPage() {
     setIsViewLeadOpen(true);
   };
 
-  const handleStartChat = (lead: Lead) => {
-    const storedChats = localStorage.getItem('chatsData'); // Keep chats in localStorage for now
-    const currentChats: Chat[] = storedChats ? JSON.parse(storedChats) : [];
-    const newChat: Chat = {
-      id: `C-${Date.now()}`,
-      contact: `${lead.name} (${lead.company})`,
-      lastMessage: 'Chat initiated...',
-      timestamp: 'Just now',
+  const handleStartChat = async (lead: Lead) => {
+    const newChatData = {
+      lead_id: lead.id,
+      contact_name: `${lead.name} (${lead.company})`,
+      last_message: 'Chat initiated...',
       status: 'Unread',
-      unreadCount: 1,
+      unread_count: 1,
+      // last_message_at and created_at will default to NOW() in Supabase
     };
-    const updatedChats = [newChat, ...currentChats];
-    localStorage.setItem('chatsData', JSON.stringify(updatedChats));
-    toast({ title: "Chat Initiated", description: `Chat with ${lead.name} started. Redirecting...` });
-    router.push('/communications?tab=chats');
+
+    const { error } = await supabase.from('chats').insert([newChatData]);
+
+    if (error) {
+      toast({ title: "Error Starting Chat", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Chat Initiated", description: `Chat with ${lead.name} started. Redirecting...` });
+      router.push('/communications?tab=chats');
+    }
   };
 
   const handleScheduleMeeting = (lead: Lead) => {
-    const storedMeetings = localStorage.getItem('meetingsData'); // Keep meetings in localStorage
+    const storedMeetings = localStorage.getItem('meetingsData'); 
     const currentMeetings: Meeting[] = storedMeetings ? JSON.parse(storedMeetings) : [];
     const newMeeting: Meeting = {
       id: `M-${Date.now()}`,
@@ -359,32 +327,22 @@ export default function LeadsPage() {
       email: aiLead.contactEmail || `info@${aiLead.companyName.toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9@.]/gi, '')}.com`,
       status: 'New' as LeadFormValues['status'],
       last_contact: format(new Date(), "yyyy-MM-dd"),
-      website: aiLead.website, // Assuming your 'leads' table has a 'website' column
-      reasoning: aiLead.reasoning, // Assuming 'reasoning' column
-      estimated_company_size: aiLead.estimatedCompanySize, // Assuming 'estimated_company_size' column
-      key_product_or_service: aiLead.keyProductOrService, // Assuming 'key_product_or_service' column
+      website: aiLead.website,
+      reasoning: aiLead.reasoning,
+      estimated_company_size: aiLead.estimatedCompanySize,
+      key_product_or_service: aiLead.keyProductOrService,
     };
 
     const { data, error } = await supabase.from('leads').insert([newLeadData]).select();
     if (error) {
       toast({ title: "Error Adding AI Lead", description: error.message, variant: "destructive" });
     } else if (data && data.length > 0) {
-      const addedLeadSupabase = data[0];
-      const newLeadForUI: Lead = {
-        id: addedLeadSupabase.id,
-        name: addedLeadSupabase.name,
-        company: addedLeadSupabase.company,
-        email: addedLeadSupabase.email,
-        status: addedLeadSupabase.status,
-        lastContact: addedLeadSupabase.last_contact,
-        created_at: addedLeadSupabase.created_at,
-      };
-      setLeads(prevLeads => [newLeadForUI, ...prevLeads]);
-      toast({ title: "AI Lead Added", description: `${newLeadForUI.company} has been added to your leads list.` });
+      await fetchLeadsFromSupabase();
+      toast({ title: "AI Lead Added", description: `${newLeadData.company} has been added to your leads list.` });
     }
   };
 
-  const parseCSVToLeads = (csvText: string): Partial<Lead>[] => { // Return Partial<Lead> as ID is not known yet
+  const parseCSVToLeads = (csvText: string): Partial<Lead>[] => {
     const newLeads: Partial<Lead>[] = [];
     const lines = csvText.trim().split('\n');
     if (lines.length < 2) {
@@ -405,7 +363,7 @@ export default function LeadsPage() {
     const companyIndex = headers.indexOf('company');
     const emailIndex = headers.indexOf('email');
     const statusIndex = headers.indexOf('status');
-    const lastContactIndex = headers.indexOf('lastcontact'); // Optional: last_contact or lastContact
+    const lastContactIndex = headers.indexOf('lastcontact'); 
 
     for (let i = 1; i < lines.length; i++) {
       const values = lines[i].split(',').map(v => v.trim().replace(/^"|"$/g, '')); 
@@ -421,28 +379,26 @@ export default function LeadsPage() {
       const statusValue = values[statusIndex];
       let lastContactValue = values[lastContactIndex];
 
-
       if (!name || !company || !email || !statusValue) {
           console.warn(`Skipping row ${i + 1} due to missing required data after parsing.`);
           continue; 
       }
       
       try {
-        if (lastContactValue) {
+        if (lastContactValue && lastContactValue.trim() !== "") { // Check if lastContactValue is not empty
             lastContactValue = format(parseISO(lastContactValue), "yyyy-MM-dd");
         } else {
-            lastContactValue = format(new Date(), "yyyy-MM-dd");
+            lastContactValue = format(new Date(), "yyyy-MM-dd"); // Default if empty or invalid
         }
       } catch (e) {
         console.warn(`Invalid date format for lastContact in row ${i+1}, defaulting to today.`);
         lastContactValue = format(new Date(), "yyyy-MM-dd");
       }
 
-
       const leadStatus = statusValue as LeadFormValues['status'];
       const isValidStatus = leadStatuses.includes(leadStatus);
 
-      const lead: Partial<Lead> = { // id is not set here, Supabase will generate it
+      const lead: Partial<Lead> = {
         name: name,
         company: company,
         email: email,
@@ -476,25 +432,15 @@ export default function LeadsPage() {
             company: p.company!,
             email: p.email!,
             status: p.status!,
-            last_contact: p.lastContact!, // Ensure this is YYYY-MM-DD
+            last_contact: p.lastContact!,
           }));
 
           const { data, error } = await supabase.from('leads').insert(leadsToInsert).select();
           if (error) {
             toast({ title: "CSV Import Error", description: error.message, variant: "destructive" });
           } else if (data) {
-             const addedLeadsForUI = data.map(lead => ({
-                id: lead.id,
-                name: lead.name,
-                company: lead.company,
-                email: lead.email,
-                status: lead.status,
-                lastContact: lead.last_contact,
-                created_at: lead.created_at,
-            })) as Lead[];
-            setLeads(prevLeads => [...addedLeadsForUI, ...prevLeads]); // Consider deduping or simply prepending/appending
             toast({ title: "Leads Imported", description: `${data.length} leads have been imported successfully.` });
-            fetchLeadsFromSupabase(); // Re-fetch to ensure sync and correct order
+            fetchLeadsFromSupabase(); 
           }
         }
       } else {
@@ -643,7 +589,6 @@ export default function LeadsPage() {
           </div>
         </div>
 
-        {/* Edit Lead Dialog */}
         <Dialog open={isEditLeadOpen} onOpenChange={setIsEditLeadOpen}>
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
@@ -724,7 +669,6 @@ export default function LeadsPage() {
           </DialogContent>
         </Dialog>
 
-        {/* View Lead Dialog */}
         <Dialog open={isViewLeadOpen} onOpenChange={setIsViewLeadOpen}>
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
@@ -743,6 +687,10 @@ export default function LeadsPage() {
                         }>{selectedLead.status}</Badge></div>
                 <div><strong className="font-medium">Last Contact:</strong> {selectedLead.lastContact ? format(parseISO(selectedLead.lastContact), "PP") : 'N/A'}</div>
                 <div><strong className="font-medium">Created At:</strong> {selectedLead.created_at ? format(parseISO(selectedLead.created_at), "PPpp") : 'N/A'}</div>
+                {selectedLead.website && <div><strong className="font-medium">Website:</strong> <a href={selectedLead.website.startsWith('http') ? selectedLead.website : `https://${selectedLead.website}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{selectedLead.website}</a></div>}
+                {selectedLead.reasoning && <div><strong className="font-medium">Reasoning:</strong> {selectedLead.reasoning}</div>}
+                {selectedLead.estimated_company_size && <div><strong className="font-medium">Est. Size:</strong> {selectedLead.estimated_company_size}</div>}
+                {selectedLead.key_product_or_service && <div><strong className="font-medium">Key Offering:</strong> {selectedLead.key_product_or_service}</div>}
               </div>
             )}
             <DialogFooter>
@@ -862,7 +810,6 @@ export default function LeadsPage() {
           </CardContent>
         </Card>
 
-        {/* AI Lead Finder Section */}
         <Card className="shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center gap-2"><Sparkles className="h-6 w-6 text-primary" />AI Lead Finder</CardTitle>
@@ -972,3 +919,4 @@ export default function LeadsPage() {
     </MainLayout>
   );
 }
+
