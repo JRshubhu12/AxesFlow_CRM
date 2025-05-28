@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { PlusCircle, Filter, Users, Eye, Edit3, MessageCircle, CalendarPlus, Sparkles, Search, Upload, MoreHorizontal } from 'lucide-react';
+import { PlusCircle, Filter, Users, Eye, Edit3, MessageCircle, CalendarPlus, Sparkles, Search, Upload, MoreHorizontal, CheckSquare } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -14,6 +14,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   DropdownMenu,
@@ -22,6 +23,12 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuPortal,
 } from "@/components/ui/dropdown-menu";
 import {
   Form,
@@ -183,6 +190,16 @@ export default function LeadsPage() {
     setIsEditLeadOpen(false);
     setSelectedLead(null);
   };
+
+  const handleQuickStatusChange = (leadId: string, newStatus: LeadFormValues['status']) => {
+    const updatedLeads = leads.map(lead =>
+      lead.id === leadId ? { ...lead, status: newStatus, lastContact: format(new Date(), "yyyy-MM-dd") } : lead
+    );
+    setLeads(updatedLeads);
+    localStorage.setItem('leads', JSON.stringify(updatedLeads));
+    toast({ title: "Status Updated", description: `Lead ${leadId} status changed to ${newStatus}.` });
+  };
+
 
   const openEditModal = (lead: Lead) => {
     setSelectedLead(lead);
@@ -413,9 +430,11 @@ export default function LeadsPage() {
               <Upload className="mr-2 h-4 w-4" /> Import CSV
             </Button>
             <Dialog open={isAddLeadOpen} onOpenChange={setIsAddLeadOpen}>
-              <Button onClick={() => setIsAddLeadOpen(true)} className="w-full sm:w-auto">
-                <PlusCircle className="mr-2 h-4 w-4" /> Add Lead
-              </Button>
+              <DialogTrigger asChild>
+                <Button className="w-full sm:w-auto">
+                  <PlusCircle className="mr-2 h-4 w-4" /> Add Lead
+                </Button>
+              </DialogTrigger>
               <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
                   <DialogTitle>Add New Lead</DialogTitle>
@@ -654,15 +673,6 @@ export default function LeadsPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleStartChat(lead)}>
-                            <MessageCircle className="mr-2 h-4 w-4" />
-                            Start Chat
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleScheduleMeeting(lead)}>
-                            <CalendarPlus className="mr-2 h-4 w-4" />
-                            Schedule Meeting
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
                           <DropdownMenuItem onClick={() => openViewModal(lead)}>
                             <Eye className="mr-2 h-4 w-4" />
                             View Details
@@ -670,6 +680,36 @@ export default function LeadsPage() {
                           <DropdownMenuItem onClick={() => openEditModal(lead)}>
                             <Edit3 className="mr-2 h-4 w-4" />
                             Edit Lead
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuSub>
+                            <DropdownMenuSubTrigger>
+                              <CheckSquare className="mr-2 h-4 w-4" />
+                              Change Status
+                            </DropdownMenuSubTrigger>
+                            <DropdownMenuPortal>
+                              <DropdownMenuSubContent>
+                                <DropdownMenuRadioGroup 
+                                  value={lead.status} 
+                                  onValueChange={(newStatus) => handleQuickStatusChange(lead.id, newStatus as LeadFormValues['status'])}
+                                >
+                                  {leadStatuses.map(status => (
+                                    <DropdownMenuRadioItem key={status} value={status}>
+                                      {status}
+                                    </DropdownMenuRadioItem>
+                                  ))}
+                                </DropdownMenuRadioGroup>
+                              </DropdownMenuSubContent>
+                            </DropdownMenuPortal>
+                          </DropdownMenuSub>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => handleStartChat(lead)}>
+                            <MessageCircle className="mr-2 h-4 w-4" />
+                            Start Chat
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleScheduleMeeting(lead)}>
+                            <CalendarPlus className="mr-2 h-4 w-4" />
+                            Schedule Meeting
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -796,3 +836,4 @@ export default function LeadsPage() {
     </MainLayout>
   );
 }
+
