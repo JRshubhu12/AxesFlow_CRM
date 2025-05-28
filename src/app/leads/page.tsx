@@ -4,9 +4,9 @@
 import MainLayout from '@/components/layout/MainLayout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { PlusCircle, Filter, Users, Eye, Edit3, MessageCircle, CalendarPlus } from 'lucide-react';
+import { PlusCircle, Filter, Users, Eye, Edit3, MessageCircle, CalendarPlus, Sparkles, Search } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -14,8 +14,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
-  DialogClose,
 } from "@/components/ui/dialog";
 import {
   Form,
@@ -24,16 +22,21 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useForm } from "react-hook-form";
+import { useForm, useForm as useFormReactHook } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useState, useEffect, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { useRouter } from 'next/navigation'; // Added for redirection
-import { format } from 'date-fns'; // For formatting dates
+import { useRouter } from 'next/navigation';
+import { format } from 'date-fns';
+
+import { findLeads, type FindLeadsInput, type FindLeadsOutput, type PotentialLeadSchema as AIGeneratedLead } from '@/ai/flows/find-leads-flow';
+
 
 const leadSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -49,7 +52,6 @@ export interface Lead extends LeadFormValues {
   lastContact: string;
 }
 
-// These interfaces would ideally be shared from communications/page.tsx if it exports them
 interface Chat {
   id: string;
   contact?: string;
@@ -91,6 +93,15 @@ const statusVariantMap: { [key: string]: "default" | "secondary" | "destructive"
   'Closed - Lost': 'destructive',
 };
 
+// AI Lead Finder Form Schema
+const aiLeadFinderSchema = z.object({
+  industry: z.string().min(3, { message: "Target industry must be at least 3 characters." }),
+  location: z.string().optional(),
+  keywords: z.string().optional(),
+});
+type AILeadFinderFormValues = z.infer<typeof aiLeadFinderSchema>;
+
+
 export default function LeadsPage() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [isAddLeadOpen, setIsAddLeadOpen] = useState(false);
@@ -100,6 +111,9 @@ export default function LeadsPage() {
   const [statusFilter, setStatusFilter] = useState<string>("All");
   const { toast } = useToast();
   const router = useRouter();
+
+  const [aiFoundLeads, setAiFoundLeads] = useState<z.infer<typeof AIGeneratedLead>[]>([]);
+  const [isAiFindingLeads, setIsAiFindingLeads] = useState(false);
 
   useEffect(() => {
     const storedLeads = localStorage.getItem('leads');
@@ -111,7 +125,7 @@ export default function LeadsPage() {
     }
   }, []);
 
-  const form = useForm<LeadFormValues>({
+  const form = useFormReactHook<LeadFormValues>({
     resolver: zodResolver(leadSchema),
     defaultValues: {
       name: "",
@@ -121,8 +135,17 @@ export default function LeadsPage() {
     },
   });
 
-  const editForm = useForm<LeadFormValues>({
+  const editForm = useFormReactHook<LeadFormValues>({
     resolver: zodResolver(leadSchema),
+  });
+
+  const aiLeadFinderForm = useFormReactHook<AILeadFinderFormValues>({
+    resolver: zodResolver(aiLeadFinderSchema),
+    defaultValues: {
+      industry: "",
+      location: "",
+      keywords: "",
+    },
   });
 
   const handleAddLeadSubmit = (values: LeadFormValues) => {
@@ -179,7 +202,7 @@ export default function LeadsPage() {
       status: 'Unread',
       unreadCount: 1,
     };
-    const updatedChats = [newChat, ...currentChats]; // Add new chat to the beginning
+    const updatedChats = [newChat, ...currentChats];
     localStorage.setItem('chatsData', JSON.stringify(updatedChats));
     toast({ title: "Chat Initiated", description: `Chat with ${lead.name} started. Redirecting...` });
     router.push('/communications?tab=chats');
@@ -192,16 +215,51 @@ export default function LeadsPage() {
       id: `M-${Date.now()}`,
       title: `Meeting with ${lead.name}`,
       type: 'Video Call',
-      dateTime: `Scheduled on ${format(new Date(), 'PPp')}`, // Or a placeholder like 'To be confirmed'
+      dateTime: `Scheduled on ${format(new Date(), 'PPp')}`,
       status: 'Scheduled',
       participants: ['You', lead.name],
-      googleMeetLink: 'https://meet.google.com/new', // Placeholder link
+      googleMeetLink: 'https://meet.google.com/new',
     };
-    const updatedMeetings = [newMeeting, ...currentMeetings]; // Add new meeting to the beginning
+    const updatedMeetings = [newMeeting, ...currentMeetings];
     localStorage.setItem('meetingsData', JSON.stringify(updatedMeetings));
     toast({ title: "Meeting Scheduled", description: `Meeting with ${lead.name} scheduled. Redirecting...` });
     router.push('/communications?tab=meetings');
   };
+
+  const handleAiFindLeads = async (values: AILeadFinderFormValues) => {
+    setIsAiFindingLeads(true);
+    setAiFoundLeads([]);
+    try {
+      const result = await findLeads(values);
+      if (result.potentialLeads && result.potentialLeads.length > 0) {
+        setAiFoundLeads(result.potentialLeads);
+        toast({ title: "AI Leads Found!", description: `Found ${result.potentialLeads.length} potential leads.` });
+      } else {
+        setAiFoundLeads([]);
+        toast({ title: "No Leads Found", description: "AI couldn't find leads matching your criteria. Try broadening your search." });
+      }
+    } catch (error: any) {
+      console.error("Failed to find AI leads:", error);
+      toast({
+        title: "Error Finding Leads",
+        description: error.message || "An unexpected error occurred.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAiFindingLeads(false);
+    }
+  };
+  
+  const handleAddAiLeadToList = (aiLead: z.infer<typeof AIGeneratedLead>) => {
+    // This is a placeholder for now. 
+    // In a full implementation, you would map aiLead fields to your Lead interface,
+    // then add to the main leads list and localStorage.
+    toast({
+      title: "Add to My Leads (Coming Soon)",
+      description: `Functionality to add "${aiLead.companyName}" to your main leads list is under development.`,
+    });
+  };
+
 
   const filteredLeads = useMemo(() => {
     if (statusFilter === "All") {
@@ -212,7 +270,7 @@ export default function LeadsPage() {
 
   return (
     <MainLayout>
-      <div className="space-y-6">
+      <div className="space-y-8">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold flex items-center gap-2"><Users className="h-8 w-8 text-primary" /> Potential Leads</h1>
@@ -486,11 +544,112 @@ export default function LeadsPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* AI Lead Finder Section */}
+        <Card className="shadow-lg">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><Sparkles className="h-6 w-6 text-primary" />AI Lead Finder</CardTitle>
+            <CardDescription>Discover new potential leads using AI. Provide criteria below.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Form {...aiLeadFinderForm}>
+              <form onSubmit={aiLeadFinderForm.handleSubmit(handleAiFindLeads)} className="space-y-6">
+                <FormField
+                  control={aiLeadFinderForm.control}
+                  name="industry"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Target Industry</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., E-commerce, FinTech, SaaS" {...field} />
+                      </FormControl>
+                      <FormDescription>The primary industry you are targeting.</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={aiLeadFinderForm.control}
+                  name="location"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Location (Optional)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., New York, USA or Berlin, Germany" {...field} />
+                      </FormControl>
+                       <FormDescription>Specify a city, state, or country if desired.</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={aiLeadFinderForm.control}
+                  name="keywords"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Specific Keywords/Interests (Optional)</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="e.g., 'looking for CRM software', 'recently received funding', 'expanding into new markets'" {...field} rows={3}/>
+                      </FormControl>
+                      <FormDescription>Any other specific attributes or needs of the companies you're looking for.</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" className="w-full md:w-auto" disabled={isAiFindingLeads}>
+                  {isAiFindingLeads ? (
+                    <>
+                      <Sparkles className="mr-2 h-4 w-4 animate-spin" /> Finding Leads...
+                    </>
+                  ) : (
+                    <>
+                      <Search className="mr-2 h-4 w-4" /> Find Leads with AI
+                    </>
+                  )}
+                </Button>
+              </form>
+            </Form>
+
+            {isAiFindingLeads && (
+              <div className="mt-6 flex flex-col items-center justify-center text-muted-foreground">
+                <Sparkles className="h-10 w-10 text-primary animate-pulse mb-2" />
+                <p>AI is searching for leads based on your criteria...</p>
+              </div>
+            )}
+
+            {aiFoundLeads.length > 0 && !isAiFindingLeads && (
+              <div className="mt-8">
+                <h3 className="text-xl font-semibold mb-4">Potential Leads Found:</h3>
+                <div className="space-y-4">
+                  {aiFoundLeads.map((lead, index) => (
+                    <Card key={index} className="bg-muted/30 p-4 shadow-md">
+                      <CardTitle className="text-lg">{lead.companyName}</CardTitle>
+                      {lead.website && <CardDescription><a href={lead.website.startsWith('http') ? lead.website : `https://${lead.website}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{lead.website}</a></CardDescription>}
+                      <CardContent className="pt-3 px-0 pb-0 space-y-2 text-sm">
+                        {lead.potentialContactTitle && <p><strong className="font-medium">Contact Title:</strong> {lead.potentialContactTitle}</p>}
+                        <p><strong className="font-medium">Reasoning:</strong> {lead.reasoning}</p>
+                        {lead.estimatedCompanySize && <p><strong className="font-medium">Est. Size:</strong> {lead.estimatedCompanySize}</p>}
+                        {lead.keyProductOrService && <p><strong className="font-medium">Key Offering:</strong> {lead.keyProductOrService}</p>}
+                         <Button size="sm" variant="outline" className="mt-2" onClick={() => handleAddAiLeadToList(lead)}>
+                            <PlusCircle className="mr-2 h-4 w-4" /> Add to My Leads
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {!aiFoundLeads.length && !isAiFindingLeads && aiLeadFinderForm.formState.isSubmitted && (
+                 <div className="mt-6 text-center text-muted-foreground">
+                    No potential leads found for the given criteria. Try adjusting your search.
+                </div>
+            )}
+
+          </CardContent>
+        </Card>
+
       </div>
     </MainLayout>
   );
 }
-
-    
-
-    
