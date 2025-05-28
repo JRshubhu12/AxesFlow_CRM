@@ -24,9 +24,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
-import { LogOut, UserCircle, Search, Folder, Bell, Settings } from 'lucide-react'; // Added Settings icon
+import { LogOut, UserCircle, Search, Folder, Bell, Settings } from 'lucide-react';
 import { Toaster } from '../ui/toaster';
-import { cn } from '@/lib/utils'; // Added this import
+import { cn } from '@/lib/utils';
 
 const USER_PROFILE_STORAGE_KEY = 'userProfileData';
 
@@ -47,20 +47,15 @@ function PageTitleDisplay() {
         setTitle('Profile');
     } else if (pathname === '/settings') {
         setTitle('Settings');
-    } else if (pathname.startsWith('/projects/') && params && params.id) {
-        setTitle(`Project Detail: ${params.id}`);
+    } else if (pathname.startsWith('/projects/') && pathname.split('/').length > 2) { // Check for project detail page
+        const projectId = pathname.split('/')[2];
+        setTitle(`Project Detail: ${projectId}`);
     } else if (currentNavItem) {
       setTitle(currentNavItem.title);
     } else {
       setTitle('Dashboard'); 
     }
   }, [pathname]);
-
-  // This component relies on params for dynamic routes, which isn't directly available
-  // in a layout component without passing it down or using a different context strategy.
-  // For simplicity, if dynamic route details are needed, they should be handled within the page itself.
-  // This PageTitleDisplay is simplified for now.
-  const params = usePathname().split('/').filter(Boolean); // Basic attempt to get path parts
 
   return (
     <h1 className="text-xl font-semibold text-foreground">{title}</h1>
@@ -89,7 +84,7 @@ function UserNav() {
     loadProfile(); 
 
     const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === USER_PROFILE_STORAGE_KEY) {
+      if (event.key === USER_PROFILE_STORAGE_KEY || event.key === null) { // null key for clear all
         loadProfile();
       }
     };
@@ -103,6 +98,8 @@ function UserNav() {
 
   const handleLogout = () => {
     if (typeof window !== 'undefined') {
+      // Consider clearing localStorage or specific items related to session
+      // localStorage.removeItem(USER_PROFILE_STORAGE_KEY);
       window.location.href = '/'; 
     }
   };
@@ -163,7 +160,7 @@ function LayoutContent({ children }: { children: ReactNode }) {
   return (
     <>
       <Sidebar>
-        <SidebarHeader className="p-4 border-b border-sidebar-border h-16 flex items-center">
+        <SidebarHeader className="p-4 h-16 flex items-center"> {/* Removed border */}
           <AppLogo /> 
         </SidebarHeader>
         <SidebarContent className="p-2">
@@ -173,17 +170,16 @@ function LayoutContent({ children }: { children: ReactNode }) {
                 <SidebarMenuButton
                   asChild
                   isActive={pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))}
-                  tooltip={{content: item.tooltip}}
+                  tooltip={item.tooltip ? {content: item.tooltip} : undefined}
                   size="default"
                   className={cn(
-                    "justify-start text-sm font-normal px-3 py-2 rounded-md",
+                    "justify-start text-sm font-medium px-3 py-2 rounded-md", // Adjusted font-medium for inactive items as well for consistency
                     (pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href)))
                       ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                      : "text-sidebar-foreground hover:bg-muted"
+                      : "text-sidebar-foreground bg-sidebar-background hover:bg-muted"
                   )}
                 >
                   <Link href={item.href} className="flex items-center gap-3 w-full">
-                    {/* Icon removed based on design */}
                     <span>{item.title}</span>
                   </Link>
                 </SidebarMenuButton>
@@ -191,34 +187,34 @@ function LayoutContent({ children }: { children: ReactNode }) {
             ))}
           </SidebarMenu>
         </SidebarContent>
-        {/* SidebarFooter removed as settings is now likely in UserNav or not shown per image */}
+        {/* SidebarFooter removed */}
       </Sidebar>
       <SidebarInset>
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-background px-4 sm:px-6">
           <div className="flex items-center gap-4"> 
-            <div className="md:hidden">
+            <div className="md:hidden"> {/* SidebarTrigger only for mobile */}
               <SidebarTrigger />
             </div>
             <PageTitleDisplay />
           </div>
           
-          <div className="flex-1 flex justify-center px-4 lg:px-8">
+          <div className="flex-1 flex justify-center px-4 lg:px-8"> {/* Search bar container */}
             <div className="relative w-full max-w-md">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input 
                 type="search" 
                 placeholder="search for features, settings and more"
-                className="w-full rounded-full pl-10 pr-4 py-2 text-sm h-10"
+                className="w-full rounded-full pl-10 pr-4 py-2 text-sm h-10 bg-background border-border" // Ensure background is white and border is light gray
               />
             </div>
           </div>
 
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" aria-label="Files">
-              <Folder className="h-5 w-5 text-muted-foreground" />
+              <Folder className="h-5 w-5 text-primary" /> {/* Changed to text-primary */}
             </Button>
              <Button variant="ghost" size="icon" aria-label="Notifications">
-              <Bell className="h-5 w-5 text-muted-foreground" />
+              <Bell className="h-5 w-5 text-primary" /> {/* Changed to text-primary */}
             </Button>
             <UserNav />
           </div>
@@ -233,7 +229,7 @@ function LayoutContent({ children }: { children: ReactNode }) {
 
 export default function MainLayout({ children }: { children: ReactNode }) {
   return (
-    <SidebarProvider defaultOpen> {/* Ensure sidebar is open by default on desktop */}
+    <SidebarProvider defaultOpen> 
       <LayoutContent>{children}</LayoutContent>
       <Toaster />
     </SidebarProvider>

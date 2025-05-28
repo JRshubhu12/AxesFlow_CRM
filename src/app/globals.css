@@ -9,7 +9,7 @@ body {
 
 @layer base {
   :root {
-    --background: 0 0% 98%; /* Very Light Gray for main content area */
+    --background: 0 0% 100%; /* White for main content area - matching image */
     --foreground: 240 10% 3.9%; /* Dark Gray/Black for text */
 
     --card: 0 0% 100%; /* White */
@@ -18,36 +18,35 @@ body {
     --popover: 0 0% 100%; /* White */
     --popover-foreground: 240 10% 3.9%;
 
-    --primary: 248 53% 63%; /* Deep Violet */
-    --primary-foreground: 0 0% 98%; 
+    --primary: 248 53% 63%; /* Deep Violet - #6C5DD3 */
+    --primary-foreground: 0 0% 98%; /* White - for text on primary */
 
-    --secondary: 210 20% 90%; 
+    --secondary: 210 20% 96.1%; /* Light gray */
     --secondary-foreground: 240 10% 3.9%;
 
-    --muted: 210 20% 92%; /* Lighter muted for hover effects */
-    --muted-foreground: 240 5% 35%;
+    --muted: 210 20% 93%; /* Lighter muted for hover effects on inactive items */
+    --muted-foreground: 240 5% 35%; /* Muted text color */
 
-    --accent: 206 70% 62%; /* Sky Blue */
+    --accent: 206 70% 62%; /* Sky Blue - #5AADE3 (PRD accent, less prominent in current layout) */
     --accent-foreground: 0 0% 100%; /* White */
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 210 20% 88%; 
-    --input: 210 20% 96%; /* Slightly lighter input background */
-    --ring: 248 53% 63%; 
+    --border: 210 20% 88%; /* Light gray for borders (e.g., header bottom, input) */
+    --input: 210 20% 88%; /* Light gray for input borders */
+    --ring: 248 53% 63%; /* Deep Violet for focus rings */
 
     --radius: 0.5rem;
 
     /* Sidebar specific colors */
-    --sidebar-background: 0 0% 100%; /* White for sidebar */
-    --sidebar-foreground: 240 10% 3.9%; /* Dark text for sidebar */
+    --sidebar-background: 0 0% 100%; /* White for sidebar - matching image */
+    --sidebar-foreground: 240 10% 3.9%; /* Dark text for sidebar - matching image */
     
-    /* --sidebar-primary and --sidebar-primary-foreground are less relevant if active state uses main primary/primary-foreground */
-    /* --sidebar-accent and --sidebar-accent-foreground are for hover states on sidebar items if different from muted */
-    /* For simplicity, hover on sidebar items will use --muted and --muted-foreground or default text color */
+    /* Active sidebar items use --primary and --primary-foreground */
+    /* Hover on inactive sidebar items will use --muted */
     
-    --sidebar-border: 210 20% 92%; /* Lighter border for sidebar separation */
+    --sidebar-border: 210 20% 92%; /* Lighter border, if needed elsewhere */
     --sidebar-ring: 206 70% 62%; 
 
     --chart-1: 12 76% 61%;
@@ -58,7 +57,7 @@ body {
   }
 
   .dark {
-    /* Keeping dark mode variables, though not the primary focus */
+    /* Keeping dark mode variables, though not the primary focus for this image match */
     --background: 240 10% 3.9%;
     --foreground: 0 0% 98%;
     --card: 240 10% 3.9%;
@@ -69,18 +68,18 @@ body {
     --primary-foreground: 0 0% 98%;
     --secondary: 240 4% 15%;
     --secondary-foreground: 0 0% 98%;
-    --muted: 240 4% 20%; /* Darker muted */
+    --muted: 240 4% 20%; 
     --muted-foreground: 240 5% 65%;
     --accent: 206 70% 62%; 
     --accent-foreground: 0 0% 100%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
     --border: 240 4% 15%;
-    --input: 240 4% 18%; /* Darker input */
+    --input: 240 4% 18%; 
     --ring: 248 53% 63%;
     
-    --sidebar-background: 240 6% 10%; /* Example dark sidebar */
-    --sidebar-foreground: 0 0% 98%;   /* Light text for dark sidebar */
+    --sidebar-background: 240 6% 10%; 
+    --sidebar-foreground: 0 0% 98%;   
     --sidebar-border: 240 6% 15%;
     --sidebar-ring: 206 70% 62%;
 
