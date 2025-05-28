@@ -21,11 +21,15 @@ export type FindLeadsInput = z.infer<typeof FindLeadsInputSchema>;
 const PotentialLeadSchema = z.object({
   companyName: z.string().describe('The name of the potential lead company.'),
   potentialContactTitle: z.string().optional().describe('A suggested contact person or title within the company (e.g., "Head of Marketing", "VP of Sales", "Founder").'),
+  contactEmail: z.string().email().optional().describe('A potential contact email address for the lead or company. Ensure it is a valid email format if provided.'),
+  contactPhone: z.string().optional().describe('A potential contact phone number for the lead or company.'),
   reasoning: z.string().describe('A brief (1-2 sentences) explanation of why this company is a good potential lead based on the provided criteria.'),
   website: z.string().optional().describe('The company\'s website URL, if found.'),
   estimatedCompanySize: z.string().optional().describe('An estimated size of the company (e.g., "10-50 employees", "Startup", "Large Enterprise").'),
   keyProductOrService: z.string().optional().describe('A key product or service offered by the company relevant to the search criteria.'),
 });
+
+export type PotentialLead = z.infer<typeof PotentialLeadSchema>; // Export for use in UI
 
 const FindLeadsOutputSchema = z.object({
   potentialLeads: z.array(PotentialLeadSchema).describe('A list of 3-5 potential leads found based on the criteria.'),
@@ -45,10 +49,12 @@ const prompt = ai.definePrompt({
 For each lead, provide:
 1.  Company Name
 2.  Potential Contact Title (e.g., "Head of Marketing", "Founder", "VP of Engineering") - be specific if possible.
-3.  Reasoning: A concise explanation (1-2 sentences) for why this company is a strong potential lead given the user's criteria.
-4.  Website: The company's official website URL.
-5.  Estimated Company Size: (e.g., "Startup (1-10 employees)", "SME (50-200 employees)", "Large Enterprise (1000+ employees)")
-6.  Key Product/Service: A brief mention of their main offering relevant to the search.
+3.  Contact Email (if discoverable and seems publicly available, ensure valid email format)
+4.  Contact Phone (if discoverable and seems publicly available)
+5.  Reasoning: A concise explanation (1-2 sentences) for why this company is a strong potential lead given the user's criteria.
+6.  Website: The company's official website URL.
+7.  Estimated Company Size: (e.g., "Startup (1-10 employees)", "SME (50-200 employees)", "Large Enterprise (1000+ employees)")
+8.  Key Product/Service: A brief mention of their main offering relevant to the search.
 
 User Criteria:
 - Target Industry: {{{industry}}}
@@ -59,7 +65,7 @@ User Criteria:
 - Specific Keywords/Interests: {{{keywords}}}
 {{/if}}
 
-Based on these criteria, generate a list of potential leads. Ensure the information is as accurate and relevant as possible. If you cannot find specific information, you can omit optional fields but always provide Company Name and Reasoning.
+Based on these criteria, generate a list of potential leads. Prioritize accuracy and relevance. If you cannot find specific information like email or phone, you can omit those optional fields, but always provide Company Name and Reasoning.
 `,
 });
 
@@ -70,7 +76,6 @@ const findLeadsFlow = ai.defineFlow(
     outputSchema: FindLeadsOutputSchema,
   },
   async input => {
-    // Basic input validation or sanitation could go here if needed
     if (!input.industry) {
         throw new Error("Target industry is required to find leads.");
     }

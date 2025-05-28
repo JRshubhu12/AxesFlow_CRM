@@ -14,7 +14,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger, // Added DialogTrigger here
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Form,
@@ -28,7 +28,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useForm, useForm as useFormReactHook } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useState, useEffect, useMemo } from "react";
@@ -36,7 +36,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 
-import { findLeads, type FindLeadsInput, type FindLeadsOutput, type PotentialLeadSchema as AIGeneratedLead } from '@/ai/flows/find-leads-flow';
+import { findLeads, type FindLeadsInput, type FindLeadsOutput, type PotentialLead as AIGeneratedLead } from '@/ai/flows/find-leads-flow';
 
 
 const leadSchema = z.object({
@@ -113,7 +113,7 @@ export default function LeadsPage() {
   const { toast } = useToast();
   const router = useRouter();
 
-  const [aiFoundLeads, setAiFoundLeads] = useState<z.infer<typeof AIGeneratedLead>[]>([]);
+  const [aiFoundLeads, setAiFoundLeads] = useState<AIGeneratedLead[]>([]);
   const [isAiFindingLeads, setIsAiFindingLeads] = useState(false);
 
   useEffect(() => {
@@ -126,7 +126,7 @@ export default function LeadsPage() {
     }
   }, []);
 
-  const form = useFormReactHook<LeadFormValues>({
+  const form = useForm<LeadFormValues>({
     resolver: zodResolver(leadSchema),
     defaultValues: {
       name: "",
@@ -136,11 +136,11 @@ export default function LeadsPage() {
     },
   });
 
-  const editForm = useFormReactHook<LeadFormValues>({
+  const editForm = useForm<LeadFormValues>({
     resolver: zodResolver(leadSchema),
   });
 
-  const aiLeadFinderForm = useFormReactHook<AILeadFinderFormValues>({
+  const aiLeadFinderForm = useForm<AILeadFinderFormValues>({
     resolver: zodResolver(aiLeadFinderSchema),
     defaultValues: {
       industry: "",
@@ -251,7 +251,7 @@ export default function LeadsPage() {
     }
   };
   
-  const handleAddAiLeadToList = (aiLead: z.infer<typeof AIGeneratedLead>) => {
+  const handleAddAiLeadToList = (aiLead: AIGeneratedLead) => {
     // This is a placeholder for now. 
     // In a full implementation, you would map aiLead fields to your Lead interface,
     // then add to the main leads list and localStorage.
@@ -628,6 +628,8 @@ export default function LeadsPage() {
                       {lead.website && <CardDescription><a href={lead.website.startsWith('http') ? lead.website : `https://${lead.website}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{lead.website}</a></CardDescription>}
                       <CardContent className="pt-3 px-0 pb-0 space-y-2 text-sm">
                         {lead.potentialContactTitle && <p><strong className="font-medium">Contact Title:</strong> {lead.potentialContactTitle}</p>}
+                        {lead.contactEmail && <p><strong className="font-medium">Email:</strong> <a href={`mailto:${lead.contactEmail}`} className="text-primary hover:underline">{lead.contactEmail}</a></p>}
+                        {lead.contactPhone && <p><strong className="font-medium">Phone:</strong> {lead.contactPhone}</p>}
                         <p><strong className="font-medium">Reasoning:</strong> {lead.reasoning}</p>
                         {lead.estimatedCompanySize && <p><strong className="font-medium">Est. Size:</strong> {lead.estimatedCompanySize}</p>}
                         {lead.keyProductOrService && <p><strong className="font-medium">Key Offering:</strong> {lead.keyProductOrService}</p>}
