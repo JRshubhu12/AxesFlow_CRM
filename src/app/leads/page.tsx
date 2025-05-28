@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { PlusCircle, Filter, Users, Eye, Edit3, MessageCircle, CalendarPlus, Sparkles, Search, Upload } from 'lucide-react';
+import { PlusCircle, Filter, Users, Eye, Edit3, MessageCircle, CalendarPlus, Sparkles, Search, Upload, MoreHorizontal } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -14,8 +14,15 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+} from "@/components/ui/dialog"; // Removed DialogTrigger as it's part of DropdownMenu now
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Form,
   FormControl,
@@ -36,7 +43,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 
-import { findLeads, type FindLeadsInput, type FindLeadsOutput, type PotentialLead as AIGeneratedLead } from '@/ai/flows/find-leads-flow';
+import { findLeads, type FindLeadsInput, type PotentialLead as AIGeneratedLead } from '@/ai/flows/find-leads-flow';
 
 
 const leadSchema = z.object({
@@ -253,10 +260,18 @@ export default function LeadsPage() {
   };
   
   const handleAddAiLeadToList = (aiLead: AIGeneratedLead) => {
-    toast({
-      title: "Add to My Leads (Coming Soon)",
-      description: `Functionality to add "${aiLead.companyName}" to your main leads list is under development.`,
-    });
+    const newLead: Lead = {
+      id: `L-AI-${Date.now()}`,
+      name: aiLead.potentialContactTitle || aiLead.companyName, // Fallback to company name if title is missing
+      company: aiLead.companyName,
+      email: aiLead.contactEmail || `info@${aiLead.companyName.toLowerCase().replace(/\s+/g, '')}.com`, // Placeholder email if not found
+      status: 'New',
+      lastContact: format(new Date(), "yyyy-MM-dd"),
+    };
+    const updatedLeads = [...leads, newLead];
+    setLeads(updatedLeads);
+    localStorage.setItem('leads', JSON.stringify(updatedLeads));
+    toast({ title: "Lead Added", description: `${newLead.company} has been added to your leads list.` });
   };
 
   const parseCSVToLeads = (csvText: string): Lead[] => {
@@ -282,7 +297,7 @@ export default function LeadsPage() {
     const statusIndex = headers.indexOf('status');
 
     for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split(',').map(v => v.trim().replace(/^"|"$/g, '')); // Trim and remove surrounding quotes
+      const values = lines[i].split(',').map(v => v.trim().replace(/^"|"$/g, '')); 
       
       if (values.length < Math.max(nameIndex, companyIndex, emailIndex, statusIndex) + 1) {
           console.warn(`Skipping row ${i + 1} due to insufficient columns.`);
@@ -336,11 +351,6 @@ export default function LeadsPage() {
           setLeads(updatedLeads);
           localStorage.setItem('leads', JSON.stringify(updatedLeads));
           toast({ title: "Leads Imported", description: `${parsedLeads.length} leads have been imported successfully.` });
-        } else {
-          // Error toast for parsing issues (like header errors or no valid data rows) is handled within parseCSVToLeads
-          // If parseCSVToLeads returns empty but the file wasn't considered "empty" by its initial check,
-          // it means parsing failed due to content issues (e.g. headers).
-          // No additional toast needed here as parseCSVToLeads covers it.
         }
       } else {
           toast({ title: "File Error", description: "Could not read the file content.", variant: "destructive"});
@@ -403,11 +413,9 @@ export default function LeadsPage() {
               <Upload className="mr-2 h-4 w-4" /> Import CSV
             </Button>
             <Dialog open={isAddLeadOpen} onOpenChange={setIsAddLeadOpen}>
-              <DialogTrigger asChild>
-                <Button className="w-full sm:w-auto">
-                  <PlusCircle className="mr-2 h-4 w-4" /> Add Lead
-                </Button>
-              </DialogTrigger>
+              <Button onClick={() => setIsAddLeadOpen(true)} className="w-full sm:w-auto">
+                <PlusCircle className="mr-2 h-4 w-4" /> Add Lead
+              </Button>
               <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
                   <DialogTitle>Add New Lead</DialogTitle>
@@ -620,7 +628,11 @@ export default function LeadsPage() {
                     <TableCell className="font-medium">{lead.id}</TableCell>
                     <TableCell>{lead.name}</TableCell>
                     <TableCell>{lead.company}</TableCell>
-                    <TableCell>{lead.email}</TableCell>
+                    <TableCell>
+                      <a href={`mailto:${lead.email}`} className="text-primary hover:underline">
+                        {lead.email}
+                      </a>
+                    </TableCell>
                     <TableCell>
                       <Badge
                         variant={statusVariantMap[lead.status] || 'default'}
@@ -633,15 +645,34 @@ export default function LeadsPage() {
                       </Badge>
                     </TableCell>
                     <TableCell>{lead.lastContact}</TableCell>
-                    <TableCell className="text-right space-x-1">
-                      <Button variant="ghost" size="sm" onClick={() => handleStartChat(lead)} title="Start Chat">
-                        <MessageCircle className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleScheduleMeeting(lead)} title="Schedule Meeting">
-                        <CalendarPlus className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => openViewModal(lead)} title="View Lead"><Eye className="h-4 w-4" /></Button>
-                      <Button variant="ghost" size="sm" className="text-primary hover:text-primary/80" onClick={() => openEditModal(lead)} title="Edit Lead"><Edit3 className="h-4 w-4" /></Button>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Lead Actions</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleStartChat(lead)}>
+                            <MessageCircle className="mr-2 h-4 w-4" />
+                            Start Chat
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleScheduleMeeting(lead)}>
+                            <CalendarPlus className="mr-2 h-4 w-4" />
+                            Schedule Meeting
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => openViewModal(lead)}>
+                            <Eye className="mr-2 h-4 w-4" />
+                            View Details
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => openEditModal(lead)}>
+                            <Edit3 className="mr-2 h-4 w-4" />
+                            Edit Lead
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -765,3 +796,6 @@ export default function LeadsPage() {
     </MainLayout>
   );
 }
+
+
+    
