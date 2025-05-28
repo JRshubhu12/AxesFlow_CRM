@@ -14,7 +14,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"; // Removed DialogTrigger as it's part of DropdownMenu now
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -796,6 +796,3 @@ export default function LeadsPage() {
     </MainLayout>
   );
 }
-
-
-    
