@@ -2,7 +2,7 @@
 "use client";
 
 import Link from 'next/link';
-import { Search, Folder, Bell, ChevronDown, User, Settings, LogOut } from 'lucide-react';
+import { Search, Folder, Bell, ChevronDown, User, Settings, LogOut } from 'lucide-react'; // Icons for header
 import { usePathname, useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
@@ -18,9 +18,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { navItems as appNavItems } from '@/config/nav';
+import { navItems as appNavItems } from '@/config/nav'; // Using appNavItems from config
 import { cn } from '@/lib/utils';
 
+// UserNav Component (handles user avatar and dropdown menu)
 interface UserNavProps {
   agencyName?: string | null;
   userEmail?: string | null;
@@ -108,7 +109,7 @@ function UserNav({ agencyName, userEmail, agencyLogoUrl }: UserNavProps) {
   );
 }
 
-
+// PageTitleDisplay Component
 function PageTitleDisplay() {
   const pathname = usePathname();
   const [title, setTitle] = useState('');
@@ -136,13 +137,13 @@ function PageTitleDisplay() {
 
 export default function MainLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const navItems = appNavItems;
+  const navItems = appNavItems; // Use navItems from config
 
   return (
     <div className="flex min-h-screen bg-background">
       {/* Sidebar */}
       <div className="w-60 border-r bg-sidebar-background p-0">
-        <div className="mb-3 px-4 pt-5 pb-3"> {/* Adjusted AppLogo container spacing */}
+        <div className="mb-3 px-4 pt-5 pb-3">
           <AppLogo />
         </div>
         <nav className="space-y-1 px-3">
@@ -150,7 +151,7 @@ export default function MainLayout({ children }: { children: ReactNode }) {
             const isActive = (pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href)));
             return (
               <Link
-                key={item.name}
+                key={item.title}
                 href={item.href}
                 className={cn(
                   "group flex items-center px-3 py-2.5 text-sm rounded-md transition-colors",
@@ -158,9 +159,9 @@ export default function MainLayout({ children }: { children: ReactNode }) {
                     ? 'bg-primary text-primary-foreground font-medium hover:bg-primary/90'
                     : 'text-foreground font-normal hover:bg-muted hover:text-foreground'
                 )}
-                title={item.tooltip || item.name}
+                title={item.tooltip || item.title}
               >
-                <span>{item.name}</span>
+                <span>{item.title}</span>
               </Link>
             );
           })}
