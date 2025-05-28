@@ -6,11 +6,10 @@ import MainLayout from '@/components/layout/MainLayout';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CalendarDays, MessageCircle, FileText, Video, Phone, Users, Clock, MessageSquare, Link as LinkIcon, Loader2 } from 'lucide-react';
+import { CalendarDays, MessageCircle, FileText, Video, Phone, Users, Clock, MessageSquare as MessageSquareIcon, Link as LinkIcon, Loader2 } from 'lucide-react'; // Renamed MessageSquare to avoid conflict
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { supabase } from '@/lib/supabaseClient';
 import { format, parseISO } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 
@@ -25,17 +24,14 @@ interface Meeting {
   googleMeetLink?: string;
 }
 
-// Updated Chat interface to align with Supabase and UI needs
 export interface Chat {
-  id: string; // Supabase ID (number) converted to string for React keys
-  contact?: string; // Derived from lead_name or contact_name
+  id: string;
+  contact?: string;
   lastMessage: string;
-  timestamp: string; // Formatted last_message_at
+  timestamp: string;
   status: 'Unread' | 'Read' | 'Replied';
   unreadCount: number;
-  lead_id?: number; // Optional, if we want to link back to a lead
 }
-
 
 interface FileData {
   id: string;
@@ -47,24 +43,33 @@ interface FileData {
 }
 
 const initialMeetingsData: Meeting[] = [
-  { id: 'M001', title: 'Client Kick-off: Project Alpha', type: 'Video Call', dateTime: '2024-08-01 10:00 AM', status: 'Scheduled', participants: ['John D.', 'Sarah P.'], googleMeetLink: 'https://meet.google.com/abc-def-ghi' },
-  { id: 'M002', title: 'Internal Strategy Session', type: 'In-Person', dateTime: '2024-07-28 02:00 PM', status: 'Completed', participants: ['Team A', 'Team B'] },
-  { id: 'M003', title: 'Follow-up with Lead X', type: 'Phone Call', dateTime: '2024-08-05 11:30 AM', status: 'Pending Confirmation', participants: ['You', 'Lead X'] },
+  { id: 'M001', title: 'Client Kick-off: Project Alpha', type: 'Video Call', dateTime: format(new Date(2024, 7, 1, 10, 0), "PPp"), status: 'Scheduled', participants: ['John D.', 'Sarah P.'], googleMeetLink: 'https://meet.google.com/abc-def-ghi' },
+  { id: 'M002', title: 'Internal Strategy Session', type: 'In-Person', dateTime: format(new Date(2024, 6, 28, 14, 0), "PPp"), status: 'Completed', participants: ['Team A', 'Team B'] },
+  { id: 'M003', title: 'Follow-up with Lead X', type: 'Phone Call', dateTime: format(new Date(2024, 7, 5, 11, 30), "PPp"), status: 'Pending Confirmation', participants: ['You', 'Lead X'] },
 ];
 
-// initialChatsData will be removed as we fetch from Supabase
+const initialChatsData: Chat[] = [
+  { id: 'CHAT001', contact: 'Sarah Miller (Innovate Solutions Ltd.)', lastMessage: 'Can we schedule a call for next week?', timestamp: format(new Date(2024, 6, 28, 14, 30), "PPp"), status: 'Unread', unreadCount: 1 },
+  { id: 'CHAT002', contact: 'John Davis (TechPro Services)', lastMessage: 'Thanks for the information!', timestamp: format(new Date(2024, 6, 27, 10, 0), "PPp"), status: 'Read', unreadCount: 0 },
+  { id: 'CHAT003', contact: 'Internal Team Chat', lastMessage: 'Meeting notes are ready.', timestamp: format(new Date(2024, 6, 28, 11, 0), "PPp"), status: 'Read', unreadCount: 0 },
+];
 
 const initialFilesData: FileData[] = [
-  { id: 'F001', name: 'Project Alpha Proposal.pdf', type: 'Document', size: '2.5 MB', uploaded: '2024-07-25', status: 'Shared' },
-  { id: 'F002', name: 'Client Assets.zip', type: 'Archive', size: '50 MB', uploaded: '2024-07-20', status: 'Internal' },
-  { id: 'F003', name: 'Meeting Notes - 2024-07-28.docx', type: 'Document', size: '120 KB', uploaded: '2024-07-28', status: 'Draft' },
+  { id: 'F001', name: 'Project Alpha Proposal.pdf', type: 'Document', size: '2.5 MB', uploaded: format(new Date(2024, 6, 25), "yyyy-MM-dd"), status: 'Shared' },
+  { id: 'F002', name: 'Client Assets.zip', type: 'Archive', size: '50 MB', uploaded: format(new Date(2024, 6, 20), "yyyy-MM-dd"), status: 'Internal' },
+  { id: 'F003', name: 'Meeting Notes - 2024-07-28.docx', type: 'Document', size: '120 KB', uploaded: format(new Date(2024, 6, 28), "yyyy-MM-dd"), status: 'Draft' },
 ];
+
+const LOCAL_STORAGE_KEY_MEETINGS = 'meetingsData';
+const LOCAL_STORAGE_KEY_CHATS = 'chatsData';
+const LOCAL_STORAGE_KEY_FILES = 'filesData';
+
 
 const getStatusBadgeVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
   switch (status.toLowerCase()) {
     case 'scheduled':
     case 'shared':
-    case 'unread': 
+    case 'unread':
       return 'default';
     case 'completed':
     case 'read':
@@ -80,70 +85,73 @@ const getStatusBadgeVariant = (status: string): "default" | "secondary" | "destr
   }
 };
 
-
 function CommunicationsPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { toast } = useToast();
+  const { toast } = useToast(); // Keep toast for potential future use
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'meetings');
 
   const [meetingsData, setMeetingsData] = useState<Meeting[]>([]);
   const [chatsData, setChatsData] = useState<Chat[]>([]);
-  const [isLoadingChats, setIsLoadingChats] = useState(false);
+  const [isLoadingChats, setIsLoadingChats] = useState(false); // Keep for UX consistency
   const [filesData, setFilesData] = useState<FileData[]>([]);
 
   useEffect(() => {
-    // Load meetings from localStorage (remains localStorage for now)
-    const storedMeetings = localStorage.getItem('meetingsData');
+    // Load meetings from localStorage
+    const storedMeetings = localStorage.getItem(LOCAL_STORAGE_KEY_MEETINGS);
     setMeetingsData(storedMeetings ? JSON.parse(storedMeetings) : initialMeetingsData);
+    if (!storedMeetings) localStorage.setItem(LOCAL_STORAGE_KEY_MEETINGS, JSON.stringify(initialMeetingsData));
 
-    // Load files from localStorage (remains localStorage for now)
-    const storedFiles = localStorage.getItem('filesData');
+    // Load files from localStorage
+    const storedFiles = localStorage.getItem(LOCAL_STORAGE_KEY_FILES);
     setFilesData(storedFiles ? JSON.parse(storedFiles) : initialFilesData);
+    if (!storedFiles) localStorage.setItem(LOCAL_STORAGE_KEY_FILES, JSON.stringify(initialFilesData));
+
   }, []);
 
-  // Fetch chats from Supabase
-  const fetchChats = async () => {
-    setIsLoadingChats(true);
-    const { data, error } = await supabase
-      .from('chats')
-      .select('*')
-      .order('last_message_at', { ascending: false });
 
-    if (error) {
-      console.error('Error fetching chats:', error);
-      toast({ title: "Error Fetching Chats", description: error.message, variant: "destructive" });
-      setChatsData([]);
-    } else if (data) {
-      const mappedChats: Chat[] = data.map(chat => ({
-        id: chat.id.toString(),
-        contact: chat.contact_name,
-        lastMessage: chat.last_message || '',
-        timestamp: chat.last_message_at ? format(parseISO(chat.last_message_at), "PPp") : 'N/A',
-        status: chat.status as Chat['status'] || 'Read',
-        unreadCount: chat.unread_count || 0,
-        lead_id: chat.lead_id,
-      }));
-      setChatsData(mappedChats);
+  const fetchChatsFromLocalStorage = () => {
+    setIsLoadingChats(true);
+    const storedChats = localStorage.getItem(LOCAL_STORAGE_KEY_CHATS);
+    if (storedChats) {
+      setChatsData(JSON.parse(storedChats));
+    } else {
+      setChatsData(initialChatsData);
+      localStorage.setItem(LOCAL_STORAGE_KEY_CHATS, JSON.stringify(initialChatsData));
     }
     setIsLoadingChats(false);
   };
-  
+
   useEffect(() => {
     if (activeTab === 'chats') {
-      fetchChats();
+      fetchChatsFromLocalStorage();
     }
   }, [activeTab]);
 
 
   // Update localStorage when meetingsData changes (e.g., after an external update and redirect)
   useEffect(() => {
-    localStorage.setItem('meetingsData', JSON.stringify(meetingsData));
+    // This effect now primarily ensures initial data is set if nothing is stored.
+    // Actual updates to localStorage for meetings are handled where meetings are added/modified.
+    const storedMeetings = localStorage.getItem(LOCAL_STORAGE_KEY_MEETINGS);
+    if (!storedMeetings && meetingsData.length > 0) { // Only write if not set and we have default data
+        localStorage.setItem(LOCAL_STORAGE_KEY_MEETINGS, JSON.stringify(meetingsData));
+    }
   }, [meetingsData]);
 
-  // Update localStorage when filesData changes
   useEffect(() => {
-    localStorage.setItem('filesData', JSON.stringify(filesData));
+    const storedChats = localStorage.getItem(LOCAL_STORAGE_KEY_CHATS);
+    if (!storedChats && chatsData.length > 0) {
+        localStorage.setItem(LOCAL_STORAGE_KEY_CHATS, JSON.stringify(chatsData));
+    }
+  }, [chatsData]);
+
+
+  useEffect(() => {
+    const storedFiles = localStorage.getItem(LOCAL_STORAGE_KEY_FILES);
+     if (!storedFiles && filesData.length > 0) {
+        localStorage.setItem(LOCAL_STORAGE_KEY_FILES, JSON.stringify(filesData));
+    }
   }, [filesData]);
 
 
@@ -159,11 +167,10 @@ function CommunicationsPageContent() {
     router.push(`/communications?tab=${value}`, { scroll: false });
   };
 
-
   return (
     <MainLayout>
       <div className="space-y-6">
-        <h1 className="text-3xl font-bold flex items-center gap-2"><MessageSquare className="h-8 w-8 text-primary" /> Communication Hub</h1>
+        <h1 className="text-3xl font-bold flex items-center gap-2"><MessageSquareIcon className="h-8 w-8 text-primary" /> Communication Hub</h1>
         <p className="text-muted-foreground">Organize your meetings, chats, and files in one place.</p>
 
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
@@ -215,7 +222,7 @@ function CommunicationsPageContent() {
             <Card className="shadow-lg">
               <CardHeader>
                 <CardTitle>Recent Chats</CardTitle>
-                <CardDescription>Stay updated with your latest conversations from Supabase.</CardDescription>
+                <CardDescription>Stay updated with your latest conversations.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {isLoadingChats ? (
@@ -277,3 +284,10 @@ function CommunicationsPageContent() {
   );
 }
 
+export default function CommunicationsPage() {
+  return (
+    <Suspense fallback={<div className="flex justify-center items-center h-screen"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>}>
+      <CommunicationsPageContent />
+    </Suspense>
+  );
+}

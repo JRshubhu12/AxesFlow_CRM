@@ -1,3 +1,4 @@
+
 "use client";
 
 import MainLayout from '@/components/layout/MainLayout';
@@ -11,21 +12,8 @@ import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useState } from 'react';
-import { Sparkles, Copy, Download } from 'lucide-react';
+import { Sparkles, Copy, Download, AlertTriangle } from 'lucide-react';
 
-// --- API helper calling our own backend ---
-async function generateEmailCampaignWithGemini(
-  data: { targetIndustry: string; messageTemplates: string; campaignGoal: string }
-): Promise<{ emailCampaign: string }> {
-  const res = await fetch("/api/generate-campaign", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
-  const result = await res.json();
-  if (!res.ok) throw new Error(result.error || "Failed to generate email campaign.");
-  return result;
-}
 
 // --- Form Validation Schema ---
 const campaignSchema = z.object({
@@ -38,7 +26,7 @@ type CampaignFormValues = z.infer<typeof campaignSchema>;
 
 export default function EmailCampaignsPage() {
   const { toast } = useToast();
-  const [generatedCampaign, setGeneratedCampaign] = useState<{ emailCampaign: string } | null>(null);
+  const [generatedCampaignText, setGeneratedCampaignText] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<CampaignFormValues>({
@@ -52,29 +40,37 @@ export default function EmailCampaignsPage() {
 
   const onSubmit = async (data: CampaignFormValues) => {
     setIsLoading(true);
-    setGeneratedCampaign(null);
-    try {
-      const result = await generateEmailCampaignWithGemini(data);
-      setGeneratedCampaign(result);
-      toast({
-        title: "Campaign Generated!",
-        description: "Your AI-powered email campaign is ready.",
-      });
-    } catch (error: any) {
-      console.error("Failed to generate email campaign:", error);
-      toast({
-        title: "Error",
-        description: error.message ?? "Failed to generate email campaign. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
+    setGeneratedCampaignText(null);
+
+    // Simulate AI call delay
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
+    // Placeholder campaign
+    const placeholderText = `Subject: Supercharge Your ${data.targetIndustry} Business!
+
+Hi [Name],
+
+Are you looking to achieve ${data.campaignGoal}? Our solutions, based on key points like "${data.messageTemplates.substring(0, 30)}...", can help your ${data.targetIndustry} company thrive.
+
+Let's connect!
+
+Best,
+AxesFlow Team
+
+(This is a placeholder. AI generation is currently unavailable.)`;
+
+    setGeneratedCampaignText(placeholderText);
+    toast({
+      title: "Campaign Draft Ready!",
+      description: "A placeholder email campaign has been generated.",
+      variant: "default",
+    });
+    setIsLoading(false);
   };
 
   const copyToClipboard = () => {
-    if (generatedCampaign?.emailCampaign) {
-      navigator.clipboard.writeText(generatedCampaign.emailCampaign);
+    if (generatedCampaignText) {
+      navigator.clipboard.writeText(generatedCampaignText);
       toast({ title: "Copied to clipboard!" });
     }
   };
@@ -84,8 +80,8 @@ export default function EmailCampaignsPage() {
       <div className="space-y-8">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold flex items-center gap-2"><Sparkles className="h-8 w-8 text-primary" /> AI Email Campaign Generator</h1>
-            <p className="text-muted-foreground">Craft compelling email campaigns with the power of Gemini AI.</p>
+            <h1 className="text-3xl font-bold flex items-center gap-2"><Sparkles className="h-8 w-8 text-primary" /> Email Campaign Generator</h1>
+            <p className="text-muted-foreground">Craft compelling email campaigns. (AI functionality is currently placeholder)</p>
           </div>
         </div>
 
@@ -93,7 +89,7 @@ export default function EmailCampaignsPage() {
           <Card className="shadow-lg">
             <CardHeader>
               <CardTitle>Campaign Details</CardTitle>
-              <CardDescription>Provide the necessary inputs for the AI to generate your campaign.</CardDescription>
+              <CardDescription>Provide the necessary inputs for your campaign.</CardDescription>
             </CardHeader>
             <CardContent>
               <Form {...form}>
@@ -159,7 +155,7 @@ export default function EmailCampaignsPage() {
           <Card className="shadow-lg">
             <CardHeader>
               <CardTitle>Generated Campaign</CardTitle>
-              <CardDescription>Review the AI-generated email campaign below.</CardDescription>
+              <CardDescription>Review the generated email campaign below.</CardDescription>
             </CardHeader>
             <CardContent>
               {isLoading && (
@@ -168,27 +164,30 @@ export default function EmailCampaignsPage() {
                   <p className="mt-4 text-muted-foreground">Generating your campaign, please wait...</p>
                 </div>
               )}
-              {generatedCampaign && !isLoading && (
+              {generatedCampaignText && !isLoading && (
                 <div className="space-y-4">
                   <div className="prose prose-sm max-w-none p-4 border rounded-md bg-muted/30 h-96 overflow-y-auto">
                     <pre className="whitespace-pre-wrap break-words font-sans text-sm">
-                      {generatedCampaign.emailCampaign}
+                      {generatedCampaignText}
                     </pre>
                   </div>
                   <div className="flex gap-2">
                     <Button variant="outline" onClick={copyToClipboard}>
                       <Copy className="mr-2 h-4 w-4" /> Copy Text
                     </Button>
-                    {/* Placeholder for download functionality */}
                     <Button variant="outline" disabled>
                       <Download className="mr-2 h-4 w-4" /> Download .txt
                     </Button>
                   </div>
                 </div>
               )}
-              {!generatedCampaign && !isLoading && (
+              {!generatedCampaignText && !isLoading && (
                 <div className="text-center text-muted-foreground py-10">
                   Your generated campaign will appear here once you submit the form.
+                  <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md text-yellow-700 text-sm flex items-center gap-2">
+                    <AlertTriangle className="h-5 w-5" />
+                    <span>AI-powered generation is currently unavailable. Placeholders will be used.</span>
+                  </div>
                 </div>
               )}
             </CardContent>

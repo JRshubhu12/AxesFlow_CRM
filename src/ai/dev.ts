@@ -1,6 +1,9 @@
+// Genkit development server configuration has been removed.
+// AI-related functionality leveraging Genkit is currently not active.
 
+/*
 import { config } from 'dotenv';
 config();
 
-import '@/ai/flows/generate-email-campaign.ts';
-import '@/ai/flows/find-leads-flow.ts';
+// Example: import '@/ai/flows/your-flow.ts';
+*/
