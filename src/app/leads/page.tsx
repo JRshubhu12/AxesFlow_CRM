@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { PlusCircle, Filter, Users, Eye, Edit3, MessageCircle, CalendarPlus, Sparkles, Search } from 'lucide-react';
+import { PlusCircle, Filter, Users, Eye, Edit3, MessageCircle, CalendarPlus, Sparkles, Search, Upload } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -31,7 +31,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
@@ -112,6 +112,7 @@ export default function LeadsPage() {
   const [statusFilter, setStatusFilter] = useState<string>("All");
   const { toast } = useToast();
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [aiFoundLeads, setAiFoundLeads] = useState<AIGeneratedLead[]>([]);
   const [isAiFindingLeads, setIsAiFindingLeads] = useState(false);
@@ -252,15 +253,112 @@ export default function LeadsPage() {
   };
   
   const handleAddAiLeadToList = (aiLead: AIGeneratedLead) => {
-    // This is a placeholder for now. 
-    // In a full implementation, you would map aiLead fields to your Lead interface,
-    // then add to the main leads list and localStorage.
     toast({
       title: "Add to My Leads (Coming Soon)",
       description: `Functionality to add "${aiLead.companyName}" to your main leads list is under development.`,
     });
   };
 
+  const parseCSVToLeads = (csvText: string): Lead[] => {
+    const newLeads: Lead[] = [];
+    const lines = csvText.trim().split('\n');
+    if (lines.length < 2) {
+      toast({ title: "CSV Import Error", description: "CSV file is empty or has no data rows. It must have a header row and at least one data row.", variant: "destructive" });
+      return [];
+    }
+
+    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+    const requiredHeaders = ['name', 'company', 'email', 'status'];
+    const missingHeaders = requiredHeaders.filter(rh => !headers.includes(rh));
+
+    if (missingHeaders.length > 0) {
+      toast({ title: "CSV Import Error", description: `Missing required columns: ${missingHeaders.join(', ')}. Expected: name, company, email, status.`, variant: "destructive" });
+      return [];
+    }
+
+    const nameIndex = headers.indexOf('name');
+    const companyIndex = headers.indexOf('company');
+    const emailIndex = headers.indexOf('email');
+    const statusIndex = headers.indexOf('status');
+
+    for (let i = 1; i < lines.length; i++) {
+      const values = lines[i].split(',').map(v => v.trim().replace(/^"|"$/g, '')); // Trim and remove surrounding quotes
+      
+      if (values.length < Math.max(nameIndex, companyIndex, emailIndex, statusIndex) + 1) {
+          console.warn(`Skipping row ${i + 1} due to insufficient columns.`);
+          continue;
+      }
+      
+      const name = values[nameIndex];
+      const company = values[companyIndex];
+      const email = values[emailIndex];
+      const statusValue = values[statusIndex];
+
+      if (!name || !company || !email || !statusValue) {
+          console.warn(`Skipping row ${i + 1} due to missing required data after parsing.`);
+          continue; 
+      }
+
+      const leadStatus = statusValue as LeadFormValues['status'];
+      const isValidStatus = leadStatuses.includes(leadStatus);
+
+      const lead: Lead = {
+        id: `L-CSV-${Date.now()}-${i}`,
+        name: name,
+        company: company,
+        email: email,
+        status: isValidStatus ? leadStatus : "New",
+        lastContact: format(new Date(), "yyyy-MM-dd"),
+      };
+      newLeads.push(lead);
+    }
+    return newLeads;
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    if (file.type !== "text/csv" && !file.name.endsWith(".csv")) {
+      toast({ title: "Invalid File Type", description: "Please upload a .csv file.", variant: "destructive" });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target?.result as string;
+      if (text) {
+        const parsedLeads = parseCSVToLeads(text);
+        if (parsedLeads.length > 0) {
+          const updatedLeads = [...leads, ...parsedLeads];
+          setLeads(updatedLeads);
+          localStorage.setItem('leads', JSON.stringify(updatedLeads));
+          toast({ title: "Leads Imported", description: `${parsedLeads.length} leads have been imported successfully.` });
+        } else {
+          // Error toast for parsing issues (like header errors or no valid data rows) is handled within parseCSVToLeads
+          // If parseCSVToLeads returns empty but the file wasn't considered "empty" by its initial check,
+          // it means parsing failed due to content issues (e.g. headers).
+          // No additional toast needed here as parseCSVToLeads covers it.
+        }
+      } else {
+          toast({ title: "File Error", description: "Could not read the file content.", variant: "destructive"});
+      }
+    };
+    reader.onerror = () => {
+      toast({ title: "File Read Error", description: "Failed to read the file.", variant: "destructive" });
+    };
+    reader.readAsText(file);
+
+    if (event.target) {
+      event.target.value = ""; 
+    }
+  };
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
 
   const filteredLeads = useMemo(() => {
     if (statusFilter === "All") {
@@ -277,9 +375,9 @@ export default function LeadsPage() {
             <h1 className="text-3xl font-bold flex items-center gap-2"><Users className="h-8 w-8 text-primary" /> Potential Leads</h1>
             <p className="text-muted-foreground">Manage and track your prospective clients.</p>
           </div>
-          <div className="flex gap-2 items-center">
+          <div className="flex gap-2 items-center flex-wrap">
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full sm:w-[180px]">
                 <Filter className="mr-2 h-4 w-4" />
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
@@ -293,9 +391,20 @@ export default function LeadsPage() {
                 </SelectGroup>
               </SelectContent>
             </Select>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              accept=".csv"
+              style={{ display: 'none' }}
+              id="csv-upload"
+            />
+            <Button onClick={handleImportClick} variant="outline" className="w-full sm:w-auto">
+              <Upload className="mr-2 h-4 w-4" /> Import CSV
+            </Button>
             <Dialog open={isAddLeadOpen} onOpenChange={setIsAddLeadOpen}>
               <DialogTrigger asChild>
-                <Button>
+                <Button className="w-full sm:w-auto">
                   <PlusCircle className="mr-2 h-4 w-4" /> Add Lead
                 </Button>
               </DialogTrigger>
