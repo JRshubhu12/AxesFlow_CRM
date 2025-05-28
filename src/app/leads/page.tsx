@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { PlusCircle, Filter, Users, Eye, Edit3, MessageCircle, CalendarPlus, Sparkles, Search, Upload, MoreHorizontal, CheckSquare } from 'lucide-react';
+import { PlusCircle, Filter, Users, Eye, Edit3, MessageCircle, CalendarPlus, Sparkles, Search, Upload, MoreHorizontal, CheckSquare, Loader2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -48,10 +48,10 @@ import * as z from "zod";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from 'next/navigation';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 
 import { findLeads, type FindLeadsInput, type PotentialLead as AIGeneratedLead } from '@/ai/flows/find-leads-flow';
-
+import { supabase } from '@/lib/supabaseClient';
 
 const leadSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -62,11 +62,19 @@ const leadSchema = z.object({
 
 type LeadFormValues = z.infer<typeof leadSchema>;
 
-export interface Lead extends LeadFormValues {
-  id: string;
-  lastContact: string;
+// Interface for UI state, maps Supabase columns if needed
+export interface Lead {
+  id: number; // From Supabase (integer PK)
+  name: string;
+  company: string;
+  email: string;
+  status: "New" | "Contacted" | "Qualified" | "Proposal Sent" | "Closed - Won" | "Closed - Lost";
+  lastContact: string; // Mapped from Supabase last_contact (YYYY-MM-DD string)
+  created_at?: string; // From Supabase
 }
 
+
+// Interfaces for chat/meeting remain for localStorage interaction
 interface Chat {
   id: string;
   contact?: string;
@@ -87,14 +95,6 @@ interface Meeting {
   googleMeetLink?: string;
 }
 
-
-const initialLeadsData: Lead[] = [
-  { id: 'L001', name: 'John Doe', company: 'Innovate Corp', email: 'john.doe@innovate.com', status: 'New', lastContact: '2024-07-20' },
-  { id: 'L002', name: 'Jane Smith', company: 'Solutions Inc.', email: 'jane.smith@solutions.com', status: 'Contacted', lastContact: '2024-07-18' },
-  { id: 'L003', name: 'Mike Brown', company: 'Tech Giants', email: 'mike.brown@techgiants.com', status: 'Qualified', lastContact: '2024-07-15' },
-  { id: 'L004', name: 'Sarah Wilson', company: 'Future Forward', email: 'sarah.wilson@future.com', status: 'Proposal Sent', lastContact: '2024-07-10' },
-  { id: 'L005', name: 'David Lee', company: 'Global Co', email: 'david.lee@global.co', status: 'Closed - Won', lastContact: '2024-07-01' },
-];
 
 const leadStatuses = ["New", "Contacted", "Qualified", "Proposal Sent", "Closed - Won", "Closed - Lost"] as const;
 
@@ -119,6 +119,7 @@ type AILeadFinderFormValues = z.infer<typeof aiLeadFinderSchema>;
 
 export default function LeadsPage() {
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [isLoadingLeads, setIsLoadingLeads] = useState(true);
   const [isAddLeadOpen, setIsAddLeadOpen] = useState(false);
   const [isEditLeadOpen, setIsEditLeadOpen] = useState(false);
   const [isViewLeadOpen, setIsViewLeadOpen] = useState(false);
@@ -131,15 +132,35 @@ export default function LeadsPage() {
   const [aiFoundLeads, setAiFoundLeads] = useState<AIGeneratedLead[]>([]);
   const [isAiFindingLeads, setIsAiFindingLeads] = useState(false);
 
-  useEffect(() => {
-    const storedLeads = localStorage.getItem('leads');
-    if (storedLeads) {
-      setLeads(JSON.parse(storedLeads));
-    } else {
-      setLeads(initialLeadsData);
-      localStorage.setItem('leads', JSON.stringify(initialLeadsData));
+  const fetchLeadsFromSupabase = async () => {
+    setIsLoadingLeads(true);
+    const { data, error } = await supabase
+      .from('leads')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching leads:', error);
+      toast({ title: "Error Fetching Leads", description: error.message, variant: "destructive" });
+      setLeads([]);
+    } else if (data) {
+      const mappedLeads = data.map(lead => ({
+        id: lead.id,
+        name: lead.name,
+        company: lead.company,
+        email: lead.email,
+        status: lead.status,
+        lastContact: lead.last_contact, // Map from Supabase snake_case
+        created_at: lead.created_at,
+      })) as Lead[];
+      setLeads(mappedLeads);
     }
-  }, []);
+    setIsLoadingLeads(false);
+  };
+
+  useEffect(() => {
+    fetchLeadsFromSupabase();
+  }, []); // Removed toast from dependency array as it's stable
 
   const form = useForm<LeadFormValues>({
     resolver: zodResolver(leadSchema),
@@ -164,40 +185,95 @@ export default function LeadsPage() {
     },
   });
 
-  const handleAddLeadSubmit = (values: LeadFormValues) => {
-    const newLead: Lead = {
-      ...values,
-      id: `L${Date.now()}`,
-      lastContact: format(new Date(), "yyyy-MM-dd"),
+  const handleAddLeadSubmit = async (values: LeadFormValues) => {
+    const newLeadData = {
+      name: values.name,
+      company: values.company,
+      email: values.email,
+      status: values.status,
+      last_contact: format(new Date(), "yyyy-MM-dd"),
     };
-    const updatedLeads = [...leads, newLead];
-    setLeads(updatedLeads);
-    localStorage.setItem('leads', JSON.stringify(updatedLeads));
-    toast({ title: "Lead Added", description: `${newLead.name} has been added.` });
-    form.reset();
-    setIsAddLeadOpen(false);
+    const { data, error } = await supabase.from('leads').insert([newLeadData]).select();
+    
+    if (error) {
+      toast({ title: "Error Adding Lead", description: error.message, variant: "destructive" });
+    } else if (data && data.length > 0) {
+      const addedLeadSupabase = data[0];
+      const newLeadForUI: Lead = {
+        id: addedLeadSupabase.id,
+        name: addedLeadSupabase.name,
+        company: addedLeadSupabase.company,
+        email: addedLeadSupabase.email,
+        status: addedLeadSupabase.status,
+        lastContact: addedLeadSupabase.last_contact,
+        created_at: addedLeadSupabase.created_at,
+      };
+      setLeads(prevLeads => [newLeadForUI, ...prevLeads]);
+      toast({ title: "Lead Added", description: `${newLeadForUI.name} has been added.` });
+      form.reset();
+      setIsAddLeadOpen(false);
+    }
   };
 
-  const handleEditLeadSubmit = (values: LeadFormValues) => {
+  const handleEditLeadSubmit = async (values: LeadFormValues) => {
     if (!selectedLead) return;
-    const updatedLeads = leads.map(lead =>
-      lead.id === selectedLead.id ? { ...selectedLead, ...values, lastContact: format(new Date(), "yyyy-MM-dd") } : lead
-    );
-    setLeads(updatedLeads);
-    localStorage.setItem('leads', JSON.stringify(updatedLeads));
-    toast({ title: "Lead Updated", description: `${values.name} has been updated.` });
-    editForm.reset();
-    setIsEditLeadOpen(false);
-    setSelectedLead(null);
-  };
+    const updatedLeadData = {
+      name: values.name,
+      company: values.company,
+      email: values.email,
+      status: values.status,
+      last_contact: format(new Date(), "yyyy-MM-dd"),
+    };
+    const { data, error } = await supabase
+      .from('leads')
+      .update(updatedLeadData)
+      .eq('id', selectedLead.id)
+      .select();
 
-  const handleQuickStatusChange = (leadId: string, newStatus: LeadFormValues['status']) => {
-    const updatedLeads = leads.map(lead =>
-      lead.id === leadId ? { ...lead, status: newStatus, lastContact: format(new Date(), "yyyy-MM-dd") } : lead
-    );
-    setLeads(updatedLeads);
-    localStorage.setItem('leads', JSON.stringify(updatedLeads));
-    toast({ title: "Status Updated", description: `Lead ${leadId} status changed to ${newStatus}.` });
+    if (error) {
+      toast({ title: "Error Updating Lead", description: error.message, variant: "destructive" });
+    } else if (data && data.length > 0) {
+      const updatedLeadSupabase = data[0];
+       const updatedLeadForUI: Lead = {
+        id: updatedLeadSupabase.id,
+        name: updatedLeadSupabase.name,
+        company: updatedLeadSupabase.company,
+        email: updatedLeadSupabase.email,
+        status: updatedLeadSupabase.status,
+        lastContact: updatedLeadSupabase.last_contact,
+        created_at: updatedLeadSupabase.created_at,
+      };
+      setLeads(prevLeads => prevLeads.map(l => l.id === updatedLeadForUI.id ? updatedLeadForUI : l));
+      toast({ title: "Lead Updated", description: `${updatedLeadForUI.name} has been updated.` });
+      editForm.reset();
+      setIsEditLeadOpen(false);
+      setSelectedLead(null);
+    }
+  };
+  
+  const handleQuickStatusChange = async (leadId: number, newStatus: LeadFormValues['status']) => {
+    const { data, error } = await supabase
+      .from('leads')
+      .update({ status: newStatus, last_contact: format(new Date(), "yyyy-MM-dd") })
+      .eq('id', leadId)
+      .select();
+
+    if (error) {
+      toast({ title: "Error Updating Status", description: error.message, variant: "destructive" });
+    } else if (data && data.length > 0) {
+      const updatedLeadSupabase = data[0];
+      const updatedLeadForUI: Lead = {
+        id: updatedLeadSupabase.id,
+        name: updatedLeadSupabase.name,
+        company: updatedLeadSupabase.company,
+        email: updatedLeadSupabase.email,
+        status: updatedLeadSupabase.status,
+        lastContact: updatedLeadSupabase.last_contact,
+        created_at: updatedLeadSupabase.created_at,
+      };
+      setLeads(prevLeads => prevLeads.map(l => l.id === updatedLeadForUI.id ? updatedLeadForUI : l));
+      toast({ title: "Status Updated", description: `Lead ${updatedLeadForUI.name} status changed to ${newStatus}.` });
+    }
   };
 
 
@@ -218,7 +294,7 @@ export default function LeadsPage() {
   };
 
   const handleStartChat = (lead: Lead) => {
-    const storedChats = localStorage.getItem('chatsData');
+    const storedChats = localStorage.getItem('chatsData'); // Keep chats in localStorage for now
     const currentChats: Chat[] = storedChats ? JSON.parse(storedChats) : [];
     const newChat: Chat = {
       id: `C-${Date.now()}`,
@@ -235,7 +311,7 @@ export default function LeadsPage() {
   };
 
   const handleScheduleMeeting = (lead: Lead) => {
-    const storedMeetings = localStorage.getItem('meetingsData');
+    const storedMeetings = localStorage.getItem('meetingsData'); // Keep meetings in localStorage
     const currentMeetings: Meeting[] = storedMeetings ? JSON.parse(storedMeetings) : [];
     const newMeeting: Meeting = {
       id: `M-${Date.now()}`,
@@ -276,23 +352,40 @@ export default function LeadsPage() {
     }
   };
   
-  const handleAddAiLeadToList = (aiLead: AIGeneratedLead) => {
-    const newLead: Lead = {
-      id: `L-AI-${Date.now()}`,
-      name: aiLead.potentialContactTitle || aiLead.companyName, // Fallback to company name if title is missing
+  const handleAddAiLeadToList = async (aiLead: AIGeneratedLead) => {
+    const newLeadData = {
+      name: aiLead.potentialContactTitle || aiLead.companyName,
       company: aiLead.companyName,
-      email: aiLead.contactEmail || `info@${aiLead.companyName.toLowerCase().replace(/\s+/g, '')}.com`, // Placeholder email if not found
-      status: 'New',
-      lastContact: format(new Date(), "yyyy-MM-dd"),
+      email: aiLead.contactEmail || `info@${aiLead.companyName.toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9@.]/gi, '')}.com`,
+      status: 'New' as LeadFormValues['status'],
+      last_contact: format(new Date(), "yyyy-MM-dd"),
+      website: aiLead.website, // Assuming your 'leads' table has a 'website' column
+      reasoning: aiLead.reasoning, // Assuming 'reasoning' column
+      estimated_company_size: aiLead.estimatedCompanySize, // Assuming 'estimated_company_size' column
+      key_product_or_service: aiLead.keyProductOrService, // Assuming 'key_product_or_service' column
     };
-    const updatedLeads = [...leads, newLead];
-    setLeads(updatedLeads);
-    localStorage.setItem('leads', JSON.stringify(updatedLeads));
-    toast({ title: "Lead Added", description: `${newLead.company} has been added to your leads list.` });
+
+    const { data, error } = await supabase.from('leads').insert([newLeadData]).select();
+    if (error) {
+      toast({ title: "Error Adding AI Lead", description: error.message, variant: "destructive" });
+    } else if (data && data.length > 0) {
+      const addedLeadSupabase = data[0];
+      const newLeadForUI: Lead = {
+        id: addedLeadSupabase.id,
+        name: addedLeadSupabase.name,
+        company: addedLeadSupabase.company,
+        email: addedLeadSupabase.email,
+        status: addedLeadSupabase.status,
+        lastContact: addedLeadSupabase.last_contact,
+        created_at: addedLeadSupabase.created_at,
+      };
+      setLeads(prevLeads => [newLeadForUI, ...prevLeads]);
+      toast({ title: "AI Lead Added", description: `${newLeadForUI.company} has been added to your leads list.` });
+    }
   };
 
-  const parseCSVToLeads = (csvText: string): Lead[] => {
-    const newLeads: Lead[] = [];
+  const parseCSVToLeads = (csvText: string): Partial<Lead>[] => { // Return Partial<Lead> as ID is not known yet
+    const newLeads: Partial<Lead>[] = [];
     const lines = csvText.trim().split('\n');
     if (lines.length < 2) {
       toast({ title: "CSV Import Error", description: "CSV file is empty or has no data rows. It must have a header row and at least one data row.", variant: "destructive" });
@@ -312,6 +405,7 @@ export default function LeadsPage() {
     const companyIndex = headers.indexOf('company');
     const emailIndex = headers.indexOf('email');
     const statusIndex = headers.indexOf('status');
+    const lastContactIndex = headers.indexOf('lastcontact'); // Optional: last_contact or lastContact
 
     for (let i = 1; i < lines.length; i++) {
       const values = lines[i].split(',').map(v => v.trim().replace(/^"|"$/g, '')); 
@@ -325,22 +419,35 @@ export default function LeadsPage() {
       const company = values[companyIndex];
       const email = values[emailIndex];
       const statusValue = values[statusIndex];
+      let lastContactValue = values[lastContactIndex];
+
 
       if (!name || !company || !email || !statusValue) {
           console.warn(`Skipping row ${i + 1} due to missing required data after parsing.`);
           continue; 
       }
+      
+      try {
+        if (lastContactValue) {
+            lastContactValue = format(parseISO(lastContactValue), "yyyy-MM-dd");
+        } else {
+            lastContactValue = format(new Date(), "yyyy-MM-dd");
+        }
+      } catch (e) {
+        console.warn(`Invalid date format for lastContact in row ${i+1}, defaulting to today.`);
+        lastContactValue = format(new Date(), "yyyy-MM-dd");
+      }
+
 
       const leadStatus = statusValue as LeadFormValues['status'];
       const isValidStatus = leadStatuses.includes(leadStatus);
 
-      const lead: Lead = {
-        id: `L-CSV-${Date.now()}-${i}`,
+      const lead: Partial<Lead> = { // id is not set here, Supabase will generate it
         name: name,
         company: company,
         email: email,
         status: isValidStatus ? leadStatus : "New",
-        lastContact: format(new Date(), "yyyy-MM-dd"),
+        lastContact: lastContactValue,
       };
       newLeads.push(lead);
     }
@@ -359,15 +466,36 @@ export default function LeadsPage() {
     }
 
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       const text = e.target?.result as string;
       if (text) {
         const parsedLeads = parseCSVToLeads(text);
         if (parsedLeads.length > 0) {
-          const updatedLeads = [...leads, ...parsedLeads];
-          setLeads(updatedLeads);
-          localStorage.setItem('leads', JSON.stringify(updatedLeads));
-          toast({ title: "Leads Imported", description: `${parsedLeads.length} leads have been imported successfully.` });
+          const leadsToInsert = parsedLeads.map(p => ({
+            name: p.name!,
+            company: p.company!,
+            email: p.email!,
+            status: p.status!,
+            last_contact: p.lastContact!, // Ensure this is YYYY-MM-DD
+          }));
+
+          const { data, error } = await supabase.from('leads').insert(leadsToInsert).select();
+          if (error) {
+            toast({ title: "CSV Import Error", description: error.message, variant: "destructive" });
+          } else if (data) {
+             const addedLeadsForUI = data.map(lead => ({
+                id: lead.id,
+                name: lead.name,
+                company: lead.company,
+                email: lead.email,
+                status: lead.status,
+                lastContact: lead.last_contact,
+                created_at: lead.created_at,
+            })) as Lead[];
+            setLeads(prevLeads => [...addedLeadsForUI, ...prevLeads]); // Consider deduping or simply prepending/appending
+            toast({ title: "Leads Imported", description: `${data.length} leads have been imported successfully.` });
+            fetchLeadsFromSupabase(); // Re-fetch to ensure sync and correct order
+          }
         }
       } else {
           toast({ title: "File Error", description: "Could not read the file content.", variant: "destructive"});
@@ -400,7 +528,7 @@ export default function LeadsPage() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold flex items-center gap-2"><Users className="h-8 w-8 text-primary" /> Potential Leads</h1>
-            <p className="text-muted-foreground">Manage and track your prospective clients.</p>
+            <p className="text-muted-foreground">Manage and track your prospective clients from Supabase.</p>
           </div>
           <div className="flex gap-2 items-center flex-wrap">
             <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -613,7 +741,8 @@ export default function LeadsPage() {
                           selectedLead.status === 'Qualified' ? 'bg-accent text-accent-foreground hover:bg-accent/90' : 
                           selectedLead.status === 'Closed - Won' ? 'bg-green-500 text-white hover:bg-green-600' : ''
                         }>{selectedLead.status}</Badge></div>
-                <div><strong className="font-medium">Last Contact:</strong> {selectedLead.lastContact}</div>
+                <div><strong className="font-medium">Last Contact:</strong> {selectedLead.lastContact ? format(parseISO(selectedLead.lastContact), "PP") : 'N/A'}</div>
+                <div><strong className="font-medium">Created At:</strong> {selectedLead.created_at ? format(parseISO(selectedLead.created_at), "PPpp") : 'N/A'}</div>
               </div>
             )}
             <DialogFooter>
@@ -629,6 +758,12 @@ export default function LeadsPage() {
             <CardDescription>Browse through your current leads and their statuses.</CardDescription>
           </CardHeader>
           <CardContent>
+            {isLoadingLeads ? (
+                <div className="flex justify-center items-center py-10">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <p className="ml-2 text-muted-foreground">Loading leads...</p>
+                </div>
+            ) : (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -663,7 +798,7 @@ export default function LeadsPage() {
                         {lead.status}
                       </Badge>
                     </TableCell>
-                    <TableCell>{lead.lastContact}</TableCell>
+                    <TableCell>{lead.lastContact ? format(parseISO(lead.lastContact), "PP") : 'N/A'}</TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -718,7 +853,8 @@ export default function LeadsPage() {
                 ))}
               </TableBody>
             </Table>
-             {filteredLeads.length === 0 && (
+            )}
+             {filteredLeads.length === 0 && !isLoadingLeads && (
               <div className="text-center py-10 text-muted-foreground">
                 No leads match the current filter.
               </div>
@@ -836,4 +972,3 @@ export default function LeadsPage() {
     </MainLayout>
   );
 }
-
