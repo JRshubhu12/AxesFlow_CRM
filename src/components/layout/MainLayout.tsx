@@ -19,11 +19,12 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import { AppLogo } from '@/components/AppLogo';
-import { navItems, settingsNavItem } from '@/config/nav';
+import { navItems } from '@/config/nav'; // Removed settingsNavItem import
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { LogOut, UserCircle } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { LogOut, UserCircle, Search, Folder, Bell } from 'lucide-react';
 import { Toaster } from '../ui/toaster';
 
 const USER_PROFILE_STORAGE_KEY = 'userProfileData';
@@ -34,47 +35,28 @@ interface UserProfile {
   agencyLogoUrl?: string;
 }
 
-function AgencyNameDisplay() {
-  const [agencyName, setAgencyName] = useState<string | null>(null);
+function PageTitleDisplay() {
+  const pathname = usePathname();
+  const [title, setTitle] = useState('');
 
   useEffect(() => {
-    const loadAgencyName = () => {
-      const storedData = localStorage.getItem(USER_PROFILE_STORAGE_KEY);
-      if (storedData) {
-        try {
-          const parsedData: UserProfile = JSON.parse(storedData);
-          setAgencyName(parsedData.agencyName || null);
-        } catch (error) {
-          console.error("Failed to parse agency name from localStorage", error);
-          setAgencyName(null);
-        }
-      } else {
-        setAgencyName(null);
-      }
-    };
-
-    loadAgencyName(); // Initial load
-
-    const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === USER_PROFILE_STORAGE_KEY) {
-        loadAgencyName();
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-    };
-  }, []);
-
-  if (!agencyName) {
-    return null; // Don't render anything if no agency name
-  }
+    const currentNavItem = navItems.find(item => item.href === pathname || (item.href !== '/dashboard' && pathname.startsWith(item.href)));
+    // Add other specific page titles if not in navItems, e.g., for /profile, /settings
+    if (pathname === '/profile') {
+        setTitle('Profile');
+    } else if (pathname === '/settings') {
+        setTitle('Settings');
+    } else if (currentNavItem) {
+      setTitle(currentNavItem.title);
+    } else if (pathname.startsWith('/projects/')) {
+      setTitle('Project Detail'); // Example for dynamic routes
+    } else {
+      setTitle('Dashboard'); // Default title
+    }
+  }, [pathname]);
 
   return (
-    <div className="hidden md:flex items-center mr-4">
-      <span className="text-sm font-semibold text-foreground">{agencyName}</span>
-    </div>
+    <h1 className="text-xl font-semibold text-foreground">{title}</h1>
   );
 }
 
@@ -90,14 +72,14 @@ function UserNav() {
           setUserProfile(parsedData);
         } catch (error) {
           console.error("Failed to parse user profile data from localStorage", error);
-          setUserProfile({}); // Reset if parsing fails
+          setUserProfile({}); 
         }
       } else {
-        setUserProfile({}); // Reset if no data
+        setUserProfile({}); 
       }
     };
     
-    loadProfile(); // Initial load
+    loadProfile(); 
 
     const handleStorageChange = (event: StorageEvent) => {
       if (event.key === USER_PROFILE_STORAGE_KEY) {
@@ -131,9 +113,9 @@ function UserNav() {
         <Button variant="ghost" className="relative h-9 w-9 rounded-full">
           <Avatar className="h-9 w-9">
             <AvatarImage 
-              src={userProfile.agencyLogoUrl || "https://placehold.co/40x40.png?text=Logo"} 
+              src={userProfile.agencyLogoUrl || "https://placehold.co/40x40.png?text=U"} 
               alt={userProfile.agencyName || "User Avatar"} 
-              data-ai-hint="agency logo" 
+              data-ai-hint="agency logo user" 
             />
             <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
           </Avatar>
@@ -153,6 +135,10 @@ function UserNav() {
           <UserCircle className="mr-2 h-4 w-4" />
           <span>Profile</span>
         </DropdownMenuItem>
+         <DropdownMenuItem onClick={() => window.location.href = '/settings'}>
+          <Settings className="mr-2 h-4 w-4" />
+          <span>Settings</span>
+        </DropdownMenuItem>
         <DropdownMenuItem onClick={handleLogout}>
           <LogOut className="mr-2 h-4 w-4" />
           <span>Log out</span>
@@ -170,8 +156,8 @@ function LayoutContent({ children }: { children: ReactNode }) {
   return (
     <>
       <Sidebar>
-        <SidebarHeader className="p-4">
-          <AppLogo /> {/* This already shows "AxesFlow" */}
+        <SidebarHeader className="p-4 border-b border-sidebar-border h-16 flex items-center">
+          <AppLogo /> 
         </SidebarHeader>
         <SidebarContent className="p-2">
           <SidebarMenu>
@@ -181,11 +167,16 @@ function LayoutContent({ children }: { children: ReactNode }) {
                   asChild
                   isActive={pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))}
                   tooltip={{content: item.tooltip}}
-                  variant="default"
                   size="default"
+                  className={cn(
+                    "justify-start text-sm font-normal px-3 py-2 rounded-md",
+                    (pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href)))
+                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                      : "text-sidebar-foreground hover:bg-muted"
+                  )}
                 >
-                  <Link href={item.href} className="flex items-center gap-3">
-                    <item.icon className="h-5 w-5" />
+                  <Link href={item.href} className="flex items-center gap-3 w-full">
+                    {/* Icon removed based on design: <item.icon className="h-5 w-5" /> */}
                     <span>{item.title}</span>
                   </Link>
                 </SidebarMenuButton>
@@ -193,41 +184,39 @@ function LayoutContent({ children }: { children: ReactNode }) {
             ))}
           </SidebarMenu>
         </SidebarContent>
-        <SidebarFooter className="p-2 border-t border-sidebar-border">
-           <SidebarMenu>
-            <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  isActive={pathname === settingsNavItem.href}
-                  tooltip={{content: settingsNavItem.tooltip}}
-                  variant="default"
-                  size="default"
-                >
-                  <Link href={settingsNavItem.href} className="flex items-center gap-3">
-                    <settingsNavItem.icon className="h-5 w-5" />
-                    <span>{settingsNavItem.title}</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-           </SidebarMenu>
-        </SidebarFooter>
+        {/* SidebarFooter removed as settings is now likely in UserNav or not shown per image */}
       </Sidebar>
       <SidebarInset>
-        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-background/80 backdrop-blur-md px-4 sm:px-6">
-          <div className="flex items-center"> {/* Left group for mobile trigger and agency name */}
+        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-background px-4 sm:px-6">
+          <div className="flex items-center gap-4"> 
             <div className="md:hidden">
               <SidebarTrigger />
             </div>
-            <AgencyNameDisplay /> {/* Displays agency name, hidden on mobile by its own class */}
+            <PageTitleDisplay />
           </div>
           
-          <div className="flex-1" /> {/* Spacer, pushes UserNav to the right */}
+          <div className="flex-1 flex justify-center px-4 lg:px-8">
+            <div className="relative w-full max-w-md">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input 
+                type="search" 
+                placeholder="search for features, settings and more"
+                className="w-full rounded-full pl-10 pr-4 py-2 text-sm h-10"
+              />
+            </div>
+          </div>
 
-          <div className="flex items-center"> {/* Right group for UserNav */}
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" aria-label="Files">
+              <Folder className="h-5 w-5 text-muted-foreground" />
+            </Button>
+             <Button variant="ghost" size="icon" aria-label="Notifications">
+              <Bell className="h-5 w-5 text-muted-foreground" />
+            </Button>
             <UserNav />
           </div>
         </header>
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 bg-background">
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
           {children}
         </main>
       </SidebarInset>
@@ -237,7 +226,7 @@ function LayoutContent({ children }: { children: ReactNode }) {
 
 export default function MainLayout({ children }: { children: ReactNode }) {
   return (
-    <SidebarProvider defaultOpen>
+    <SidebarProvider defaultOpen> {/* Ensure sidebar is open by default on desktop */}
       <LayoutContent>{children}</LayoutContent>
       <Toaster />
     </SidebarProvider>
