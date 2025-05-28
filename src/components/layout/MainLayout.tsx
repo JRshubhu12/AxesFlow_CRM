@@ -19,13 +19,14 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import { AppLogo } from '@/components/AppLogo';
-import { navItems } from '@/config/nav'; // Removed settingsNavItem import
+import { navItems } from '@/config/nav';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
-import { LogOut, UserCircle, Search, Folder, Bell } from 'lucide-react';
+import { LogOut, UserCircle, Search, Folder, Bell, Settings } from 'lucide-react'; // Added Settings icon
 import { Toaster } from '../ui/toaster';
+import { cn } from '@/lib/utils'; // Added this import
 
 const USER_PROFILE_STORAGE_KEY = 'userProfileData';
 
@@ -41,19 +42,25 @@ function PageTitleDisplay() {
 
   useEffect(() => {
     const currentNavItem = navItems.find(item => item.href === pathname || (item.href !== '/dashboard' && pathname.startsWith(item.href)));
-    // Add other specific page titles if not in navItems, e.g., for /profile, /settings
+    
     if (pathname === '/profile') {
         setTitle('Profile');
     } else if (pathname === '/settings') {
         setTitle('Settings');
+    } else if (pathname.startsWith('/projects/') && params && params.id) {
+        setTitle(`Project Detail: ${params.id}`);
     } else if (currentNavItem) {
       setTitle(currentNavItem.title);
-    } else if (pathname.startsWith('/projects/')) {
-      setTitle('Project Detail'); // Example for dynamic routes
     } else {
-      setTitle('Dashboard'); // Default title
+      setTitle('Dashboard'); 
     }
   }, [pathname]);
+
+  // This component relies on params for dynamic routes, which isn't directly available
+  // in a layout component without passing it down or using a different context strategy.
+  // For simplicity, if dynamic route details are needed, they should be handled within the page itself.
+  // This PageTitleDisplay is simplified for now.
+  const params = usePathname().split('/').filter(Boolean); // Basic attempt to get path parts
 
   return (
     <h1 className="text-xl font-semibold text-foreground">{title}</h1>
@@ -176,7 +183,7 @@ function LayoutContent({ children }: { children: ReactNode }) {
                   )}
                 >
                   <Link href={item.href} className="flex items-center gap-3 w-full">
-                    {/* Icon removed based on design: <item.icon className="h-5 w-5" /> */}
+                    {/* Icon removed based on design */}
                     <span>{item.title}</span>
                   </Link>
                 </SidebarMenuButton>
