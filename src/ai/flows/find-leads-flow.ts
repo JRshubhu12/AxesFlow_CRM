@@ -21,7 +21,7 @@ export type FindLeadsInput = z.infer<typeof FindLeadsInputSchema>;
 const PotentialLeadSchema = z.object({
   companyName: z.string().describe('The name of the potential lead company.'),
   potentialContactTitle: z.string().optional().describe('A suggested contact person or title within the company (e.g., "Head of Marketing", "VP of Sales", "Founder").'),
-  contactEmail: z.string().email().optional().describe('A potential contact email address for the lead or company. Ensure it is a valid email format if provided.'),
+  contactEmail: z.string().optional().describe('A potential contact email address for the lead or company. Ensure it is a valid email format if provided.'),
   contactPhone: z.string().optional().describe('A potential contact phone number for the lead or company.'),
   reasoning: z.string().describe('A brief (1-2 sentences) explanation of why this company is a good potential lead based on the provided criteria.'),
   website: z.string().optional().describe('The company\'s website URL, if found.'),
@@ -83,3 +83,4 @@ const findLeadsFlow = ai.defineFlow(
     return output!;
   }
 );
+
