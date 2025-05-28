@@ -1,8 +1,7 @@
-
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowRight, User, Briefcase, Mail, Users, ChevronRight } from 'lucide-react';
+import { ArrowRight, User, Briefcase, Mail, Users, ChevronRight, MessageSquare, CheckSquare } from 'lucide-react';
 import Link from 'next/link';
 
 export default function DashboardPage() {
@@ -11,59 +10,64 @@ export default function DashboardPage() {
       <div className="space-y-8">
         {/* Hero Section */}
         <div className="relative rounded-xl bg-gradient-to-br from-gray-900 to-gray-800 p-8 text-white overflow-hidden">
-  <div className="absolute inset-0 opacity-10">
-    <div className="absolute inset-0 bg-[url('/images/grid-pattern.svg')] bg-[length:40px_40px]"></div>
-  </div>
-  
-  <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-    <div>
-      <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-3">
-        Welcome back to <span className="text-blue-400">AxesFlow</span>
-      </h1>
-      <p className="text-lg text-gray-300 max-w-2xl mb-6 leading-relaxed">
-        Your integrated solution for streamlined agency operations. 
-        Monitor performance and accelerate growth with our unified platform.
-      </p>
-      <div className="flex gap-3">
-        <Button variant="default" size="lg" asChild className="bg-blue-600 hover:bg-blue-700">
-          <Link href="/profile" className="flex items-center gap-2">
-            Setup Profile <ArrowRight className="h-5 w-5" />
-          </Link>
-        </Button>
-        <Button variant="outline" size="lg" asChild className="text-foreground border-gray-500 hover:bg-gray-800 hover:text-white">
-          <Link href="/dashboard" className="flex items-center gap-2">
-            View Dashboard
-          </Link>
-        </Button>
-      </div>
-    </div>
-    
-    <div className="hidden md:block relative w-64 h-64">
-      <div className="absolute -right-6 -top-6 w-full h-full bg-blue-500/10 rounded-full blur-xl"></div>
-      <div className="relative w-full h-full flex items-center justify-center">
-        <div className="w-48 h-48 bg-blue-600/20 rounded-full flex items-center justify-center">
-          <div className="w-32 h-32 bg-blue-600/30 rounded-full flex items-center justify-center">
-            <Briefcase className="h-16 w-16 text-blue-400" strokeWidth={1.5} />
+          <div className="absolute inset-0 opacity-10">
+            <div className="absolute inset-0 bg-[url('/images/grid-pattern.svg')] bg-[length:40px_40px]"></div>
           </div>
+          
+          <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            <div>
+              <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-3">
+                Welcome back to <span className="text-blue-400">AxesFlow</span>
+              </h1>
+              <p className="text-lg text-gray-300 max-w-2xl mb-6 leading-relaxed">
+                Your integrated solution for streamlined agency operations. 
+                Monitor performance and accelerate growth with our unified platform.
+              </p>
+              <div className="flex gap-3">
+                <Button variant="default" size="lg" asChild className="bg-blue-600 hover:bg-blue-700">
+                  <Link href="/profile" className="flex items-center gap-2">
+                    Setup Profile <ArrowRight className="h-5 w-5" />
+                  </Link>
+                </Button>
+                <Button variant="outline" size="lg" asChild className="text-foreground border-gray-500 hover:bg-gray-800 hover:text-white">
+                  <Link href="/dashboard" className="flex items-center gap-2">
+                    View Dashboard
+                  </Link>
+                </Button>
+              </div>
+            </div>
+            
+            <div className="hidden md:block relative w-64 h-64">
+              <div className="absolute -right-6 -top-6 w-full h-full bg-blue-500/10 rounded-full blur-xl"></div>
+              <div className="relative w-full h-full flex items-center justify-center">
+                <div className="w-48 h-48 bg-blue-600/20 rounded-full flex items-center justify-center">
+                  <div className="w-32 h-32 bg-blue-600/30 rounded-full flex items-center justify-center">
+                    <Briefcase className="h-16 w-16 text-blue-400" strokeWidth={1.5} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-purple-600"></div>
         </div>
-      </div>
-    </div>
-  </div>
-  
-  <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-purple-600"></div>
-</div>
 
         {/* Stats Overview */}
-        <div className="grid gap-6 md:grid-cols-4">
+        <div className="grid gap-6 md:grid-cols-6">
           {[
-            { title: 'New Leads', value: '24', change: '+12%', trend: 'up' },
-            { title: 'Active Projects', value: '8', change: '+2', trend: 'up' },
-            { title: 'Campaigns', value: '5', change: '-1', trend: 'down' },
-            { title: 'Team Members', value: '14', change: '0%', trend: 'neutral' },
+            { title: 'Leads', value: '24', change: '+12%', trend: 'up', icon: Users },
+            { title: 'Campaigns', value: '5', change: '-1', trend: 'down', icon: Mail },
+            { title: 'Talks', value: '18', change: '+3', trend: 'up', icon: MessageSquare },
+            { title: 'Projects', value: '8', change: '+2', trend: 'up', icon: Briefcase },
+            { title: 'Tasks', value: '32', change: '+5', trend: 'up', icon: CheckSquare },
+            { title: 'Teams', value: '3', change: '0%', trend: 'neutral', icon: Users },
           ].map((stat, index) => (
             <Card key={index} className="border-0 shadow-sm">
               <CardHeader className="pb-2">
-                <CardDescription className="text-sm font-medium text-gray-500">{stat.title}</CardDescription>
+                <div className="flex items-center justify-between">
+                  <CardDescription className="text-sm font-medium text-gray-500">{stat.title}</CardDescription>
+                  <stat.icon className="h-5 w-5 text-gray-400" />
+                </div>
                 <CardTitle className="text-2xl font-semibold">{stat.value}</CardTitle>
               </CardHeader>
               <CardContent>
@@ -96,9 +100,12 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {[
-                { title: 'Add New Lead', href: '/leads', icon: Users }, // Points to main leads page, where add is
+                { title: 'Add New Lead', href: '/leads', icon: Users },
                 { title: 'Start Campaign', href: '/email-campaigns', icon: Mail },
-                { title: 'Create Project', href: '/projects', icon: Briefcase }, // Points to main projects page
+                { title: 'Create Project', href: '/projects', icon: Briefcase },
+                { title: 'Add Task', href: '/tasks', icon: CheckSquare },
+                { title: 'Schedule Talk', href: '/talks', icon: MessageSquare },
+                { title: 'Manage Team', href: '/teams', icon: Users },
               ].map((action, index) => (
                 <Button 
                   key={index} 
@@ -145,6 +152,12 @@ export default function DashboardPage() {
                     time: '1 day ago',
                     icon: Briefcase
                   },
+                  { 
+                    title: 'New talk scheduled', 
+                    description: 'Meeting with Acme Inc. tomorrow', 
+                    time: '1 day ago',
+                    icon: MessageSquare
+                  },
                 ].map((activity, index) => (
                   <div key={index} className="flex items-start">
                     <div className="p-2 rounded-full bg-blue-50 mr-4">
@@ -166,39 +179,55 @@ export default function DashboardPage() {
         </div>
 
         {/* Key Sections */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {[
-            { 
-              title: 'Profile', 
-              href: '/profile', 
-              icon: User, 
-              description: 'Manage agency details',
-              bgColor: 'bg-indigo-50',
-              iconColor: 'text-indigo-600'
-            },
             { 
               title: 'Leads', 
               href: '/leads', 
               icon: Users, 
-              description: 'View potential clients',
+              description: 'Manage potential clients',
               bgColor: 'bg-blue-50',
               iconColor: 'text-blue-600'
+            },
+            { 
+              title: 'Campaigns', 
+              href: '/email-campaigns', 
+              icon: Mail, 
+              description: 'Email marketing campaigns',
+              bgColor: 'bg-purple-50',
+              iconColor: 'text-purple-600'
+            },
+            { 
+              title: 'Talks', 
+              href: '/talks', 
+              icon: MessageSquare, 
+              description: 'Client meetings & calls',
+              bgColor: 'bg-green-50',
+              iconColor: 'text-green-600'
             },
             { 
               title: 'Projects', 
               href: '/projects', 
               icon: Briefcase, 
               description: 'Track project progress',
-              bgColor: 'bg-green-50',
-              iconColor: 'text-green-600'
+              bgColor: 'bg-orange-50',
+              iconColor: 'text-orange-600'
             },
             { 
-              title: 'Campaigns', 
-              href: '/email-campaigns', 
-              icon: Mail, 
-              description: 'Generate outreach emails',
-              bgColor: 'bg-purple-50',
-              iconColor: 'text-purple-600'
+              title: 'Tasks', 
+              href: '/tasks', 
+              icon: CheckSquare, 
+              description: 'Manage team tasks',
+              bgColor: 'bg-red-50',
+              iconColor: 'text-red-600'
+            },
+            { 
+              title: 'Teams', 
+              href: '/teams', 
+              icon: Users, 
+              description: 'Team members & roles',
+              bgColor: 'bg-indigo-50',
+              iconColor: 'text-indigo-600'
             },
           ].map(item => (
             <Card key={item.title} className="border-0 shadow-sm hover:shadow-md transition-shadow">
