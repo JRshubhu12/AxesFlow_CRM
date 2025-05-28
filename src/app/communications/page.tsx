@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CalendarDays, MessageCircle, FileText, Video, Phone, Users, Clock, MessageSquare, Link as LinkIcon, Loader2 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
@@ -80,7 +80,7 @@ const getStatusBadgeVariant = (status: string): "default" | "secondary" | "destr
 };
 
 
-export default function CommunicationsPage() {
+function CommunicationsPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { toast } = useToast();
