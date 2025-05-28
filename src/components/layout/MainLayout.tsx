@@ -2,7 +2,7 @@
 "use client";
 
 import Link from 'next/link';
-import { Home, Users, Mail, MessageSquare, Briefcase, CheckSquare, User, Settings, LogOut, Search, Folder, Bell, ChevronDown, Moon, Sun, Palette } from 'lucide-react';
+import { Search, Folder, Bell, ChevronDown, User, Settings, LogOut } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
@@ -18,7 +18,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { navItems as appNavItems } from '@/config/nav'; // Use navItems from config
+import { navItems as appNavItems } from '@/config/nav';
 import { cn } from '@/lib/utils';
 
 interface UserNavProps {
@@ -34,7 +34,6 @@ function UserNav({ agencyName, userEmail, agencyLogoUrl }: UserNavProps) {
   const [currentAgencyLogoUrl, setCurrentAgencyLogoUrl] = useState(agencyLogoUrl);
 
   useEffect(() => {
-    // Initial load from localStorage
     const storedProfile = localStorage.getItem('userProfileData');
     if (storedProfile) {
       try {
@@ -47,7 +46,6 @@ function UserNav({ agencyName, userEmail, agencyLogoUrl }: UserNavProps) {
       }
     }
 
-    // Listen for storage changes
     const handleStorageChange = (event: StorageEvent) => {
       if (event.key === 'userProfileData' && event.newValue) {
         try {
@@ -68,7 +66,6 @@ function UserNav({ agencyName, userEmail, agencyLogoUrl }: UserNavProps) {
 
 
   const handleLogout = () => {
-    // Simple redirect to login, clearing localStorage could be added here
     router.push('/');
   };
 
@@ -77,7 +74,7 @@ function UserNav({ agencyName, userEmail, agencyLogoUrl }: UserNavProps) {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0">
           <Avatar className="h-9 w-9">
-            <AvatarImage src={currentAgencyLogoUrl || "https://placehold.co/40x40.png?text=A"} alt={currentAgencyName || "User"} data-ai-hint="logo company" />
+            <AvatarImage src={currentAgencyLogoUrl || "https://placehold.co/40x40.png?text=A"} alt={currentAgencyName || "User"} data-ai-hint="logo company"/>
             <AvatarFallback>{currentAgencyName ? currentAgencyName.charAt(0).toUpperCase() : "U"}</AvatarFallback>
           </Avatar>
           <ChevronDown className="h-4 w-4 absolute right-[-8px] bottom-0 text-muted-foreground" />
@@ -96,10 +93,6 @@ function UserNav({ agencyName, userEmail, agencyLogoUrl }: UserNavProps) {
         <DropdownMenuItem onClick={() => router.push('/profile')}>
           <User className="mr-2 h-4 w-4" />
           <span>Profile</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => router.push('/finance')} disabled>
-          <Palette className="mr-2 h-4 w-4" />
-          <span>Theme (Soon)</span>
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => router.push('/settings')}>
           <Settings className="mr-2 h-4 w-4" />
@@ -122,15 +115,13 @@ function PageTitleDisplay() {
 
   useEffect(() => {
     const currentNavItem = appNavItems.find(item => pathname.startsWith(item.href) || pathname === item.href);
-    let pageTitle = "Dashboard"; // Default title
+    let pageTitle = "Dashboard"; 
     if (currentNavItem) {
       pageTitle = currentNavItem.title;
     } else if (pathname === '/profile') {
       pageTitle = 'Profile';
     } else if (pathname === '/settings') {
       pageTitle = 'Settings';
-    } else if (pathname === '/finance') {
-      pageTitle = 'Finance Hub';
     } else if (pathname.startsWith('/projects/')) {
       pageTitle = 'Project Details';
     } else if (pathname.startsWith('/activity')) {
@@ -145,35 +136,34 @@ function PageTitleDisplay() {
 
 export default function MainLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-
-  // Use navItems from config
   const navItems = appNavItems;
 
   return (
     <div className="flex min-h-screen bg-background">
       {/* Sidebar */}
-      <div className="w-60 border-r bg-card p-0"> {/* Adjusted width & padding */}
-        <div className="mb-6 px-4 pt-5 pb-3"> {/* Adjusted padding */}
+      <div className="w-60 border-r bg-sidebar-background p-0">
+        <div className="mb-3 px-4 pt-5 pb-3"> {/* Adjusted AppLogo container spacing */}
           <AppLogo />
         </div>
-        <nav className="space-y-1 px-3"> {/* Adjusted padding */}
-          {navItems.map((item) => (
-            <Link
-              key={item.name}
-              href={item.href}
-              className={cn(
-                "group flex items-center px-3 py-2.5 text-sm font-medium rounded-md transition-colors", // Adjusted padding
-                (pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href)))
-                  ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                  : 'text-foreground hover:bg-muted hover:text-foreground' // Matched inactive style from image (dark text on white)
-              )}
-              title={item.tooltip || item.name}
-            >
-              {/* Icons are removed from navItems directly as per latest design, but if needed, they would go here */}
-              {/* item.icon && <item.icon className={`mr-3 h-5 w-5 ${ (pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))) ? 'text-primary-foreground' : 'text-muted-foreground group-hover:text-primary'}`} /> */}
-              <span>{item.name}</span>
-            </Link>
-          ))}
+        <nav className="space-y-1 px-3">
+          {navItems.map((item) => {
+            const isActive = (pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href)));
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                className={cn(
+                  "group flex items-center px-3 py-2.5 text-sm rounded-md transition-colors",
+                  isActive
+                    ? 'bg-primary text-primary-foreground font-medium hover:bg-primary/90'
+                    : 'text-foreground font-normal hover:bg-muted hover:text-foreground'
+                )}
+                title={item.tooltip || item.name}
+              >
+                <span>{item.name}</span>
+              </Link>
+            );
+          })}
         </nav>
       </div>
 
