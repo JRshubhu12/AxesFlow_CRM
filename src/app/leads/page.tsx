@@ -18,16 +18,18 @@ import {
   Trash2,
   Eye,
   ChevronDown,
-  Search, // Added for Find Leads button
-  User, // For Name filter
-  Briefcase, // For Title filter
-  MapPin, // For Location filter
-  Building2, // For Industry filter
-  Users as UsersIcon, // For Employee Count filter (aliased to avoid conflict)
-  DollarSign, // For Revenue filter
-  Filter, // For Keyword filter
-  Bookmark, // For Popover header
-  X // For Popover close
+  Search,
+  User,
+  Briefcase,
+  MapPin,
+  Building2,
+  Users as UsersIcon,
+  DollarSign,
+  Filter as FilterIcon, // Renamed to avoid conflict with .filter array method
+  Bookmark,
+  X,
+  Sparkles, // For AI features
+  Loader2, // For loading states
 } from 'lucide-react';
 import {
   Dialog,
@@ -36,8 +38,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
-  DialogClose
 } from "@/components/ui/dialog";
 import {
   DropdownMenu,
@@ -52,7 +52,7 @@ import {
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
 } from "@/components/ui/dropdown-menu";
-import { Popover, PopoverContent, PopoverTrigger, PopoverClose } from "@/components/ui/popover"; // Added Popover
+import { Popover, PopoverContent, PopoverTrigger, PopoverClose } from "@/components/ui/popover";
 import {
   Form,
   FormControl,
@@ -70,6 +70,9 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card'; // Added Card components
+import { findLeads, type FindLeadsInput, type FoundLead } from '@/ai/flows/find-leads-flow';
+
 
 // Schema and types
 const leadSchema = z.object({
@@ -93,7 +96,7 @@ export interface Lead {
   company: string;
   email: string;
   status: "New" | "Contacted" | "Qualified" | "Proposal Sent" | "Closed - Won" | "Closed - Lost";
-  lastContact: string;
+  lastContact: string; // ISO string
   website?: string;
   title?: string;
   phone?: string;
@@ -106,20 +109,18 @@ export interface Lead {
 const leadStatuses = ["New", "Contacted", "Qualified", "Proposal Sent", "Closed - Won", "Closed - Lost"] as const;
 
 const initialLeadsData: Lead[] = [
-  { id: 'L001', name: 'Ronald Richards', company: 'Astor Medical', email: 'darrellsteward@gmail.com', status: 'New', lastContact: '2024-05-20T10:00:00Z', title: 'Founder & CEO', phone: '(202) 555-0121', avatar: 'https://placehold.co/40x40.png?text=RR', location: 'New York, NY', industry: 'Healthcare', website: 'https://astormedical.com', linkedin_url: 'https://linkedin.com/in/ronaldrichards' },
-  { id: 'L002', name: 'Courtney Henry', company: 'Big Kahuna Burger Ltd.', email: 'marvinmckinney@gmail.com', status: 'Contacted', lastContact: '2024-05-22T11:30:00Z', title: 'CEO', phone: '(308) 555-0111', avatar: 'https://placehold.co/40x40.png?text=CH', location: 'Los Angeles, CA', industry: 'Food & Beverage', website: 'https://bigkahunaburger.com', linkedin_url: 'https://linkedin.com/in/courtneyhenry' },
-  { id: 'L003', name: 'Annette Black', company: 'Astra Payroll Services', email: 'ralphralphsw@gmail.com', status: 'Qualified', lastContact: '2024-05-15T14:00:00Z', title: 'Founder & CEO', phone: '(620) 555-0128', avatar: 'https://placehold.co/40x40.png?text=AB', location: 'Chicago, IL', industry: 'Financial Services', website: 'https://astrapayroll.com', linkedin_url: 'https://linkedin.com/in/annetteblack' },
-  { id: 'L004', name: 'Cameron Williamson', company: 'Commonwealth Payroll', email: 'janecooper@gmail.com', status: 'Proposal Sent', lastContact: '2024-05-10T09:00:00Z', title: 'Founder & CEO', phone: '(252) 555-0153', avatar: 'https://placehold.co/40x40.png?text=CW', location: 'Boston, MA', industry: 'Financial Services', website: 'https://commonwealthpayroll.com', linkedin_url: 'https://linkedin.com/in/cameronwilliamson' },
-  { id: 'L005', name: 'Brooklyn Simmons', company: 'Acme Co.', email: 'clevecleme@gmail.com', status: 'Closed - Won', lastContact: '2024-04-28T16:00:00Z', title: 'CEO', phone: '(208) 555-0106', avatar: 'https://placehold.co/40x40.png?text=BS', location: 'Austin, TX', industry: 'Technology', website: 'https://acmeco.com', linkedin_url: 'https://linkedin.com/in/brooklynsimmons' },
-  // ... (keep the rest of the initial 50 leads data or a representative sample)
-  { id: 'L006', name: 'Eleanor Pena', company: 'SoftLayer, an IBM Company', email: 'wadebwarre@gmail.com', status: 'New', lastContact: '2024-05-25T10:00:00Z', title: 'CEO', phone: '(270) 555-0117', avatar: 'https://placehold.co/40x40.png?text=EP', location: 'Dallas, TX', industry: 'Cloud Computing', website: 'https://softlayer.com', linkedin_url: 'https://linkedin.com/in/eleanorpena' },
-  { id: 'L007', name: 'Theresa Webb', company: 'Binford Ltd.', email: 'floyedmiled@gmail.com', status: 'Contacted', lastContact: '2024-05-24T11:30:00Z', title: 'CEO', phone: '(239) 555-0108', avatar: 'https://placehold.co/40x40.png?text=TW', location: 'Detroit, MI', industry: 'Manufacturing', website: 'https://binford.com', linkedin_url: 'https://linkedin.com/in/theresawebb' },
-  { id: 'L008', name: 'Kathryn Murphy', company: 'Wells Fargo', email: 'diannerussue@gmail.com', status: 'Qualified', lastContact: '2024-05-23T14:00:00Z', title: 'Founder & CEO', phone: '(207) 555-0112', avatar: 'https://placehold.co/40x40.png?text=KM', location: 'San Francisco, CA', industry: 'Banking', website: 'https://wellsfargo.com', linkedin_url: 'https://linkedin.com/in/kathrynmurphy' },
-  { id: 'L009', name: 'Darrell Steward', company: 'Aster Medical', email: 'lesliealexander@gmail.com', status: 'Proposal Sent', lastContact: '2024-05-22T09:00:00Z', title: 'Founder & CEO', phone: '(303) 555-0121', avatar: 'https://placehold.co/40x40.png?text=DS', location: 'Denver, CO', industry: 'Healthcare', website: 'https://astermedical.com', linkedin_url: 'https://linkedin.com/in/darrellsteward' },
-  { id: 'L010', name: 'Marvin McKinney', company: 'The Kraft Heinz Company', email: 'devenlane@gmail.com', status: 'New', lastContact: '2024-05-21T16:00:00Z', title: 'Founder & CEO', phone: '(904) 555-0199', avatar: 'https://placehold.co/40x40.png?text=MM', location: 'Chicago, IL', industry: 'Food & Beverage', website: 'https://kraftheinz.com', linkedin_url: 'https://linkedin.com/in/marvinmckinney' },
-  // Add more leads up to ~50 as previously generated to keep the page populated
+    { id: 'L001', name: 'Ronald Richards', company: 'Astor Medical', email: 'darrellsteward@gmail.com', status: 'New', lastContact: '2024-05-20T10:00:00Z', title: 'Founder & CEO', phone: '(202) 555-0121', avatar: 'https://placehold.co/40x40.png?text=RR', location: 'New York, NY', industry: 'Healthcare', website: 'https://astormedical.com', linkedin_url: 'https://linkedin.com/in/ronaldrichards' },
+    { id: 'L002', name: 'Courtney Henry', company: 'Big Kahuna Burger Ltd.', email: 'marvinmckinney@gmail.com', status: 'Contacted', lastContact: '2024-05-22T11:30:00Z', title: 'CEO', phone: '(308) 555-0111', avatar: 'https://placehold.co/40x40.png?text=CH', location: 'Los Angeles, CA', industry: 'Food & Beverage', website: 'https://bigkahunaburger.com', linkedin_url: 'https://linkedin.com/in/courtneyhenry' },
+    { id: 'L003', name: 'Annette Black', company: 'Astra Payroll Services', email: 'ralphralphsw@gmail.com', status: 'Qualified', lastContact: '2024-05-15T14:00:00Z', title: 'Founder & CEO', phone: '(620) 555-0128', avatar: 'https://placehold.co/40x40.png?text=AB', location: 'Chicago, IL', industry: 'Financial Services', website: 'https://astrapayroll.com', linkedin_url: 'https://linkedin.com/in/annetteblack' },
+    { id: 'L004', name: 'Cameron Williamson', company: 'Commonwealth Payroll', email: 'janecooper@gmail.com', status: 'Proposal Sent', lastContact: '2024-05-10T09:00:00Z', title: 'Founder & CEO', phone: '(252) 555-0153', avatar: 'https://placehold.co/40x40.png?text=CW', location: 'Boston, MA', industry: 'Financial Services', website: 'https://commonwealthpayroll.com', linkedin_url: 'https://linkedin.com/in/cameronwilliamson' },
+    { id: 'L005', name: 'Brooklyn Simmons', company: 'Acme Co.', email: 'clevecleme@gmail.com', status: 'Closed - Won', lastContact: '2024-04-28T16:00:00Z', title: 'CEO', phone: '(208) 555-0106', avatar: 'https://placehold.co/40x40.png?text=BS', location: 'Austin, TX', industry: 'Technology', website: 'https://acmeco.com', linkedin_url: 'https://linkedin.com/in/brooklynsimmons' },
+    // ... Add more leads up to ~50 ...
+    { id: 'L006', name: 'Eleanor Pena', company: 'SoftLayer, an IBM Company', email: 'wadebwarre@gmail.com', status: 'New', lastContact: '2024-05-25T10:00:00Z', title: 'CTO', phone: '(270) 555-0117', avatar: 'https://placehold.co/40x40.png?text=EP', location: 'Dallas, TX', industry: 'Cloud Computing', website: 'https://softlayer.com', linkedin_url: 'https://linkedin.com/in/eleanorpena' },
+    { id: 'L007', name: 'Theresa Webb', company: 'Binford Ltd.', email: 'floyedmiled@gmail.com', status: 'Contacted', lastContact: '2024-05-24T11:30:00Z', title: 'Marketing Director', phone: '(239) 555-0108', avatar: 'https://placehold.co/40x40.png?text=TW', location: 'Detroit, MI', industry: 'Manufacturing', website: 'https://binford.com', linkedin_url: 'https://linkedin.com/in/theresawebb' },
+    { id: 'L008', name: 'Kathryn Murphy', company: 'Wells Fargo Advisors', email: 'diannerussue@gmail.com', status: 'Qualified', lastContact: '2024-05-23T14:00:00Z', title: 'Financial Advisor', phone: '(207) 555-0112', avatar: 'https://placehold.co/40x40.png?text=KM', location: 'San Francisco, CA', industry: 'Banking', website: 'https://wellsfargoadvisors.com', linkedin_url: 'https://linkedin.com/in/kathrynmurphy' },
+    { id: 'L009', name: 'Darrell Steward', company: 'Innovatech Solutions', email: 'lesliealexander@gmail.com', status: 'Proposal Sent', lastContact: '2024-05-22T09:00:00Z', title: 'Sales Manager', phone: '(303) 555-0121', avatar: 'https://placehold.co/40x40.png?text=DS', location: 'Denver, CO', industry: 'IT Services', website: 'https://innovatech.com', linkedin_url: 'https://linkedin.com/in/darrellsteward' },
+    { id: 'L010', name: 'Marvin McKinney', company: 'The Kraft Heinz Company', email: 'devenlane@gmail.com', status: 'New', lastContact: '2024-05-21T16:00:00Z', title: 'Brand Manager', phone: '(904) 555-0199', avatar: 'https://placehold.co/40x40.png?text=MM', location: 'Chicago, IL', industry: 'Food Production', website: 'https://kraftheinz.com', linkedin_url: 'https://linkedin.com/in/marvinmckinney' },
 ];
-
 
 const LOCAL_STORAGE_KEY_LEADS = 'axesflowLeads';
 
@@ -132,6 +133,19 @@ export default function LeadsPage() {
   const [selectedRows, setSelectedRows] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // AI Lead Finder State
+  const [aiTargetName, setAiTargetName] = useState('');
+  const [aiTargetTitle, setAiTargetTitle] = useState('');
+  const [aiTargetLocation, setAiTargetLocation] = useState('');
+  const [aiTargetIndustry, setAiTargetIndustry] = useState('');
+  const [aiTargetEmployeeCount, setAiTargetEmployeeCount] = useState('');
+  const [aiTargetRevenue, setAiTargetRevenue] = useState('');
+  const [aiKeywords, setAiKeywords] = useState('');
+  const [isLoadingAiLeads, setIsLoadingAiLeads] = useState(false);
+  const [aiFoundLeads, setAiFoundLeads] = useState<FoundLead[]>([]);
+  const [isFindLeadsPopoverOpen, setIsFindLeadsPopoverOpen] = useState(false);
+
 
   const form = useForm<LeadFormValues>({
     resolver: zodResolver(leadSchema),
@@ -177,7 +191,7 @@ export default function LeadsPage() {
           toast({ variant: "destructive", title: "CSV is empty or has no data rows." });
           return;
         }
-        const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+        const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/\s+/g, '_')); // Normalize headers
         const requiredHeaders = ['name', 'company', 'email', 'status'];
         const missingHeaders = requiredHeaders.filter(rh => !headers.includes(rh));
 
@@ -191,10 +205,8 @@ export default function LeadsPage() {
           const line = lines[i];
           if (!line.trim()) continue;
           
-          // Basic CSV parsing - for robust parsing, a library might be better
           const values = line.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g) || [];
           const data = values.map(value => value.replace(/^"|"$/g, '').trim());
-
 
           const leadData: any = {};
           headers.forEach((header, index) => {
@@ -250,8 +262,8 @@ export default function LeadsPage() {
     fileInputRef.current?.click();
   }
   
-  function openAddModal() {
-    form.reset({ name: "", company: "", email: "", status: "New", website: "", title: "", phone: "", location: "", industry: "", linkedin_url: "" });
+  function openAddModal(defaultValues?: Partial<LeadFormValues>) {
+    form.reset(defaultValues || { name: "", company: "", email: "", status: "New", website: "", title: "", phone: "", location: "", industry: "", linkedin_url: "" });
     setEditingLead(null);
     setIsAddLeadOpen(true);
   }
@@ -270,7 +282,6 @@ export default function LeadsPage() {
     });
     toast({ title: "New Lead Added", description: `${newLead.name} has been added.` });
     setIsAddLeadOpen(false);
-    form.reset({ name: "", company: "", email: "", status: "New", website: "", title: "", phone: "", location: "", industry: "", linkedin_url: "" });
   }
   
   const handleSelectAllRows = (checked: boolean) => {
@@ -282,6 +293,59 @@ export default function LeadsPage() {
   };
 
   const isAllSelected = leads.length > 0 && leads.every(lead => selectedRows[lead.id]);
+
+  const handleApplyAiFilters = async () => {
+    setIsLoadingAiLeads(true);
+    setAiFoundLeads([]);
+    try {
+      const input: FindLeadsInput = {
+        targetName: aiTargetName || undefined,
+        targetTitle: aiTargetTitle || undefined,
+        targetLocation: aiTargetLocation || undefined,
+        targetIndustry: aiTargetIndustry || undefined,
+        targetEmployeeCount: aiTargetEmployeeCount || undefined,
+        targetRevenue: aiTargetRevenue || undefined,
+        keywords: aiKeywords || undefined,
+      };
+      const result = await findLeads(input);
+      setAiFoundLeads(result.foundLeads || []);
+      toast({ title: "AI Lead Search Complete", description: `Found ${result.foundLeads?.length || 0} potential leads.` });
+    } catch (error) {
+      console.error("Error finding AI leads:", error);
+      toast({ variant: "destructive", title: "AI Lead Search Failed", description: error instanceof Error ? error.message : "An unknown error occurred." });
+    } finally {
+      setIsLoadingAiLeads(false);
+      setIsFindLeadsPopoverOpen(false); // Close popover after search
+    }
+  };
+
+  const handleClearAiFilters = () => {
+    setAiTargetName('');
+    setAiTargetTitle('');
+    setAiTargetLocation('');
+    setAiTargetIndustry('');
+    setAiTargetEmployeeCount('');
+    setAiTargetRevenue('');
+    setAiKeywords('');
+    setAiFoundLeads([]);
+    toast({ title: "AI Filters Cleared" });
+  };
+
+  const handleAddAiLeadToList = (aiLead: FoundLead) => {
+    const defaultValues: Partial<LeadFormValues> = {
+        name: aiLead.potentialContactName || aiLead.companyName, // Prioritize contact name
+        company: aiLead.companyName,
+        email: aiLead.contactEmail || "", // Provide empty string if undefined
+        website: aiLead.website || "",
+        title: aiLead.potentialContactTitle || "",
+        phone: aiLead.contactPhone || "",
+        location: aiLead.location || "",
+        industry: aiLead.industry || "",
+        status: "New", // Default status for new AI leads
+    };
+    openAddModal(defaultValues);
+  };
+
 
   return (
     <MainLayout>
@@ -301,7 +365,8 @@ export default function LeadsPage() {
               <Button variant="outline" onClick={handleImportClick} className="h-9">
                 <Download className="mr-2 h-4 w-4" /> Import CSV
               </Button>
-              <Popover>
+              
+              <Popover open={isFindLeadsPopoverOpen} onOpenChange={setIsFindLeadsPopoverOpen}>
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="h-9">
                     <Search className="mr-2 h-4 w-4" /> Find Leads
@@ -325,41 +390,45 @@ export default function LeadsPage() {
                     <div className="space-y-3">
                       <div className="flex items-center gap-2 p-2 border rounded-md bg-muted/30">
                         <User className="h-4 w-4 text-muted-foreground" />
-                        <Input placeholder="Name" className="border-none focus-visible:ring-0 focus-visible:ring-offset-0 h-auto p-0 bg-transparent placeholder:text-muted-foreground" />
+                        <Input placeholder="Name" value={aiTargetName} onChange={(e) => setAiTargetName(e.target.value)} className="border-none focus-visible:ring-0 focus-visible:ring-offset-0 h-auto p-0 bg-transparent placeholder:text-muted-foreground" />
                       </div>
                       <div className="flex items-center gap-2 p-2 border rounded-md bg-muted/30">
                         <Briefcase className="h-4 w-4 text-muted-foreground" />
-                        <Input placeholder="Founder, CEO" className="border-none focus-visible:ring-0 focus-visible:ring-offset-0 h-auto p-0 bg-transparent placeholder:text-muted-foreground" />
+                        <Input placeholder="Title (e.g. Founder, CEO)" value={aiTargetTitle} onChange={(e) => setAiTargetTitle(e.target.value)} className="border-none focus-visible:ring-0 focus-visible:ring-offset-0 h-auto p-0 bg-transparent placeholder:text-muted-foreground" />
                       </div>
                       <div className="flex items-center gap-2 p-2 border rounded-md bg-muted/30">
                         <MapPin className="h-4 w-4 text-muted-foreground" />
-                        <Input placeholder="USA" className="border-none focus-visible:ring-0 focus-visible:ring-offset-0 h-auto p-0 bg-transparent placeholder:text-muted-foreground" />
+                        <Input placeholder="Location (e.g. USA)" value={aiTargetLocation} onChange={(e) => setAiTargetLocation(e.target.value)} className="border-none focus-visible:ring-0 focus-visible:ring-offset-0 h-auto p-0 bg-transparent placeholder:text-muted-foreground" />
                       </div>
                       <div className="flex items-center gap-2 p-2 border rounded-md bg-muted/30">
                         <Building2 className="h-4 w-4 text-muted-foreground" />
-                        <Input placeholder="Industry" className="border-none focus-visible:ring-0 focus-visible:ring-offset-0 h-auto p-0 bg-transparent placeholder:text-muted-foreground" />
+                        <Input placeholder="Industry" value={aiTargetIndustry} onChange={(e) => setAiTargetIndustry(e.target.value)} className="border-none focus-visible:ring-0 focus-visible:ring-offset-0 h-auto p-0 bg-transparent placeholder:text-muted-foreground" />
                       </div>
                       <div className="flex items-center gap-2 p-2 border rounded-md bg-muted/30">
                         <UsersIcon className="h-4 w-4 text-muted-foreground" />
-                        <Input placeholder="0-25, 25-100" className="border-none focus-visible:ring-0 focus-visible:ring-offset-0 h-auto p-0 bg-transparent placeholder:text-muted-foreground" />
+                        <Input placeholder="Employee Count (e.g. 0-25, 25-100)" value={aiTargetEmployeeCount} onChange={(e) => setAiTargetEmployeeCount(e.target.value)} className="border-none focus-visible:ring-0 focus-visible:ring-offset-0 h-auto p-0 bg-transparent placeholder:text-muted-foreground" />
                       </div>
                       <div className="flex items-center gap-2 p-2 border rounded-md bg-muted/30">
                         <DollarSign className="h-4 w-4 text-muted-foreground" />
-                        <Input placeholder="$1M - $10M" className="border-none focus-visible:ring-0 focus-visible:ring-offset-0 h-auto p-0 bg-transparent placeholder:text-muted-foreground" />
+                        <Input placeholder="Revenue (e.g. $1M - $10M)" value={aiTargetRevenue} onChange={(e) => setAiTargetRevenue(e.target.value)} className="border-none focus-visible:ring-0 focus-visible:ring-offset-0 h-auto p-0 bg-transparent placeholder:text-muted-foreground" />
                       </div>
                       <div className="flex items-center gap-2 p-2 border rounded-md bg-muted/30">
-                        <Filter className="h-4 w-4 text-muted-foreground" />
-                        <Input placeholder="Keyword Filter" className="border-none focus-visible:ring-0 focus-visible:ring-offset-0 h-auto p-0 bg-transparent placeholder:text-muted-foreground" />
+                        <FilterIcon className="h-4 w-4 text-muted-foreground" />
+                        <Input placeholder="Keywords (e.g. B2B SaaS)" value={aiKeywords} onChange={(e) => setAiKeywords(e.target.value)} className="border-none focus-visible:ring-0 focus-visible:ring-offset-0 h-auto p-0 bg-transparent placeholder:text-muted-foreground" />
                       </div>
                     </div>
                     <div className="mt-6 flex justify-end gap-2">
-                        <Button variant="outline" onClick={() => toast({title: "Clear Filters", description:"Filter clearing logic coming soon!"})}>Clear</Button>
-                        <Button onClick={() => toast({title: "Apply Filters", description:"Filter application logic coming soon!"})}>Apply Filters</Button>
+                        <Button variant="outline" onClick={handleClearAiFilters}>Clear</Button>
+                        <Button onClick={handleApplyAiFilters} disabled={isLoadingAiLeads}>
+                          {isLoadingAiLeads ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Search className="h-4 w-4 mr-2" />}
+                          Apply Filters
+                        </Button>
                     </div>
                   </div>
                 </PopoverContent>
               </Popover>
-              <Button onClick={openAddModal} className="h-9 bg-primary hover:bg-primary/90">
+
+              <Button onClick={() => openAddModal()} className="h-9 bg-primary hover:bg-primary/90">
                 <Plus className="mr-2 h-4 w-4" /> Add to List
               </Button>
               <Button variant="outline" onClick={() => toast({title: "Add to Campaign", description: "This feature is coming soon!"})}  className="h-9">
@@ -451,14 +520,57 @@ export default function LeadsPage() {
             </div>
           </ScrollArea>
         </div>
+
+        {/* AI Found Leads Section */}
+        {aiFoundLeads.length > 0 && (
+          <div className="px-6 py-4 border-t">
+            <h2 className="text-lg font-semibold mb-4 flex items-center"><Sparkles className="h-5 w-5 mr-2 text-primary"/>AI Found Leads</h2>
+            <ScrollArea className="h-[400px] pr-2"> {/* Added ScrollArea for potentially long list */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {aiFoundLeads.map((aiLead, index) => (
+                  <Card key={index} className="shadow-md">
+                    <CardHeader>
+                      <CardTitle className="text-md">{aiLead.companyName}</CardTitle>
+                      {aiLead.potentialContactName && (
+                        <CardDescription>
+                          {aiLead.potentialContactName} {aiLead.potentialContactTitle && `(${aiLead.potentialContactTitle})`}
+                        </CardDescription>
+                      )}
+                    </CardHeader>
+                    <CardContent className="text-xs space-y-1">
+                      <p><strong>Industry:</strong> {aiLead.industry || 'N/A'}</p>
+                      <p><strong>Location:</strong> {aiLead.location || 'N/A'}</p>
+                      <p><strong>Reasoning:</strong> {aiLead.reasoning}</p>
+                      {aiLead.website && <p><strong>Website:</strong> <a href={aiLead.website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{aiLead.website}</a></p>}
+                      {aiLead.contactEmail && <p><strong>Email:</strong> <a href={`mailto:${aiLead.contactEmail}`} className="text-primary hover:underline">{aiLead.contactEmail}</a></p>}
+                      {aiLead.contactPhone && <p><strong>Phone:</strong> {aiLead.contactPhone}</p>}
+                    </CardContent>
+                    <CardFooter>
+                      <Button size="sm" className="w-full" onClick={() => handleAddAiLeadToList(aiLead)}>
+                        <Plus className="mr-2 h-4 w-4" /> Add to My Leads
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                ))}
+              </div>
+            </ScrollArea>
+          </div>
+        )}
+         {isLoadingAiLeads && (
+            <div className="px-6 py-8 text-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-2" />
+                <p className="text-muted-foreground">Finding leads with AI...</p>
+            </div>
+        )}
+
       </div>
 
       <Dialog open={isAddLeadOpen} onOpenChange={setIsAddLeadOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Add New Lead</DialogTitle>
+            <DialogTitle>{editingLead ? "Edit Lead" : "Add New Lead"}</DialogTitle>
             <DialogDescription>
-              Fill in the details for the new lead.
+              {editingLead ? "Update the details for this lead." : "Fill in the details for the new lead."}
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
@@ -546,7 +658,7 @@ export default function LeadsPage() {
               )}/>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsAddLeadOpen(false)}>Cancel</Button>
-                <Button type="submit">Add Lead</Button>
+                <Button type="submit">{editingLead ? "Save Changes" : "Add Lead"}</Button>
               </DialogFooter>
             </form>
           </Form>
@@ -555,3 +667,4 @@ export default function LeadsPage() {
     </MainLayout>
   );
 }
+
