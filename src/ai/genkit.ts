@@ -1,5 +1,4 @@
 
-'use server';
 /**
  * @fileOverview Genkit client initialization.
  * This file initializes the Genkit instance with necessary plugins.
