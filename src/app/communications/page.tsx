@@ -1,4 +1,3 @@
-
 "use client";
 export const dynamic = 'force-dynamic';
 
@@ -6,12 +5,21 @@ import MainLayout from '@/components/layout/MainLayout';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CalendarDays, MessageCircle, FileText, Video, Phone, Users, Clock, MessageSquare as MessageSquareIcon, Link as LinkIcon, Loader2 } from 'lucide-react'; // Renamed MessageSquare to avoid conflict
+import { CalendarDays, MessageCircle, FileText, Video, Phone, Users, Clock, MessageSquare as MessageSquareIcon, Link as LinkIcon, Loader2, Search, Download, Share2, MoreVertical } from 'lucide-react';
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { format, parseISO } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 // Interfaces for data structures
 interface Meeting {
@@ -31,6 +39,7 @@ export interface Chat {
   timestamp: string;
   status: 'Unread' | 'Read' | 'Replied';
   unreadCount: number;
+  avatar?: string;
 }
 
 interface FileData {
@@ -49,9 +58,9 @@ const initialMeetingsData: Meeting[] = [
 ];
 
 const initialChatsData: Chat[] = [
-  { id: 'CHAT001', contact: 'Sarah Miller (Innovate Solutions Ltd.)', lastMessage: 'Can we schedule a call for next week?', timestamp: format(new Date(2024, 6, 28, 14, 30), "PPp"), status: 'Unread', unreadCount: 1 },
-  { id: 'CHAT002', contact: 'John Davis (TechPro Services)', lastMessage: 'Thanks for the information!', timestamp: format(new Date(2024, 6, 27, 10, 0), "PPp"), status: 'Read', unreadCount: 0 },
-  { id: 'CHAT003', contact: 'Internal Team Chat', lastMessage: 'Meeting notes are ready.', timestamp: format(new Date(2024, 6, 28, 11, 0), "PPp"), status: 'Read', unreadCount: 0 },
+  { id: 'CHAT001', contact: 'Sarah Miller (Innovate Solutions Ltd.)', lastMessage: 'Can we schedule a call for next week?', timestamp: format(new Date(2024, 6, 28, 14, 30), "PPp"), status: 'Unread', unreadCount: 1, avatar: '/avatars/sarah.png' },
+  { id: 'CHAT002', contact: 'John Davis (TechPro Services)', lastMessage: 'Thanks for the information!', timestamp: format(new Date(2024, 6, 27, 10, 0), "PPp"), status: 'Read', unreadCount: 0, avatar: '/avatars/john.png' },
+  { id: 'CHAT003', contact: 'Internal Team Chat', lastMessage: 'Meeting notes are ready.', timestamp: format(new Date(2024, 6, 28, 11, 0), "PPp"), status: 'Read', unreadCount: 0, avatar: '/avatars/team.png' },
 ];
 
 const initialFilesData: FileData[] = [
@@ -63,7 +72,6 @@ const initialFilesData: FileData[] = [
 const LOCAL_STORAGE_KEY_MEETINGS = 'meetingsData';
 const LOCAL_STORAGE_KEY_CHATS = 'chatsData';
 const LOCAL_STORAGE_KEY_FILES = 'filesData';
-
 
 const getStatusBadgeVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
   switch (status.toLowerCase()) {
@@ -85,30 +93,40 @@ const getStatusBadgeVariant = (status: string): "default" | "secondary" | "destr
   }
 };
 
+const getFileIconColor = (type: string) => {
+  switch (type.toLowerCase()) {
+    case 'document':
+      return 'text-blue-500';
+    case 'archive':
+      return 'text-purple-500';
+    case 'image':
+      return 'text-green-500';
+    default:
+      return 'text-gray-500';
+  }
+};
+
 function CommunicationsPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { toast } = useToast(); // Keep toast for potential future use
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'meetings');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const [meetingsData, setMeetingsData] = useState<Meeting[]>([]);
   const [chatsData, setChatsData] = useState<Chat[]>([]);
-  const [isLoadingChats, setIsLoadingChats] = useState(false); // Keep for UX consistency
+  const [isLoadingChats, setIsLoadingChats] = useState(false);
   const [filesData, setFilesData] = useState<FileData[]>([]);
 
   useEffect(() => {
-    // Load meetings from localStorage
     const storedMeetings = localStorage.getItem(LOCAL_STORAGE_KEY_MEETINGS);
     setMeetingsData(storedMeetings ? JSON.parse(storedMeetings) : initialMeetingsData);
     if (!storedMeetings) localStorage.setItem(LOCAL_STORAGE_KEY_MEETINGS, JSON.stringify(initialMeetingsData));
 
-    // Load files from localStorage
     const storedFiles = localStorage.getItem(LOCAL_STORAGE_KEY_FILES);
     setFilesData(storedFiles ? JSON.parse(storedFiles) : initialFilesData);
     if (!storedFiles) localStorage.setItem(LOCAL_STORAGE_KEY_FILES, JSON.stringify(initialFilesData));
-
   }, []);
-
 
   const fetchChatsFromLocalStorage = () => {
     setIsLoadingChats(true);
@@ -128,33 +146,6 @@ function CommunicationsPageContent() {
     }
   }, [activeTab]);
 
-
-  // Update localStorage when meetingsData changes (e.g., after an external update and redirect)
-  useEffect(() => {
-    // This effect now primarily ensures initial data is set if nothing is stored.
-    // Actual updates to localStorage for meetings are handled where meetings are added/modified.
-    const storedMeetings = localStorage.getItem(LOCAL_STORAGE_KEY_MEETINGS);
-    if (!storedMeetings && meetingsData.length > 0) { // Only write if not set and we have default data
-        localStorage.setItem(LOCAL_STORAGE_KEY_MEETINGS, JSON.stringify(meetingsData));
-    }
-  }, [meetingsData]);
-
-  useEffect(() => {
-    const storedChats = localStorage.getItem(LOCAL_STORAGE_KEY_CHATS);
-    if (!storedChats && chatsData.length > 0) {
-        localStorage.setItem(LOCAL_STORAGE_KEY_CHATS, JSON.stringify(chatsData));
-    }
-  }, [chatsData]);
-
-
-  useEffect(() => {
-    const storedFiles = localStorage.getItem(LOCAL_STORAGE_KEY_FILES);
-     if (!storedFiles && filesData.length > 0) {
-        localStorage.setItem(LOCAL_STORAGE_KEY_FILES, JSON.stringify(filesData));
-    }
-  }, [filesData]);
-
-
   useEffect(() => {
     const tabParam = searchParams.get('tab');
     if (tabParam && (tabParam === 'meetings' || tabParam === 'chats' || tabParam === 'files')) {
@@ -167,114 +158,296 @@ function CommunicationsPageContent() {
     router.push(`/communications?tab=${value}`, { scroll: false });
   };
 
+  const filteredMeetings = meetingsData.filter(meeting =>
+    meeting.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    meeting.participants.some(p => p.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
+  const filteredChats = chatsData.filter(chat =>
+    chat.contact?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    chat.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredFiles = filesData.filter(file =>
+    file.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    file.type.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <MainLayout>
       <div className="space-y-6">
-        <h1 className="text-3xl font-bold flex items-center gap-2"><MessageSquareIcon className="h-8 w-8 text-primary" /> Communication Hub</h1>
-        <p className="text-muted-foreground">Organize your meetings, chats, and files in one place.</p>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="p-3 rounded-lg bg-primary/10">
+              <MessageSquareIcon className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold">Communication Hub</h1>
+              <p className="text-muted-foreground">Organize your meetings, chats, and files in one place</p>
+            </div>
+          </div>
+          <div className="w-full md:w-auto">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder={`Search ${activeTab}...`}
+                className="pl-10"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
 
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 md:w-[400px]">
-            <TabsTrigger value="meetings"><CalendarDays className="mr-2 h-4 w-4" />Meetings</TabsTrigger>
-            <TabsTrigger value="chats"><MessageCircle className="mr-2 h-4 w-4" />Chats</TabsTrigger>
-            <TabsTrigger value="files"><FileText className="mr-2 h-4 w-4" />Files</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="meetings" className="flex items-center gap-2 py-3">
+              <CalendarDays className="h-4 w-4" />
+              <span>Meetings</span>
+            </TabsTrigger>
+            <TabsTrigger value="chats" className="flex items-center gap-2 py-3">
+              <MessageCircle className="h-4 w-4" />
+              <span>Chats</span>
+            </TabsTrigger>
+            <TabsTrigger value="files" className="flex items-center gap-2 py-3">
+              <FileText className="h-4 w-4" />
+              <span>Files</span>
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="meetings">
-            <Card className="shadow-lg">
-              <CardHeader>
-                <CardTitle>Upcoming & Past Meetings</CardTitle>
-                <CardDescription>Keep track of all your scheduled and completed meetings.</CardDescription>
+            <Card className="border-none shadow-sm">
+              <CardHeader className="border-b">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                  <div>
+                    <CardTitle>Meetings</CardTitle>
+                    <CardDescription>Upcoming and past meetings</CardDescription>
+                  </div>
+                  <Button variant="outline" className="gap-2">
+                    <CalendarDays className="h-4 w-4" />
+                    Schedule New
+                  </Button>
+                </div>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {meetingsData.length === 0 && <p className="text-muted-foreground text-center py-4">No meetings found.</p>}
-                {meetingsData.map(meeting => (
-                  <Card key={meeting.id} className="p-4 hover:shadow-md transition-shadow">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="font-semibold text-lg">{meeting.title}</h3>
-                        <p className="text-sm text-muted-foreground flex items-center">
-                          {meeting.type === 'Video Call' && <Video className="mr-2 h-4 w-4" />}
-                          {meeting.type === 'Phone Call' && <Phone className="mr-2 h-4 w-4" />}
-                          {meeting.type === 'In-Person' && <Users className="mr-2 h-4 w-4" />}
-                          {meeting.type} - <Clock className="ml-2 mr-1 h-4 w-4" /> {meeting.dateTime}
-                        </p>
-                        <p className="text-sm text-muted-foreground">Participants: {meeting.participants.join(', ')}</p>
-                        {meeting.googleMeetLink && (
-                           <p className="text-sm text-muted-foreground mt-1">
-                            <Link href={meeting.googleMeetLink} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center">
-                              <LinkIcon className="mr-1 h-4 w-4" /> Join Meeting
-                            </Link>
-                          </p>
-                        )}
+              <CardContent className="p-0">
+                {filteredMeetings.length === 0 ? (
+                  <div className="p-8 text-center">
+                    <p className="text-muted-foreground">No meetings found</p>
+                  </div>
+                ) : (
+                  <div className="divide-y">
+                    {filteredMeetings.map(meeting => (
+                      <div key={meeting.id} className="p-4 hover:bg-muted/50 transition-colors">
+                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                          <div className="flex-1 space-y-2">
+                            <div className="flex items-center gap-3">
+                              {meeting.type === 'Video Call' && (
+                                <div className="p-2 rounded-full bg-blue-100 text-blue-600">
+                                  <Video className="h-5 w-5" />
+                                </div>
+                              )}
+                              {meeting.type === 'Phone Call' && (
+                                <div className="p-2 rounded-full bg-green-100 text-green-600">
+                                  <Phone className="h-5 w-5" />
+                                </div>
+                              )}
+                              {meeting.type === 'In-Person' && (
+                                <div className="p-2 rounded-full bg-purple-100 text-purple-600">
+                                  <Users className="h-5 w-5" />
+                                </div>
+                              )}
+                              <div>
+                                <h3 className="font-semibold">{meeting.title}</h3>
+                                <div className="flex items-center text-sm text-muted-foreground gap-2">
+                                  <Clock className="h-4 w-4" />
+                                  <span>{meeting.dateTime}</span>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2 text-sm">
+                              <span className="text-muted-foreground">Participants:</span>
+                              {meeting.participants.map((participant, i) => (
+                                <Badge key={i} variant="outline" className="font-normal">
+                                  {participant}
+                                </Badge>
+                              ))}
+                            </div>
+                            {meeting.googleMeetLink && (
+                              <Link
+                                href={meeting.googleMeetLink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center text-sm text-primary hover:underline gap-1"
+                              >
+                                <LinkIcon className="h-4 w-4" />
+                                Join Meeting
+                              </Link>
+                            )}
+                          </div>
+                          <div className="flex flex-col items-end gap-2">
+                            <Badge
+                              variant={getStatusBadgeVariant(meeting.status)}
+                              className={`capitalize ${
+                                meeting.status === 'Scheduled' ? 'bg-blue-100 text-blue-800 hover:bg-blue-100' :
+                                meeting.status === 'Completed' ? 'bg-green-100 text-green-800 hover:bg-green-100' :
+                                meeting.status === 'Pending Confirmation' ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100' :
+                                'bg-red-100 text-red-800 hover:bg-red-100'
+                              }`}
+                            >
+                              {meeting.status}
+                            </Badge>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem>View Details</DropdownMenuItem>
+                                <DropdownMenuItem>Edit</DropdownMenuItem>
+                                <DropdownMenuItem className="text-red-600">Cancel</DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </div>
                       </div>
-                      <Badge variant={getStatusBadgeVariant(meeting.status)}
-                       className={meeting.status === 'Pending Confirmation' || meeting.status === 'Unread' || meeting.status === 'Scheduled' ? 'bg-accent text-accent-foreground' : ''}
-                      >{meeting.status}</Badge>
-                    </div>
-                  </Card>
-                ))}
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
 
           <TabsContent value="chats">
-            <Card className="shadow-lg">
-              <CardHeader>
-                <CardTitle>Recent Chats</CardTitle>
-                <CardDescription>Stay updated with your latest conversations.</CardDescription>
+            <Card className="border-none shadow-sm">
+              <CardHeader className="border-b">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                  <div>
+                    <CardTitle>Chats</CardTitle>
+                    <CardDescription>Recent conversations</CardDescription>
+                  </div>
+                  <Button variant="outline" className="gap-2">
+                    <MessageCircle className="h-4 w-4" />
+                    New Chat
+                  </Button>
+                </div>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="p-0">
                 {isLoadingChats ? (
                   <div className="flex justify-center items-center py-10">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     <p className="ml-2 text-muted-foreground">Loading chats...</p>
                   </div>
-                ) : chatsData.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-4">No chats found.</p>
+                ) : filteredChats.length === 0 ? (
+                  <div className="p-8 text-center">
+                    <p className="text-muted-foreground">No chats found</p>
+                  </div>
                 ) : (
-                  chatsData.map(chat => (
-                    <Card key={chat.id} className="p-4 hover:shadow-md transition-shadow">
-                       <div className="flex justify-between items-start">
-                          <div>
-                            <h3 className="font-semibold text-lg">{chat.contact || 'Chat'}</h3>
-                            <p className="text-sm text-muted-foreground italic">&quot;{chat.lastMessage}&quot; - {chat.timestamp}</p>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {chat.unreadCount > 0 && <Badge variant="destructive">{chat.unreadCount}</Badge>}
-                            <Badge variant={getStatusBadgeVariant(chat.status)}
-                             className={chat.status === 'Unread' ? 'bg-accent text-accent-foreground' : ''}
-                            >{chat.status}</Badge>
+                  <div className="divide-y">
+                    {filteredChats.map(chat => (
+                      <div key={chat.id} className="p-4 hover:bg-muted/50 transition-colors">
+                        <div className="flex items-start gap-4">
+                          <Avatar className="h-10 w-10 border">
+                            <AvatarImage src={chat.avatar} />
+                            <AvatarFallback>{chat.contact?.charAt(0) || 'C'}</AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2">
+                              <h3 className="font-semibold truncate">{chat.contact || 'Chat'}</h3>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-muted-foreground whitespace-nowrap">
+                                  {chat.timestamp}
+                                </span>
+                                {chat.unreadCount > 0 && (
+                                  <Badge variant="destructive" className="h-5 w-5 flex items-center justify-center p-0">
+                                    {chat.unreadCount}
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                            <p className="text-sm text-muted-foreground truncate">
+                              {chat.lastMessage}
+                            </p>
                           </div>
                         </div>
-                    </Card>
-                  ))
+                      </div>
+                    ))}
+                  </div>
                 )}
               </CardContent>
             </Card>
           </TabsContent>
 
           <TabsContent value="files">
-            <Card className="shadow-lg">
-              <CardHeader>
-                <CardTitle>Shared & Uploaded Files</CardTitle>
-                <CardDescription>Access all your important documents and assets.</CardDescription>
+            <Card className="border-none shadow-sm">
+              <CardHeader className="border-b">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                  <div>
+                    <CardTitle>Files</CardTitle>
+                    <CardDescription>Shared documents and assets</CardDescription>
+                  </div>
+                  <Button variant="outline" className="gap-2">
+                    <FileText className="h-4 w-4" />
+                    Upload File
+                  </Button>
+                </div>
               </CardHeader>
-              <CardContent className="space-y-4">
-                 {filesData.length === 0 && <p className="text-muted-foreground text-center py-4">No files found.</p>}
-                {filesData.map(file => (
-                  <Card key={file.id} className="p-4 hover:shadow-md transition-shadow">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="font-semibold text-lg flex items-center"><FileText className="mr-2 h-5 w-5 text-primary" /> {file.name}</h3>
-                        <p className="text-sm text-muted-foreground">{file.type} - {file.size} - Uploaded: {file.uploaded}</p>
+              <CardContent className="p-0">
+                {filteredFiles.length === 0 ? (
+                  <div className="p-8 text-center">
+                    <p className="text-muted-foreground">No files found</p>
+                  </div>
+                ) : (
+                  <div className="divide-y">
+                    {filteredFiles.map(file => (
+                      <div key={file.id} className="p-4 hover:bg-muted/50 transition-colors">
+                        <div className="flex items-center gap-4">
+                          <div className={`p-3 rounded-lg ${getFileIconColor(file.type)}/10`}>
+                            <FileText className={`h-5 w-5 ${getFileIconColor(file.type)}`} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2">
+                              <h3 className="font-semibold truncate">{file.name}</h3>
+                              <Badge
+                                variant={getStatusBadgeVariant(file.status)}
+                                className="capitalize"
+                              >
+                                {file.status}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                              <span>{file.type}</span>
+                              <span>•</span>
+                              <span>{file.size}</span>
+                              <span>•</span>
+                              <span>Uploaded: {file.uploaded}</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <Download className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <Share2 className="h-4 w-4" />
+                            </Button>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem>View Details</DropdownMenuItem>
+                                <DropdownMenuItem>Rename</DropdownMenuItem>
+                                <DropdownMenuItem className="text-red-600">Delete</DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </div>
                       </div>
-                      <Badge variant={getStatusBadgeVariant(file.status)}
-                       className={file.status === 'Pending Confirmation' || file.status === 'Unread' ? 'bg-accent text-accent-foreground' : ''}
-                      >{file.status}</Badge>
-                    </div>
-                  </Card>
-                ))}
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -286,7 +459,14 @@ function CommunicationsPageContent() {
 
 export default function CommunicationsPage() {
   return (
-    <Suspense fallback={<div className="flex justify-center items-center h-screen"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>}>
+    <Suspense fallback={
+      <div className="flex justify-center items-center h-screen">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          <p className="text-muted-foreground">Loading Communications Hub...</p>
+        </div>
+      </div>
+    }>
       <CommunicationsPageContent />
     </Suspense>
   );
