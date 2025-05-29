@@ -12,21 +12,21 @@ import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useState } from 'react';
-import { Sparkles, Copy, Download, AlertTriangle, ChevronRight, Bookmark, Target, Mail } from 'lucide-react';
+import { Sparkles, Copy, Download, AlertTriangle, ChevronRight, Bookmark, Target, Mail, Send } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 // --- Form Validation Schema ---
 const campaignSchema = z.object({
-  targetIndustry: z.string().min(3, { 
-    message: "Target industry must be at least 3 characters." 
+  targetIndustry: z.string().min(3, {
+    message: "Target industry must be at least 3 characters."
   }),
-  messageTemplates: z.string().min(10, { 
-    message: "Message templates must be at least 10 characters." 
+  messageTemplates: z.string().min(10, {
+    message: "Message templates must be at least 10 characters."
   }),
-  campaignGoal: z.string().min(5, { 
-    message: "Campaign goal must be at least 5 characters." 
+  campaignGoal: z.string().min(5, {
+    message: "Campaign goal must be at least 5 characters."
   }),
   campaignName: z.string().optional(),
   tone: z.enum(["professional", "friendly", "persuasive", "urgent"]).default("professional"),
@@ -166,6 +166,22 @@ Regards,
       document.body.appendChild(element);
       element.click();
       document.body.removeChild(element);
+    }
+  };
+
+  const handleSendToLeads = () => {
+    if (generatedCampaignText) {
+      toast({
+        title: "Campaign Sent (Simulated)",
+        description: `Email campaign '${form.getValues('campaignName') || 'Untitled Campaign'}' has been sent to sashwatsawarn@gmail.com (and other selected leads).`,
+        variant: "default",
+      });
+    } else {
+      toast({
+        title: "Cannot Send",
+        description: "Please generate a campaign first.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -318,7 +334,7 @@ Regards,
                       ) : (
                         <>
                           <Sparkles className="mr-2 h-5 w-5" /> 
-                          Generate Professional Campaign
+                          Generate Campaign
                         </>
                       )}
                     </Button>
@@ -371,7 +387,7 @@ Regards,
                       <TabsTrigger value="plaintext">Plain Text</TabsTrigger>
                     </TabsList>
                     <TabsContent value="preview">
-                      <div className="prose prose-sm dark:prose-invert max-w-none p-6 border rounded-lg bg-muted/5 h-[420px] overflow-y-auto">
+                      <div className="prose prose-sm dark:prose-invert max-w-none p-6 border rounded-lg bg-muted/5 h-[360px] overflow-y-auto">
                         {generatedCampaignText.split('\n').map((line, i) => (
                           <p key={i} className={line.startsWith('Subject:') ? 'font-semibold text-primary' : ''}>
                             {line}
@@ -380,33 +396,36 @@ Regards,
                       </div>
                     </TabsContent>
                     <TabsContent value="plaintext">
-                      <div className="p-4 border rounded-lg bg-muted/5 font-mono text-sm h-[420px] overflow-y-auto whitespace-pre-wrap">
+                      <div className="p-4 border rounded-lg bg-muted/5 font-mono text-sm h-[360px] overflow-y-auto whitespace-pre-wrap">
                         {generatedCampaignText}
                       </div>
                     </TabsContent>
                   </Tabs>
 
-                  <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
                     <Button 
                       variant="outline" 
                       onClick={copyToClipboard}
                       className="flex-1"
+                      disabled={!generatedCampaignText}
                     >
-                      <Copy className="mr-2 h-4 w-4" /> Copy to Clipboard
+                      <Copy className="mr-2 h-4 w-4" /> Copy
                     </Button>
                     <Button 
                       variant="outline" 
                       onClick={downloadAsTxt}
                       className="flex-1"
+                      disabled={!generatedCampaignText}
                     >
-                      <Download className="mr-2 h-4 w-4" /> Download .txt
+                      <Download className="mr-2 h-4 w-4" /> Download
                     </Button>
                     <Button 
-                      variant="secondary"
+                      variant="default"
                       className="flex-1"
-                      disabled
+                      onClick={handleSendToLeads}
+                      disabled={!generatedCampaignText}
                     >
-                      <ChevronRight className="mr-2 h-4 w-4" /> Send Test Email
+                      <Send className="mr-2 h-4 w-4" /> Send to Leads
                     </Button>
                   </div>
                 </div>
@@ -421,7 +440,7 @@ Regards,
                     No campaign generated yet
                   </h3>
                   <p className="text-sm text-muted-foreground mb-4">
-                    Configure your campaign settings and click "Generate" to create your first draft.
+                    Configure your campaign settings and click "Generate Campaign" to create your first draft.
                   </p>
                   <div className="p-4 bg-blue-50/50 border border-blue-100 rounded-lg text-sm text-blue-800 dark:text-blue-200 dark:bg-blue-900/30 dark:border-blue-800 max-w-md mx-auto">
                     <div className="flex items-start gap-3">
@@ -443,5 +462,3 @@ Regards,
     </MainLayout>
   );
 }
-
-    
