@@ -184,10 +184,6 @@ Regards,
               Craft high-converting email campaigns with AI assistance. Perfect for outreach, lead generation, and customer engagement.
             </p>
           </div>
-          <Badge variant="outline" className="px-4 py-1.5 text-sm flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4 text-yellow-500" />
-            <span>AI Placeholder Mode</span>
-          </Badge>
         </div>
 
         <div className="grid md:grid-cols-2 gap-8">
