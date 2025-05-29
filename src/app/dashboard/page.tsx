@@ -1,253 +1,264 @@
+
+"use client";
+
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowRight, User, Briefcase, Mail, Users, ChevronRight, MessageSquare, CheckSquare } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Users, MoreVertical, TrendingUp, Search, ListFilter, Plus, Briefcase, CheckSquare, Mail, MessageSquare } from 'lucide-react';
 import Link from 'next/link';
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+} from 'recharts';
+import { useState, useEffect } from 'react';
+
+const kpiData = [
+  {
+    title: 'Total Leads',
+    value: '2371',
+    trend: '+8%',
+    trendDescription: 'To the last month',
+    icon: Users,
+  },
+  {
+    title: 'Total Leads', // Placeholder for another KPI, using same data for now
+    value: '2371',
+    trend: '+8%',
+    trendDescription: 'To the last month',
+    icon: Users,
+  },
+];
+
+const revenueData = [
+  { name: '1', revenue: 4000 },
+  { name: '2', revenue: 3000 },
+  { name: '3', revenue: 2000 },
+  { name: '4', revenue: 2780 },
+  { name: '5', revenue: 1890 },
+  { name: '6', revenue: 2390 },
+  { name: '7', revenue: 3490 },
+  { name: '8', revenue: 4300 },
+];
+
+const myTasksData = [
+  {
+    id: 'task1',
+    title: 'Create Email Campaign',
+    description: 'Create email campaigns for leads and schedule it for first message and automate follow ups.',
+    tags: ['Web Design', 'Web Dev', 'Social Media'],
+  },
+  {
+    id: 'task2',
+    title: 'Finalize Q3 Report',
+    description: 'Compile all data and finalize the quarterly report for stakeholders.',
+    tags: ['Reporting', 'Analytics'],
+  },
+  {
+    id: 'task3',
+    title: 'Client Onboarding - Acme Corp',
+    description: 'Prepare onboarding materials and schedule kick-off call.',
+    tags: ['Client Management', 'Onboarding'],
+  },
+];
+
+const upcomingMeetingsData = [
+  {
+    id: 'meet1',
+    date: '30 May 2025',
+    meetingName: 'Project11C Final Meeting',
+    joinees: [
+      { name: 'AA', avatar: 'https://placehold.co/32x32.png?text=AA' },
+      { name: 'BB', avatar: 'https://placehold.co/32x32.png?text=BB' },
+      { name: 'CC', avatar: 'https://placehold.co/32x32.png?text=CC' },
+      { name: 'DD', avatar: 'https://placehold.co/32x32.png?text=DD' },
+    ],
+    host: 'Sashwat Sawarn',
+  },
+  {
+    id: 'meet2',
+    date: '30 May 2025',
+    meetingName: 'Project11C Final Meeting',
+    joinees: [
+      { name: 'EE', avatar: 'https://placehold.co/32x32.png?text=EE' },
+      { name: 'FF', avatar: 'https://placehold.co/32x32.png?text=FF' },
+    ],
+    host: 'Sashwat Sawarn',
+  },
+    {
+    id: 'meet3',
+    date: '02 Jun 2025',
+    meetingName: 'Marketing Strategy Brainstorm',
+    joinees: [
+      { name: 'GG', avatar: 'https://placehold.co/32x32.png?text=GG' },
+      { name: 'HH', avatar: 'https://placehold.co/32x32.png?text=HH' },
+      { name: 'II', avatar: 'https://placehold.co/32x32.png?text=II' },
+    ],
+    host: 'Jane Doe',
+  },
+];
 
 export default function DashboardPage() {
+  const [currentDate, setCurrentDate] = useState('');
+
+  useEffect(() => {
+    // This runs only on the client, preventing hydration mismatch for Date
+    const today = new Date();
+    const options: Intl.DateTimeFormatOptions = { day: '2-digit', month: 'short', year: 'numeric' };
+    setCurrentDate(today.toLocaleDateString('en-GB', options).replace(/ /g, ' ')); // e.g., 29 May 2025
+  }, []);
+
+
   return (
     <MainLayout>
-      <div className="space-y-8">
-        {/* Hero Section */}
-        <div className="relative rounded-xl bg-gradient-to-br from-gray-900 to-gray-800 p-8 text-white overflow-hidden">
-          <div className="absolute inset-0 opacity-10">
-            <div className="absolute inset-0 bg-[url('/images/grid-pattern.svg')] bg-[length:40px_40px]"></div>
-          </div>
-          
-          <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-            <div>
-              <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-3">
-                Welcome back to <span className="text-blue-400">AxesFlow</span>
-              </h1>
-              <p className="text-lg text-gray-300 max-w-2xl mb-6 leading-relaxed">
-                Your integrated solution for streamlined agency operations. 
-                Monitor performance and accelerate growth with our unified platform.
-              </p>
-              <div className="flex gap-3">
-                <Button variant="default" size="lg" asChild className="bg-blue-600 hover:bg-blue-700">
-                  <Link href="/profile" className="flex items-center gap-2">
-                    Setup Profile <ArrowRight className="h-5 w-5" />
-                  </Link>
-                </Button>
-                <Button variant="outline" size="lg" asChild className="text-foreground border-gray-500 hover:bg-gray-800 hover:text-white">
-                  <Link href="/dashboard" className="flex items-center gap-2">
-                    View Dashboard
-                  </Link>
-                </Button>
-              </div>
-            </div>
-            
-            <div className="hidden md:block relative w-64 h-64">
-              <div className="absolute -right-6 -top-6 w-full h-full bg-blue-500/10 rounded-full blur-xl"></div>
-              <div className="relative w-full h-full flex items-center justify-center">
-                <div className="w-48 h-48 bg-blue-600/20 rounded-full flex items-center justify-center">
-                  <div className="w-32 h-32 bg-blue-600/30 rounded-full flex items-center justify-center">
-                    <Briefcase className="h-16 w-16 text-blue-400" strokeWidth={1.5} />
+      <div className="space-y-6">
+        {/* Top Section: KPI Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {kpiData.map((kpi, index) => (
+            <Card key={index} className="shadow-sm">
+              <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                <div className="flex items-center space-x-3">
+                  <div className="p-3 rounded-lg bg-primary/10">
+                    <kpi.icon className="h-6 w-6 text-primary" />
                   </div>
+                  <CardTitle className="text-lg font-semibold">{kpi.title}</CardTitle>
                 </div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-purple-600"></div>
-        </div>
-
-        {/* Stats Overview */}
-        <div className="grid gap-6 md:grid-cols-6">
-          {[
-            { title: 'Leads', value: '24', change: '+12%', trend: 'up', icon: Users },
-            { title: 'Campaigns', value: '5', change: '-1', trend: 'down', icon: Mail },
-            { title: 'Talks', value: '18', change: '+3', trend: 'up', icon: MessageSquare },
-            { title: 'Projects', value: '8', change: '+2', trend: 'up', icon: Briefcase },
-            { title: 'Tasks', value: '32', change: '+5', trend: 'up', icon: CheckSquare },
-            { title: 'Teams', value: '3', change: '0%', trend: 'neutral', icon: Users },
-          ].map((stat, index) => (
-            <Card key={index} className="border-0 shadow-sm">
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <CardDescription className="text-sm font-medium text-gray-500">{stat.title}</CardDescription>
-                  <stat.icon className="h-5 w-5 text-gray-400" />
-                </div>
-                <CardTitle className="text-2xl font-semibold">{stat.value}</CardTitle>
+                <Button variant="ghost" size="icon" className="text-muted-foreground">
+                  <MoreVertical className="h-5 w-5" />
+                </Button>
               </CardHeader>
               <CardContent>
-                <div className={`inline-flex items-center text-sm ${
-                  stat.trend === 'up' ? 'text-green-600' : 
-                  stat.trend === 'down' ? 'text-red-600' : 'text-gray-500'
-                }`}>
-                  {stat.change}
-                  {stat.trend === 'up' && (
-                    <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                    </svg>
-                  )}
-                  {stat.trend === 'down' && (
-                    <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  )}
+                <div className="text-3xl font-bold">{kpi.value}</div>
+                <div className="text-xs text-muted-foreground flex items-center mt-1">
+                  <TrendingUp className="h-4 w-4 mr-1 text-green-500" />
+                  <span className="text-green-500">{kpi.trend}</span>
+                  <span className="ml-1">{kpi.trendDescription}</span>
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
 
-        {/* Quick Actions */}
-        <div className="grid gap-6 lg:grid-cols-3">
-          <Card className="border-0 shadow-sm">
+        {/* Middle Section: Revenue Chart & My Tasks */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <Card className="lg:col-span-2 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-lg font-semibold">Quick Actions</CardTitle>
+              <CardTitle className="text-lg font-semibold">Monthly Revenue</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {[
-                { title: 'Add New Lead', href: '/leads', icon: Users },
-                { title: 'Start Campaign', href: '/email-campaigns', icon: Mail },
-                { title: 'Create Project', href: '/projects', icon: Briefcase },
-                { title: 'Add Task', href: '/tasks', icon: CheckSquare },
-                { title: 'Schedule Talk', href: '/talks', icon: MessageSquare },
-                { title: 'Manage Team', href: '/teams', icon: Users },
-              ].map((action, index) => (
-                <Button 
-                  key={index} 
-                  variant="ghost" 
-                  className="w-full justify-between py-6 px-4 hover:bg-gray-50 transition-colors"
-                  asChild
-                >
-                  <Link href={action.href}>
-                    <div className="flex items-center">
-                      <action.icon className="h-5 w-5 mr-3 text-blue-600" />
-                      <span>{action.title}</span>
-                    </div>
-                    <ChevronRight className="h-5 w-5 text-gray-400" />
-                  </Link>
-                </Button>
+            <CardContent className="pl-2 pr-6 pb-6 pt-2">
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={revenueData} margin={{ top: 5, right: 10, left: -25, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false}/>
+                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value}`}/>
+                  <Tooltip
+                    contentStyle={{ backgroundColor: "hsl(var(--background))", border: "1px solid hsl(var(--border))", borderRadius: "var(--radius)" }}
+                    labelStyle={{ color: "hsl(var(--foreground))" }}
+                    itemStyle={{ color: "hsl(var(--primary))" }}
+                  />
+                  <Line type="monotone" dataKey="revenue" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 4, fill: "hsl(var(--primary))" }} activeDot={{ r: 6 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between pb-3">
+              <CardTitle className="text-lg font-semibold">My Tasks</CardTitle>
+              {currentDate && (
+                <Badge variant="default" className="bg-primary text-primary-foreground h-7 px-3 text-xs">
+                  {currentDate}
+                </Badge>
+              )}
+            </CardHeader>
+            <CardContent className="space-y-4 pt-0">
+              {myTasksData.map((task) => (
+                <div key={task.id} className="p-4 border rounded-lg bg-card hover:shadow-md transition-shadow">
+                  <h4 className="font-semibold text-sm mb-1">{task.title}</h4>
+                  <p className="text-xs text-muted-foreground mb-2 line-clamp-2">{task.description}</p>
+                  <div className="flex flex-wrap gap-1 mb-3">
+                    {task.tags.map((tag, i) => (
+                      <Badge key={i} variant="secondary" className="text-xs px-2 py-0.5">{tag}</Badge>
+                    ))}
+                  </div>
+                  <Button variant="default" size="sm" className="w-full">
+                    View Task
+                  </Button>
+                </div>
               ))}
             </CardContent>
           </Card>
+        </div>
 
-          {/* Recent Activity */}
-          <Card className="border-0 shadow-sm lg:col-span-2">
-            <CardHeader>
-              <CardTitle className="text-lg font-semibold">Recent Activity</CardTitle>
-              <CardDescription>Latest updates across your agency</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                {[
-                  { 
-                    title: 'New lead added', 
-                    description: 'Sarah Johnson from TechCorp', 
-                    time: '2 hours ago',
-                    icon: Users
-                  },
-                  { 
-                    title: 'Campaign sent', 
-                    description: 'Q3 Product Update to 142 contacts', 
-                    time: '5 hours ago',
-                    icon: Mail
-                  },
-                  { 
-                    title: 'Project milestone', 
-                    description: 'Design phase completed for BrandX', 
-                    time: '1 day ago',
-                    icon: Briefcase
-                  },
-                  { 
-                    title: 'New talk scheduled', 
-                    description: 'Meeting with Acme Inc. tomorrow', 
-                    time: '1 day ago',
-                    icon: MessageSquare
-                  },
-                ].map((activity, index) => (
-                  <div key={index} className="flex items-start">
-                    <div className="p-2 rounded-full bg-blue-50 mr-4">
-                      <activity.icon className="h-5 w-5 text-blue-600" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-medium">{activity.title}</h3>
-                      <p className="text-sm text-gray-600">{activity.description}</p>
-                      <p className="text-xs text-gray-400 mt-1">{activity.time}</p>
-                    </div>
-                  </div>
-                ))}
+        {/* Bottom Section: Upcoming Meetings */}
+        <Card className="shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-lg font-semibold">Upcoming Meetings</CardTitle>
+            <div className="flex items-center gap-2">
+              <div className="relative w-48">
+                <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input type="search" placeholder="Search..." className="pl-9 h-9 text-sm" />
               </div>
-              <Button variant="link" className="mt-4 pl-0" asChild>
-                <Link href="/activity">View all activity</Link>
+              <Button variant="outline" size="sm" className="h-9">
+                <ListFilter className="mr-1.5 h-4 w-4" />
+                Filters
               </Button>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Key Sections */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {[
-            { 
-              title: 'Leads', 
-              href: '/leads', 
-              icon: Users, 
-              description: 'Manage potential clients',
-              bgColor: 'bg-blue-50',
-              iconColor: 'text-blue-600'
-            },
-            { 
-              title: 'Campaigns', 
-              href: '/email-campaigns', 
-              icon: Mail, 
-              description: 'Email marketing campaigns',
-              bgColor: 'bg-purple-50',
-              iconColor: 'text-purple-600'
-            },
-            { 
-              title: 'Talks', 
-              href: '/talks', 
-              icon: MessageSquare, 
-              description: 'Client meetings & calls',
-              bgColor: 'bg-green-50',
-              iconColor: 'text-green-600'
-            },
-            { 
-              title: 'Projects', 
-              href: '/projects', 
-              icon: Briefcase, 
-              description: 'Track project progress',
-              bgColor: 'bg-orange-50',
-              iconColor: 'text-orange-600'
-            },
-            { 
-              title: 'Tasks', 
-              href: '/tasks', 
-              icon: CheckSquare, 
-              description: 'Manage team tasks',
-              bgColor: 'bg-red-50',
-              iconColor: 'text-red-600'
-            },
-            { 
-              title: 'Teams', 
-              href: '/teams', 
-              icon: Users, 
-              description: 'Team members & roles',
-              bgColor: 'bg-indigo-50',
-              iconColor: 'text-indigo-600'
-            },
-          ].map(item => (
-            <Card key={item.title} className="border-0 shadow-sm hover:shadow-md transition-shadow">
-              <CardHeader>
-                <div className={`p-3 rounded-lg w-12 h-12 flex items-center justify-center ${item.bgColor} mb-4`}>
-                  <item.icon className={`h-6 w-6 ${item.iconColor}`} />
-                </div>
-                <CardTitle className="text-lg font-semibold">{item.title}</CardTitle>
-                <CardDescription className="text-sm">{item.description}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button variant="outline" size="sm" className="w-full" asChild>
-                  <Link href={item.href}>
-                    Go to {item.title} <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[150px]">Date</TableHead>
+                  <TableHead>Meeting Name</TableHead>
+                  <TableHead className="w-[180px]">Joinees</TableHead>
+                  <TableHead className="w-[180px]">Host</TableHead>
+                  <TableHead className="text-right w-[100px]">Details</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {upcomingMeetingsData.map((meeting) => (
+                  <TableRow key={meeting.id}>
+                    <TableCell className="font-medium">{meeting.date}</TableCell>
+                    <TableCell>{meeting.meetingName}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center -space-x-2">
+                        {meeting.joinees.slice(0, 4).map((joinee, i) => (
+                          <Avatar key={i} className="h-7 w-7 border-2 border-card hover:z-10" title={joinee.name}>
+                            <AvatarImage src={joinee.avatar} data-ai-hint="person avatar" alt={joinee.name} />
+                            <AvatarFallback>{joinee.name.substring(0,1)}</AvatarFallback>
+                          </Avatar>
+                        ))}
+                        {meeting.joinees.length > 4 && (
+                          <div className="flex items-center justify-center h-7 w-7 rounded-full bg-muted text-muted-foreground text-xs font-medium border-2 border-card z-10">
+                            +{meeting.joinees.length - 4}
+                          </div>
+                        )}
+                        {meeting.joinees.length === 0 && <span className="text-xs text-muted-foreground">No joinees</span> }
+                      </div>
+                    </TableCell>
+                    <TableCell>{meeting.host}</TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="default" size="sm">View</Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+             {upcomingMeetingsData.length === 0 && (
+                <p className="text-center text-sm text-muted-foreground py-6">No upcoming meetings.</p>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </MainLayout>
   );
