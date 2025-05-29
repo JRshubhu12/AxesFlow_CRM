@@ -3,9 +3,9 @@
 /**
  * @fileOverview An AI flow to find potential leads based on provided criteria.
  *
- * - findLeadsFlow - A function that handles the lead finding process.
- * - FindLeadsInput - The input type for the findLeadsFlow function.
- * - FindLeadsOutput - The return type for the findLeadsFlow function.
+ * - findLeads - A function that handles the lead finding process.
+ * - FindLeadsInput - The input type for the findLeads function.
+ * - FindLeadsOutput - The return type for the findLeads function.
  */
 
 import {ai} from '@/ai/genkit';
@@ -29,9 +29,9 @@ const FoundLeadSchema = z.object({
   potentialContactName: z.string().optional().describe('The name of a potential contact person at the company.'),
   potentialContactTitle: z.string().optional().describe('The job title of the potential contact person.'),
   reasoning: z.string().describe('A brief explanation of why this company/person might be a good lead based on the criteria.'),
-  website: z.string().optional().url().describe('The company\'s website URL.'),
-  contactEmail: z.string().optional().describe('A potential contact email address for the lead. Should be a business email if possible.'),
-  contactPhone: z.string().optional().describe('A potential contact phone number for the lead. Should be a business phone if possible.'),
+  website: z.string().url().optional().describe("The company's website URL. Example: https://www.example.com"),
+  contactEmail: z.string().optional().describe('A potential contact email address for the lead. Should be a business email if possible. Example: contact@example.com'),
+  contactPhone: z.string().optional().describe('A potential contact phone number for the lead. Should be a business phone if possible. Example: +1-555-123-4567'),
   industry: z.string().optional().describe('The industry of the company.'),
   location: z.string().optional().describe('The location of the company.'),
 });
@@ -58,7 +58,7 @@ const findLeadsGenkitFlow = ai.defineFlow(
         output: { schema: FindLeadsOutputSchema },
         prompt: `
         You are an expert B2B lead generation assistant. Your task is to find potential business leads based on the following criteria.
-        Provide up to 5 high-quality leads. For each lead, provide the company name, a potential contact person's name and their title if available, 
+        Provide up to 5 high-quality leads. For each lead, provide the company name, a potential contact person's name and their title if available,
         a brief reasoning why they are a good fit, their website URL, and if possible, a business email address and phone number for the contact or company.
         Also include the company's industry and location if identified.
 
