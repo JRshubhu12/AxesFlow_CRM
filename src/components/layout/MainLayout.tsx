@@ -2,7 +2,7 @@
 "use client";
 
 import Link from 'next/link';
-import { Search, Folder, Bell, ChevronDown, User, Settings, LogOut } from 'lucide-react'; // Icons for header
+import { Search, Folder, Bell, ChevronDown, User, Settings, LogOut } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
@@ -18,45 +18,49 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { navItems as appNavItems } from '@/config/nav'; // Using appNavItems from config
+import { navItems as appNavItems } from '@/config/nav';
 import { cn } from '@/lib/utils';
 
-// UserNav Component (handles user avatar and dropdown menu)
+// UserNav Component
 interface UserNavProps {
-  agencyName?: string | null;
-  userEmail?: string | null;
-  agencyLogoUrl?: string | null;
+  agencyNameProp?: string | null;
+  userEmailProp?: string | null;
+  agencyLogoUrlProp?: string | null;
 }
 
-function UserNav({ agencyName, userEmail, agencyLogoUrl }: UserNavProps) {
+function UserNav({ agencyNameProp, userEmailProp, agencyLogoUrlProp }: UserNavProps) {
   const router = useRouter();
-  const [currentAgencyName, setCurrentAgencyName] = useState(agencyName);
-  const [currentUserEmail, setCurrentUserEmail] = useState(userEmail);
-  const [currentAgencyLogoUrl, setCurrentAgencyLogoUrl] = useState(agencyLogoUrl);
+  const [agencyName, setAgencyName] = useState(agencyNameProp);
+  const [userEmail, setUserEmail] = useState(userEmailProp);
+  const [agencyLogoUrl, setAgencyLogoUrl] = useState(agencyLogoUrlProp);
 
   useEffect(() => {
-    const storedProfile = localStorage.getItem('userProfileData');
-    if (storedProfile) {
-      try {
-        const parsed = JSON.parse(storedProfile);
-        setCurrentAgencyName(parsed.agencyName);
-        setCurrentUserEmail(parsed.contactEmail);
-        setCurrentAgencyLogoUrl(parsed.agencyLogoUrl);
-      } catch (e) {
-        console.error("Failed to parse userProfileData from localStorage", e);
+    const loadProfileData = () => {
+      const storedProfile = localStorage.getItem('userProfileData');
+      if (storedProfile) {
+        try {
+          const parsed = JSON.parse(storedProfile);
+          setAgencyName(parsed.agencyName || "Agency Name");
+          setUserEmail(parsed.contactEmail || "user@example.com");
+          setAgencyLogoUrl(parsed.agencyLogoUrl);
+        } catch (e) {
+          console.error("Failed to parse userProfileData from localStorage", e);
+          setAgencyName("Agency Name");
+          setUserEmail("user@example.com");
+          setAgencyLogoUrl(null);
+        }
+      } else {
+        setAgencyName("Agency Name");
+        setUserEmail("user@example.com");
+        setAgencyLogoUrl(null);
       }
-    }
+    };
+
+    loadProfileData(); // Load on mount
 
     const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === 'userProfileData' && event.newValue) {
-        try {
-          const parsed = JSON.parse(event.newValue);
-          setCurrentAgencyName(parsed.agencyName);
-          setCurrentUserEmail(parsed.contactEmail);
-          setCurrentAgencyLogoUrl(parsed.agencyLogoUrl);
-        } catch (e) {
-          console.error("Failed to parse updated userProfileData from localStorage", e);
-        }
+      if (event.key === 'userProfileData') {
+        loadProfileData(); // Reload when storage changes
       }
     };
     window.addEventListener('storage', handleStorageChange);
@@ -75,8 +79,8 @@ function UserNav({ agencyName, userEmail, agencyLogoUrl }: UserNavProps) {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0">
           <Avatar className="h-9 w-9">
-            <AvatarImage src={currentAgencyLogoUrl || "https://placehold.co/40x40.png?text=A"} alt={currentAgencyName || "User"} data-ai-hint="logo company"/>
-            <AvatarFallback>{currentAgencyName ? currentAgencyName.charAt(0).toUpperCase() : "U"}</AvatarFallback>
+            <AvatarImage src={agencyLogoUrl || "https://placehold.co/40x40.png?text=A"} alt={agencyName || "User"} data-ai-hint="logo company"/>
+            <AvatarFallback>{agencyName ? agencyName.charAt(0).toUpperCase() : "U"}</AvatarFallback>
           </Avatar>
           <ChevronDown className="h-4 w-4 absolute right-[-8px] bottom-0 text-muted-foreground" />
         </Button>
@@ -84,9 +88,9 @@ function UserNav({ agencyName, userEmail, agencyLogoUrl }: UserNavProps) {
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{currentAgencyName || "Agency Name"}</p>
+            <p className="text-sm font-medium leading-none">{agencyName}</p>
             <p className="text-xs leading-none text-muted-foreground">
-              {currentUserEmail || "user@example.com"}
+              {userEmail}
             </p>
           </div>
         </DropdownMenuLabel>
@@ -115,15 +119,21 @@ function PageTitleDisplay() {
   const [title, setTitle] = useState('');
 
   useEffect(() => {
-    const currentNavItem = appNavItems.find(item => pathname.startsWith(item.href) || pathname === item.href);
-    let pageTitle = "Dashboard"; 
+    // Find the current nav item based on the path
+    // Prioritize exact matches or longer paths for nested routes
+    let currentNavItem = appNavItems
+      .slice() // Create a copy to sort
+      .sort((a, b) => b.href.length - a.href.length) // Sort by href length descending
+      .find(item => pathname.startsWith(item.href));
+
+    let pageTitle = "Dashboard"; // Default title
     if (currentNavItem) {
       pageTitle = currentNavItem.title;
     } else if (pathname === '/profile') {
       pageTitle = 'Profile';
     } else if (pathname === '/settings') {
       pageTitle = 'Settings';
-    } else if (pathname.startsWith('/projects/')) {
+    } else if (pathname.startsWith('/projects/') && pathname !== '/projects') {
       pageTitle = 'Project Details';
     } else if (pathname.startsWith('/activity')) {
       pageTitle = 'Activity Log';
@@ -134,21 +144,20 @@ function PageTitleDisplay() {
   return <h1 className="text-xl font-semibold text-foreground">{title}</h1>;
 }
 
-
 export default function MainLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const navItems = appNavItems; // Use navItems from config
+  const navItems = appNavItems;
 
   return (
     <div className="flex min-h-screen bg-background">
       {/* Sidebar */}
-      <div className="w-60 border-r bg-sidebar-background p-0">
+      <div className="w-60 border-r bg-sidebar-background p-0 sticky top-0 h-screen flex flex-col">
         <div className="mb-3 px-4 pt-5 pb-3">
           <AppLogo />
         </div>
-        <nav className="space-y-1 px-3">
+        <nav className="space-y-1 px-3 overflow-y-auto flex-grow">
           {navItems.map((item) => {
-            const isActive = (pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href)));
+            const isActive = (pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href) && item.href.length > '/dashboard'.length));
             return (
               <Link
                 key={item.title}
@@ -161,6 +170,7 @@ export default function MainLayout({ children }: { children: ReactNode }) {
                 )}
                 title={item.tooltip || item.title}
               >
+                {/* Icon removed to match new design */}
                 <span>{item.title}</span>
               </Link>
             );
@@ -169,7 +179,7 @@ export default function MainLayout({ children }: { children: ReactNode }) {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col overflow-auto">
+      <div className="flex-1 flex flex-col overflow-auto"> {/* This container handles main content scrolling */}
         {/* Top Bar */}
         <header className="sticky top-0 z-10 flex h-[60px] items-center justify-between border-b bg-card px-6 py-3">
           <div className="flex items-center">
@@ -201,7 +211,7 @@ export default function MainLayout({ children }: { children: ReactNode }) {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 p-6">
+        <main className="flex-1 p-6"> {/* This is where the page-specific content will scroll */}
           {children}
         </main>
       </div>
