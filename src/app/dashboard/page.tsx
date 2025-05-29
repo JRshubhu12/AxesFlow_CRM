@@ -31,11 +31,11 @@ const kpiData = [
     icon: Users,
   },
   {
-    title: 'Total Leads', // Placeholder for another KPI, using same data for now
-    value: '2371',
-    trend: '+8%',
+    title: 'Total Projects',
+    value: '152', // Changed value for differentiation
+    trend: '+5%',  // Changed trend for differentiation
     trendDescription: 'To the last month',
-    icon: Users,
+    icon: Briefcase, // Changed icon
   },
 ];
 
