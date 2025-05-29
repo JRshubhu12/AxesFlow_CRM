@@ -39,7 +39,11 @@ import {
   Linkedin,
   Sparkles,
   FileText,
-  AlertTriangle
+  AlertTriangle,
+  Mail as MailIcon,
+  Phone as PhoneIcon,
+  Globe,
+  CalendarDays as CalendarIcon, // Renamed to avoid conflict
 } from 'lucide-react';
 import {
   Dialog,
@@ -81,6 +85,8 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from 'next/navigation';
 import { format, parseISO } from 'date-fns';
+import { cn } from '@/lib/utils';
+
 
 // Interfaces for data structures
 interface Meeting {
@@ -219,16 +225,128 @@ const filterSections = [
 ];
 
 
+const LeadDetailView = ({ lead, onStartChat, onScheduleMeeting, onEditLead, onChangeStatus }: {
+  lead: Lead | null;
+  onStartChat: (lead: Lead) => void;
+  onScheduleMeeting: (lead: Lead) => void;
+  onEditLead: (lead: Lead) => void;
+  onChangeStatus: (leadId: string, newStatus: Lead['status']) => void;
+}) => {
+  if (!lead) {
+    return (
+      <Card className="w-96 shadow-lg hidden lg:block">
+        <CardHeader>
+          <CardTitle>Lead Details</CardTitle>
+          <CardDescription>Select a lead from the table to see their details here.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
+            <UsersIcon className="h-12 w-12 mb-4" />
+            <p>No lead selected.</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="w-96 shadow-lg hidden lg:block">
+      <CardHeader className="pb-4">
+        <div className="flex items-center gap-4">
+          <Avatar className="h-16 w-16">
+            <AvatarImage src={lead.avatar || `https://placehold.co/64x64.png?text=${lead.name.split(' ').map(n=>n[0]).join('').toUpperCase()}`} alt={lead.name} data-ai-hint="person avatar" />
+            <AvatarFallback>{lead.name.split(' ').map(n=>n[0]).join('').toUpperCase()}</AvatarFallback>
+          </Avatar>
+          <div>
+            <CardTitle className="text-xl">{lead.name}</CardTitle>
+            <CardDescription>{lead.title || 'N/A'}</CardDescription>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-3 text-sm">
+        <div className="flex items-center gap-2">
+          <Building className="h-4 w-4 text-muted-foreground" />
+          <span>{lead.company}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <MailIcon className="h-4 w-4 text-muted-foreground" />
+          <a href={`mailto:${lead.email}`} className="text-primary hover:underline">{lead.email}</a>
+        </div>
+        <div className="flex items-center gap-2">
+          <PhoneIcon className="h-4 w-4 text-muted-foreground" />
+          <span>{lead.phone || 'N/A'}</span>
+        </div>
+        {lead.website && (
+          <div className="flex items-center gap-2">
+            <Globe className="h-4 w-4 text-muted-foreground" />
+            <a href={lead.website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate max-w-xs">
+              {lead.website}
+            </a>
+          </div>
+        )}
+        <div className="flex items-center gap-2">
+          <MapPin className="h-4 w-4 text-muted-foreground" />
+          <span>{lead.location || 'N/A'}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Briefcase className="h-4 w-4 text-muted-foreground" />
+          <span>{lead.industry || 'N/A'}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-muted-foreground">Status:</span>
+          <Badge variant={statusVariantMap[lead.status] || 'secondary'}>{lead.status}</Badge>
+        </div>
+        <div className="flex items-center gap-2">
+          <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+          <span>Last Contact: {lead.lastContact ? format(parseISO(lead.lastContact), "PPP") : 'N/A'}</span>
+        </div>
+        <div className="pt-4 space-y-2">
+          <Button variant="outline" size="sm" className="w-full" onClick={() => onStartChat(lead)}>
+            <MessageCircle className="mr-2 h-4 w-4" /> Start Chat
+          </Button>
+          <Button variant="outline" size="sm" className="w-full" onClick={() => onScheduleMeeting(lead)}>
+            <CalendarPlus className="mr-2 h-4 w-4" /> Schedule Meeting
+          </Button>
+          <Button variant="outline" size="sm" className="w-full" onClick={() => onEditLead(lead)}>
+            <Edit3 className="mr-2 h-4 w-4" /> Edit Lead
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="w-full">
+                <CheckSquare className="mr-2 h-4 w-4" /> Change Status
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-56">
+              <DropdownMenuRadioGroup
+                value={lead.status}
+                onValueChange={(newStatus) => onChangeStatus(lead.id, newStatus as Lead['status'])}
+              >
+                {leadStatuses.map((status) => (
+                  <DropdownMenuRadioItem key={status} value={status}>
+                    {status}
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+
 export default function LeadsPage() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [isLoadingLeads, setIsLoadingLeads] = useState(true);
   const [isAddLeadOpen, setIsAddLeadOpen] = useState(false);
   const [isEditLeadOpen, setIsEditLeadOpen] = useState(false);
-  const [isViewLeadOpen, setIsViewLeadOpen] = useState(false);
-  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
-  const [statusFilter, setStatusFilter] = useState<string>("All");
+  
+  const [selectedLeadForDetails, setSelectedLeadForDetails] = useState<Lead | null>(null);
+  const [editingLead, setEditingLead] = useState<Lead | null>(null);
 
-  // State for new filters
+
+  const [statusFilter, setStatusFilter] = useState<string>("All");
   const [nameFilter, setNameFilter] = useState("");
   const [titleFilter, setTitleFilter] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
@@ -282,7 +400,7 @@ export default function LeadsPage() {
       lastContact: format(new Date(), "yyyy-MM-dd"),
       avatar: `https://placehold.co/40x40.png?text=${values.name.split(' ').map(n=>n[0]).join('').toUpperCase()}`
     };
-    const updatedLeads = [newLead, ...leads]; // Add to top
+    const updatedLeads = [newLead, ...leads]; 
     setLeads(updatedLeads);
     saveLeadsToLocalStorage(updatedLeads);
     toast({ title: "Lead Added", description: `${values.name} has been added.` });
@@ -291,49 +409,54 @@ export default function LeadsPage() {
   };
 
   const handleEditLeadSubmit = async (values: LeadFormValues) => {
-    if (!selectedLead) return;
+    if (!editingLead) return;
     const updatedLead: Lead = {
-      ...selectedLead,
+      ...editingLead,
       ...values,
-      // ensure avatar is updated if name changes, or keep existing if name doesn't change
-      avatar: values.name === selectedLead.name ? selectedLead.avatar : `https://placehold.co/40x40.png?text=${values.name.split(' ').map(n=>n[0]).join('').toUpperCase()}`
+      avatar: values.name === editingLead.name ? editingLead.avatar : `https://placehold.co/40x40.png?text=${values.name.split(' ').map(n=>n[0]).join('').toUpperCase()}`
     };
-    const updatedLeads = leads.map(lead => lead.id === selectedLead.id ? updatedLead : lead);
+    const updatedLeads = leads.map(lead => lead.id === editingLead.id ? updatedLead : lead);
     setLeads(updatedLeads);
     saveLeadsToLocalStorage(updatedLeads);
     toast({ title: "Lead Updated", description: `${values.name} has been updated.` });
     setIsEditLeadOpen(false);
-    setSelectedLead(null);
+    setEditingLead(null);
+    if (selectedLeadForDetails?.id === updatedLead.id) {
+      setSelectedLeadForDetails(updatedLead);
+    }
   };
 
-  const openEditModal = (lead: Lead) => {
-    setSelectedLead(lead);
+  const openEditModal = (leadToEdit: Lead) => {
+    setEditingLead(leadToEdit);
     editForm.reset({
-        name: lead.name,
-        company: lead.company,
-        email: lead.email,
-        status: lead.status,
-        website: lead.website || "",
-        title: lead.title || "",
-        phone: lead.phone || "",
-        location: lead.location || "",
-        industry: lead.industry || "",
+        name: leadToEdit.name,
+        company: leadToEdit.company,
+        email: leadToEdit.email,
+        status: leadToEdit.status,
+        website: leadToEdit.website || "",
+        title: leadToEdit.title || "",
+        phone: leadToEdit.phone || "",
+        location: leadToEdit.location || "",
+        industry: leadToEdit.industry || "",
     });
     setIsEditLeadOpen(true);
   };
 
-  const openViewModal = (lead: Lead) => {
-    setSelectedLead(lead);
-    setIsViewLeadOpen(true);
-  };
-
   const handleChangeStatus = (leadId: string, newStatus: Lead['status']) => {
-    const updatedLeads = leads.map(lead =>
-      lead.id === leadId ? { ...lead, status: newStatus, lastContact: format(new Date(), "yyyy-MM-dd") } : lead
-    );
+    let changedLead: Lead | null = null;
+    const updatedLeads = leads.map(lead => {
+      if (lead.id === leadId) {
+        changedLead = { ...lead, status: newStatus, lastContact: format(new Date(), "yyyy-MM-dd") };
+        return changedLead;
+      }
+      return lead;
+    });
     setLeads(updatedLeads);
     saveLeadsToLocalStorage(updatedLeads);
     toast({ title: "Status Updated", description: `Lead status changed to ${newStatus}.` });
+    if (selectedLeadForDetails?.id === leadId && changedLead) {
+      setSelectedLeadForDetails(changedLead);
+    }
   };
 
   const handleStartChat = (lead: Lead) => {
@@ -456,7 +579,7 @@ export default function LeadsPage() {
       if (text) {
         const parsedLeads = parseCSVToLeads(text);
         if (parsedLeads.length > 0) {
-          const updatedLeads = [...parsedLeads, ...leads]; // Add new leads to the top
+          const updatedLeads = [...parsedLeads, ...leads]; 
           setLeads(updatedLeads);
           saveLeadsToLocalStorage(updatedLeads);
           toast({ title: "Leads Imported", description: `${parsedLeads.length} leads have been imported successfully.` });
@@ -477,7 +600,7 @@ export default function LeadsPage() {
     fileInputRef.current?.click();
   };
 
-  const handleSelectRow = (leadId: string, checked: boolean) => {
+  const handleSelectRowCheckbox = (leadId: string, checked: boolean) => {
     setSelectedRows(prev => ({ ...prev, [leadId]: checked }));
   };
 
@@ -512,8 +635,7 @@ export default function LeadsPage() {
     }
     return tempLeads;
   }, [leads, statusFilter, nameFilter, titleFilter, locationFilter, industryFilter, keywordFilterText]);
-
-
+  
   const isAllSelected = filteredLeads.length > 0 && filteredLeads.every(lead => selectedRows[lead.id]);
 
   const handleSelectAllRows = (checked: boolean) => {
@@ -523,7 +645,7 @@ export default function LeadsPage() {
     }
     setSelectedRows(newSelectedRows);
   };
-
+  
   const activeFilterCount = useMemo(() => {
     let count = 0;
     if (statusFilter !== "All") count++;
@@ -549,12 +671,16 @@ export default function LeadsPage() {
      toast({ title: "Filters Applied", description: "Live filtering is active. Results are updated as you type." });
   };
 
+  const handleRowClick = (lead: Lead) => {
+    setSelectedLeadForDetails(lead);
+  };
+
 
   return (
     <MainLayout>
-      <div className="h-full flex flex-col flex-grow flex overflow-hidden">
+      <div className="h-full flex flex-grow overflow-hidden">
         {/* Filters Sidebar */}
-        <ScrollArea className="w-72 border-r bg-card p-4 hidden md:block">
+        <ScrollArea className="w-72 border-r bg-card p-4 hidden md:block flex-shrink-0">
           <div className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-lg font-semibold">Filters</h2>
@@ -611,191 +737,210 @@ export default function LeadsPage() {
           </div>
         </ScrollArea>
 
-        {/* Main Content Area */}
-        <div className="flex-1 flex flex-col p-6 overflow-x-auto">
-          <h1 className="text-2xl font-semibold text-foreground mb-6">People</h1>
-          <div className="flex justify-between items-center mb-4 gap-2">
-             {/* Placeholder for AI Lead Finder or other content above buttons if needed */}
-             <div></div>
-            <div className="flex gap-2 flex-wrap">
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileUpload}
-                accept=".csv"
-                style={{ display: 'none' }}
-                id="csv-upload"
-              />
-               <Button variant="outline" onClick={handleImportClick}>
-                <Upload className="mr-2 h-4 w-4" /> Import CSV
-              </Button>
-              <Dialog open={isAddLeadOpen} onOpenChange={setIsAddLeadOpen}>
-                <DialogTrigger asChild>
-                   <Button variant="outline">
-                    <ListPlus className="mr-2 h-4 w-4" /> Add to List
-                  </Button>
-                </DialogTrigger>
-                 <DialogContent className="sm:max-w-[425px]">
-                    <DialogHeader>
-                      <DialogTitle>Add New Lead</DialogTitle>
-                      <DialogDescription>
-                        Fill in the details for the new lead. Click save when you're done.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <Form {...form}>
-                      <form onSubmit={form.handleSubmit(handleAddLeadSubmit)} className="space-y-4 py-4">
-                        <FormField control={form.control} name="name" render={({ field }) => (<FormItem><FormLabel>Name</FormLabel><FormControl><Input placeholder="e.g., John Doe" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="title" render={({ field }) => (<FormItem><FormLabel>Title</FormLabel><FormControl><Input placeholder="e.g., CEO" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="company" render={({ field }) => (<FormItem><FormLabel>Company</FormLabel><FormControl><Input placeholder="e.g., Innovate Corp" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="email" render={({ field }) => (<FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" placeholder="e.g., john.doe@example.com" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="phone" render={({ field }) => (<FormItem><FormLabel>Phone</FormLabel><FormControl><Input placeholder="e.g., (123) 456-7890" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="website" render={({ field }) => (<FormItem><FormLabel>Website (Optional)</FormLabel><FormControl><Input placeholder="e.g., https://www.example.com" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="location" render={({ field }) => (<FormItem><FormLabel>Location (Optional)</FormLabel><FormControl><Input placeholder="e.g., New York" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="industry" render={({ field }) => (<FormItem><FormLabel>Industry (Optional)</FormLabel><FormControl><Input placeholder="e.g., Technology" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="status" render={({ field }) => (<FormItem><FormLabel>Status</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select lead status" /></SelectTrigger></FormControl><SelectContent>{leadStatuses.map(status => (<SelectItem key={status} value={status}>{status}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>)} />
-                        <DialogFooter><Button type="submit">Save Lead</Button></DialogFooter>
-                      </form>
-                    </Form>
-                  </DialogContent>
-              </Dialog>
-              <Button onClick={handleAddToCampaign}>
-                <PlusCircle className="mr-2 h-4 w-4" /> Add to Campaign
-              </Button>
+        {/* Main Content Area: Details Pane + Leads Table */}
+        <div className="flex flex-1 overflow-hidden">
+            {/* Lead Details View */}
+            <div className="flex-shrink-0 border-r hidden lg:block">
+              <ScrollArea className="h-full">
+                <LeadDetailView
+                  lead={selectedLeadForDetails}
+                  onStartChat={handleStartChat}
+                  onScheduleMeeting={handleScheduleMeeting}
+                  onEditLead={openEditModal}
+                  onChangeStatus={handleChangeStatus}
+                />
+              </ScrollArea>
             </div>
-          </div>
 
-          {isLoadingLeads ? (
-            <div className="flex-1 flex justify-center items-center">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            {/* Leads Table Area */}
+            <div className="flex-1 flex flex-col p-6 overflow-x-auto">
+              <h1 className="text-2xl font-semibold text-foreground mb-6">People</h1>
+              <div className="flex justify-between items-center mb-4 gap-2">
+                <div></div> {/* Placeholder for alignment */}
+                <div className="flex gap-2 flex-wrap">
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileUpload}
+                    accept=".csv"
+                    style={{ display: 'none' }}
+                    id="csv-upload"
+                  />
+                  <Button variant="outline" onClick={handleImportClick}>
+                    <Upload className="mr-2 h-4 w-4" /> Import CSV
+                  </Button>
+                  <Dialog open={isAddLeadOpen} onOpenChange={setIsAddLeadOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline">
+                        <ListPlus className="mr-2 h-4 w-4" /> Add to List
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[425px]">
+                        <DialogHeader>
+                          <DialogTitle>Add New Lead</DialogTitle>
+                          <DialogDescription>
+                            Fill in the details for the new lead. Click save when you're done.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <Form {...form}>
+                          <form onSubmit={form.handleSubmit(handleAddLeadSubmit)} className="space-y-4 py-4">
+                            <FormField control={form.control} name="name" render={({ field }) => (<FormItem><FormLabel>Name</FormLabel><FormControl><Input placeholder="e.g., John Doe" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={form.control} name="title" render={({ field }) => (<FormItem><FormLabel>Title</FormLabel><FormControl><Input placeholder="e.g., CEO" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={form.control} name="company" render={({ field }) => (<FormItem><FormLabel>Company</FormLabel><FormControl><Input placeholder="e.g., Innovate Corp" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={form.control} name="email" render={({ field }) => (<FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" placeholder="e.g., john.doe@example.com" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={form.control} name="phone" render={({ field }) => (<FormItem><FormLabel>Phone</FormLabel><FormControl><Input placeholder="e.g., (123) 456-7890" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={form.control} name="website" render={({ field }) => (<FormItem><FormLabel>Website (Optional)</FormLabel><FormControl><Input placeholder="e.g., https://www.example.com" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={form.control} name="location" render={({ field }) => (<FormItem><FormLabel>Location (Optional)</FormLabel><FormControl><Input placeholder="e.g., New York" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={form.control} name="industry" render={({ field }) => (<FormItem><FormLabel>Industry (Optional)</FormLabel><FormControl><Input placeholder="e.g., Technology" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={form.control} name="status" render={({ field }) => (<FormItem><FormLabel>Status</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select lead status" /></SelectTrigger></FormControl><SelectContent>{leadStatuses.map(status => (<SelectItem key={status} value={status}>{status}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>)} />
+                            <DialogFooter><Button type="submit">Save Lead</Button></DialogFooter>
+                          </form>
+                        </Form>
+                      </DialogContent>
+                  </Dialog>
+                  <Button onClick={handleAddToCampaign}>
+                    <PlusCircle className="mr-2 h-4 w-4" /> Add to Campaign
+                  </Button>
+                </div>
+              </div>
+
+              {isLoadingLeads ? (
+                <div className="flex-1 flex justify-center items-center">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : (
+                <div className="border rounded-lg overflow-hidden shadow">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/50">
+                        <TableHead className="w-[50px] px-4">
+                          <Checkbox
+                            checked={isAllSelected}
+                            onCheckedChange={(checked) => handleSelectAllRows(Boolean(checked))}
+                          />
+                        </TableHead>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Title</TableHead>
+                        <TableHead>Company</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Phone Numbers</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredLeads.map((lead) => (
+                        <TableRow 
+                            key={lead.id} 
+                            className={cn(
+                                "hover:bg-muted/50 cursor-pointer",
+                                selectedLeadForDetails?.id === lead.id && "bg-muted/80"
+                            )}
+                            data-state={selectedRows[lead.id] ? 'selected' : ''}
+                            onClick={() => handleRowClick(lead)}
+                        >
+                          <TableCell className="px-4" onClick={(e) => e.stopPropagation()}>
+                            <Checkbox
+                              checked={selectedRows[lead.id] || false}
+                              onCheckedChange={(checked) => handleSelectRowCheckbox(lead.id, Boolean(checked))}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Avatar className="h-8 w-8">
+                                <AvatarImage src={lead.avatar || `https://placehold.co/40x40.png?text=${lead.name.split(' ').map(n=>n[0]).join('').toUpperCase()}`} alt={lead.name} data-ai-hint="person avatar"/>
+                                <AvatarFallback>{lead.name.split(' ').map(n=>n[0]).join('').toUpperCase()}</AvatarFallback>
+                              </Avatar>
+                              <span className="font-medium">{lead.name}</span>
+                              <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" title="View on LinkedIn" onClick={(e) => e.stopPropagation()}>
+                                <Linkedin className="h-4 w-4 text-blue-600 cursor-pointer hover:text-blue-700" />
+                              </a>
+                            </div>
+                          </TableCell>
+                          <TableCell>{lead.title || 'N/A'}</TableCell>
+                          <TableCell>{lead.company}</TableCell>
+                          <TableCell>
+                            <a href={`mailto:${lead.email}`} className="text-primary hover:underline" onClick={(e) => e.stopPropagation()}>
+                              {lead.email}
+                            </a>
+                          </TableCell>
+                          <TableCell>{lead.phone || 'N/A'}</TableCell>
+                          <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                                            <MoreHorizontal className="h-4 w-4" />
+                                            <span className="sr-only">Actions</span>
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onClick={() => handleStartChat(lead)}>
+                                            <MessageCircle className="mr-2 h-4 w-4" />
+                                            Start Chat
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => handleScheduleMeeting(lead)}>
+                                            <CalendarPlus className="mr-2 h-4 w-4" />
+                                            Schedule Meeting
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem onClick={() => openEditModal(lead)}>
+                                            <Edit3 className="mr-2 h-4 w-4" />
+                                            Edit Lead
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSub>
+                                            <DropdownMenuSubTrigger>
+                                                <CheckSquare className="mr-2 h-4 w-4" />
+                                                Change Status
+                                            </DropdownMenuSubTrigger>
+                                            <DropdownMenuPortal>
+                                                <DropdownMenuSubContent>
+                                                    <DropdownMenuRadioGroup
+                                                        value={lead.status}
+                                                        onValueChange={(newStatus) => handleChangeStatus(lead.id, newStatus as Lead['status'])}
+                                                    >
+                                                        {leadStatuses.map((status) => (
+                                                            <DropdownMenuRadioItem key={status} value={status}>
+                                                                {status}
+                                                            </DropdownMenuRadioItem>
+                                                        ))}
+                                                    </DropdownMenuRadioGroup>
+                                                </DropdownMenuSubContent>
+                                            </DropdownMenuPortal>
+                                        </DropdownMenuSub>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+              {filteredLeads.length === 0 && !isLoadingLeads && (
+                <div className="flex-1 flex justify-center items-center text-muted-foreground">
+                  No leads found.
+                </div>
+              )}
+              <div className="flex items-center justify-between mt-4 text-sm text-muted-foreground">
+                <div>
+                  <Select defaultValue="10">
+                    <SelectTrigger className="w-[180px] h-9">
+                      Rows per page: <SelectValue placeholder="10" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="10">10</SelectItem>
+                      <SelectItem value="20">20</SelectItem>
+                      <SelectItem value="50">50</SelectItem>
+                      <SelectItem value="100">100</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>Pages 1 of {Math.ceil(filteredLeads.length / 10)} pages</div>
+              </div>
             </div>
-          ) : (
-            <div className="border rounded-lg overflow-hidden shadow">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead className="w-[50px] px-4">
-                       <Checkbox
-                         checked={isAllSelected}
-                         onCheckedChange={(checked) => handleSelectAllRows(Boolean(checked))}
-                       />
-                    </TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Title</TableHead>
-                    <TableHead>Company</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Phone Numbers</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredLeads.map((lead) => (
-                    <TableRow key={lead.id} className="hover:bg-muted/50" data-state={selectedRows[lead.id] ? 'selected' : ''}>
-                      <TableCell className="px-4">
-                        <Checkbox
-                          checked={selectedRows[lead.id] || false}
-                          onCheckedChange={(checked) => handleSelectRow(lead.id, Boolean(checked))}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Avatar className="h-8 w-8">
-                            <AvatarImage src={lead.avatar || `https://placehold.co/40x40.png?text=${lead.name.split(' ').map(n=>n[0]).join('').toUpperCase()}`} alt={lead.name} data-ai-hint="person avatar"/>
-                            <AvatarFallback>{lead.name.split(' ').map(n=>n[0]).join('').toUpperCase()}</AvatarFallback>
-                          </Avatar>
-                          <span className="font-medium">{lead.name}</span>
-                          <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" title="View on LinkedIn">
-                            <Linkedin className="h-4 w-4 text-blue-600 cursor-pointer hover:text-blue-700" />
-                          </a>
-                        </div>
-                      </TableCell>
-                      <TableCell>{lead.title || 'N/A'}</TableCell>
-                      <TableCell>{lead.company}</TableCell>
-                      <TableCell>
-                        <a href={`mailto:${lead.email}`} className="text-primary hover:underline">
-                          {lead.email}
-                        </a>
-                      </TableCell>
-                      <TableCell>{lead.phone || 'N/A'}</TableCell>
-                      <TableCell className="text-right">
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                                        <MoreHorizontal className="h-4 w-4" />
-                                        <span className="sr-only">Actions</span>
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={() => handleStartChat(lead)}>
-                                        <MessageCircle className="mr-2 h-4 w-4" />
-                                        Start Chat
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handleScheduleMeeting(lead)}>
-                                        <CalendarPlus className="mr-2 h-4 w-4" />
-                                        Schedule Meeting
-                                    </DropdownMenuItem>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem onClick={() => openViewModal(lead)}>
-                                        <Eye className="mr-2 h-4 w-4" />
-                                        View Details
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => openEditModal(lead)}>
-                                        <Edit3 className="mr-2 h-4 w-4" />
-                                        Edit Lead
-                                    </DropdownMenuItem>
-                                    <DropdownMenuSub>
-                                        <DropdownMenuSubTrigger>
-                                            <CheckSquare className="mr-2 h-4 w-4" />
-                                            Change Status
-                                        </DropdownMenuSubTrigger>
-                                        <DropdownMenuPortal>
-                                            <DropdownMenuSubContent>
-                                                <DropdownMenuRadioGroup
-                                                    value={lead.status}
-                                                    onValueChange={(newStatus) => handleChangeStatus(lead.id, newStatus as Lead['status'])}
-                                                >
-                                                    {leadStatuses.map((status) => (
-                                                        <DropdownMenuRadioItem key={status} value={status}>
-                                                            {status}
-                                                        </DropdownMenuRadioItem>
-                                                    ))}
-                                                </DropdownMenuRadioGroup>
-                                            </DropdownMenuSubContent>
-                                        </DropdownMenuPortal>
-                                    </DropdownMenuSub>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-          {filteredLeads.length === 0 && !isLoadingLeads && (
-            <div className="flex-1 flex justify-center items-center text-muted-foreground">
-              No leads found.
-            </div>
-          )}
-           <div className="flex items-center justify-between mt-4 text-sm text-muted-foreground">
-            <div>
-              <Select defaultValue="10">
-                <SelectTrigger className="w-[180px] h-9">
-                   Rows per page: <SelectValue placeholder="10" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="10">10</SelectItem>
-                  <SelectItem value="20">20</SelectItem>
-                  <SelectItem value="50">50</SelectItem>
-                  <SelectItem value="100">100</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>Pages 1 of {Math.ceil(filteredLeads.length / 10)} pages</div>
-          </div>
         </div>
       </div>
 
-      {/* Add Lead Dialog (now "Add to List") */}
+      {/* Add Lead Dialog */}
        <Dialog open={isAddLeadOpen} onOpenChange={setIsAddLeadOpen}>
           <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
@@ -846,33 +991,8 @@ export default function LeadsPage() {
               </Form>
           </DialogContent>
       </Dialog>
-
-      {/* View Lead Dialog */}
-      <Dialog open={isViewLeadOpen} onOpenChange={setIsViewLeadOpen}>
-          <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                  <DialogTitle>Lead Details</DialogTitle>
-              </DialogHeader>
-              {selectedLead && (
-                  <div className="py-4 space-y-2">
-                      <p><strong>Name:</strong> {selectedLead.name}</p>
-                      <p><strong>Title:</strong> {selectedLead.title || 'N/A'}</p>
-                      <p><strong>Company:</strong> {selectedLead.company}</p>
-                      <p><strong>Email:</strong> <a href={`mailto:${selectedLead.email}`} className="text-primary hover:underline">{selectedLead.email}</a></p>
-                      <p><strong>Phone:</strong> {selectedLead.phone || 'N/A'}</p>
-                      <p><strong>Website:</strong> {selectedLead.website ? <a href={selectedLead.website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{selectedLead.website}</a> : 'N/A'}</p>
-                      <p><strong>Location:</strong> {selectedLead.location || 'N/A'}</p>
-                      <p><strong>Industry:</strong> {selectedLead.industry || 'N/A'}</p>
-                      <p><strong>Status:</strong> <Badge variant={statusVariantMap[selectedLead.status]}>{selectedLead.status}</Badge></p>
-                      <p><strong>Last Contact:</strong> {selectedLead.lastContact ? format(parseISO(selectedLead.lastContact), "PPP") : 'N/A'}</p>
-                  </div>
-              )}
-              <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsViewLeadOpen(false)}>Close</Button>
-              </DialogFooter>
-          </DialogContent>
-      </Dialog>
-
     </MainLayout>
   );
 }
+
+    
