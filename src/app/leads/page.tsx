@@ -130,12 +130,33 @@ export interface Lead {
 const leadStatuses = ["New", "Contacted", "Qualified", "Proposal Sent", "Closed - Won", "Closed - Lost"] as const;
 
 const initialLeadsData: Lead[] = [
-  { id: 'L001', name: 'Ronald Richards', company: 'Aster Medical', email: 'ronaldrichards@gmail.com', status: 'New', lastContact: format(new Date(2024, 0, 15), "yyyy-MM-dd"), website: 'innovate.com', title: 'Founder & CEO', phone: '(219) 555-0114', avatar: 'https://placehold.co/40x40.png?text=RR', location: "New York", industry: "Healthcare" },
-  { id: 'L002', name: 'Courtney Henry', company: 'Big Kahuna Burger Ltd.', email: 'courtneyhenry@gmail.com', status: 'Contacted', lastContact: format(new Date(2024, 1, 20), "yyyy-MM-dd"), website: 'techpro.io', title: 'CEO', phone: '(907) 555-0101', avatar: 'https://placehold.co/40x40.png?text=CH', location: "California", industry: "Technology" },
-  { id: 'L003', name: 'Annette Black', company: 'Astra Payroll Services', email: 'annetteblacke@gmail.com', status: 'Qualified', lastContact: format(new Date(2024, 2, 10), "yyyy-MM-dd"), title: 'Founder & CEO', phone: '(225) 555-0118', avatar: 'https://placehold.co/40x40.png?text=AB', location: "Texas", industry: "Finance" },
-  { id: 'L004', name: 'Cameron Williamson', company: 'Commonwealth Payroll', email: 'cameron@gmail.com', status: 'Proposal Sent', lastContact: format(new Date(2024, 3, 5), "yyyy-MM-dd"), title: 'Founder & CEO', phone: '(406) 555-0120', avatar: 'https://placehold.co/40x40.png?text=CW', location: "Florida", industry: "Finance" },
-  { id: 'L005', name: 'Brooklyn Simmons', company: 'Acme Co.', email: 'brooklynsimmons@gmail.com', status: 'New', lastContact: format(new Date(2024, 4, 12), "yyyy-MM-dd"), title: 'CEO', phone: '(702) 555-0122', avatar: 'https://placehold.co/40x40.png?text=BS', location: "Nevada", industry: "Retail" },
+  { id: 'L001', name: 'Aisha Khan', company: 'Innovatech Solutions', email: 'aisha.khan@innovatech.com', status: 'New', lastContact: format(new Date(2024, 0, 15), "yyyy-MM-dd"), website: 'https://innovatech.com', title: 'Marketing Director', phone: '(555) 123-4567', avatar: 'https://placehold.co/40x40.png?text=AK', location: "New York, NY", industry: "Technology" },
+  { id: 'L002', name: 'Ben Carter', company: 'Synergy Corp', email: 'ben.carter@synergy.org', status: 'Contacted', lastContact: format(new Date(2024, 1, 20), "yyyy-MM-dd"), website: 'https://synergy.org', title: 'VP of Sales', phone: '(555) 234-5678', avatar: 'https://placehold.co/40x40.png?text=BC', location: "Chicago, IL", industry: "Consulting" },
+  { id: 'L003', name: 'Chloe Davis', company: 'Momentum Dynamics', email: 'chloe.davis@momentum.io', status: 'Qualified', lastContact: format(new Date(2024, 2, 10), "yyyy-MM-dd"), website: 'https://momentum.io', title: 'Product Manager', phone: '(555) 345-6789', avatar: 'https://placehold.co/40x40.png?text=CD', location: "San Francisco, CA", industry: "SaaS" },
+  { id: 'L004', name: 'David Evans', company: 'QuantumLeap AI', email: 'david.evans@quantumleap.ai', status: 'Proposal Sent', lastContact: format(new Date(2024, 3, 5), "yyyy-MM-dd"), website: 'https://quantumleap.ai', title: 'CEO', phone: '(555) 456-7890', avatar: 'https://placehold.co/40x40.png?text=DE', location: "Austin, TX", industry: "Artificial Intelligence" },
+  { id: 'L005', name: 'Eva Green', company: 'EcoBuilders Inc.', email: 'eva.green@ecobuilders.com', status: 'New', lastContact: format(new Date(2024, 4, 12), "yyyy-MM-dd"), website: 'https://ecobuilders.com', title: 'Sustainability Officer', phone: '(555) 567-8901', avatar: 'https://placehold.co/40x40.png?text=EG', location: "Denver, CO", industry: "Construction" },
+  { id: 'L006', name: 'Frank Harris', company: 'HealthWell Pharma', email: 'frank.harris@healthwell.co', status: 'Contacted', lastContact: format(new Date(2024, 0, 25), "yyyy-MM-dd"), website: 'https://healthwell.co', title: 'Research Lead', phone: '(555) 678-9012', avatar: 'https://placehold.co/40x40.png?text=FH', location: "Boston, MA", industry: "Pharmaceuticals" },
+  { id: 'L007', name: 'Grace Infinity', company: 'Starlight Studios', email: 'grace.infinity@starlight.com', status: 'Qualified', lastContact: format(new Date(2024, 1, 18), "yyyy-MM-dd"), website: 'https://starlight.com', title: 'Creative Director', phone: '(555) 789-0123', avatar: 'https://placehold.co/40x40.png?text=GI', location: "Los Angeles, CA", industry: "Media & Entertainment" },
+  { id: 'L008', name: 'Henry Jackson', company: 'NextGen Robotics', email: 'henry.jackson@nextgen.robotics', status: 'Proposal Sent', lastContact: format(new Date(2024, 2, 28), "yyyy-MM-dd"), website: 'https://nextgen.robotics', title: 'CTO', phone: '(555) 890-1234', avatar: 'https://placehold.co/40x40.png?text=HJ', location: "Pittsburgh, PA", industry: "Robotics" },
+  { id: 'L009', name: 'Isabelle King', company: 'Apex Logistics', email: 'isabelle.king@apexlog.com', status: 'Closed - Won', lastContact: format(new Date(2024, 3, 15), "yyyy-MM-dd"), website: 'https://apexlog.com', title: 'Operations Manager', phone: '(555) 901-2345', avatar: 'https://placehold.co/40x40.png?text=IK', location: "Dallas, TX", industry: "Logistics" },
+  { id: 'L010', name: 'Jack Lee', company: 'FinSecure Capital', email: 'jack.lee@finsecure.com', status: 'Closed - Lost', lastContact: format(new Date(2024, 4, 1), "yyyy-MM-dd"), website: 'https://finsecure.com', title: 'Financial Advisor', phone: '(555) 012-3456', avatar: 'https://placehold.co/40x40.png?text=JL', location: "New York, NY", industry: "Finance" },
+  { id: 'L011', name: 'Katherine Miller', company: 'EduSphere Online', email: 'k.miller@edusphere.com', status: 'New', lastContact: format(new Date(2024, 0, 5), "yyyy-MM-dd"), website: 'https://edusphere.com', title: 'Curriculum Developer', phone: '(555) 112-2334', avatar: 'https://placehold.co/40x40.png?text=KM', location: "Seattle, WA", industry: "EdTech" },
+  { id: 'L012', name: 'Liam Nelson', company: 'AgriFuture Corp', email: 'liam.nelson@agrifuture.com', status: 'Contacted', lastContact: format(new Date(2024, 1, 12), "yyyy-MM-dd"), website: 'https://agrifuture.com', title: 'Agronomist', phone: '(555) 223-3445', avatar: 'https://placehold.co/40x40.png?text=LN', location: "Des Moines, IA", industry: "Agriculture" },
+  { id: 'L013', name: 'Mia Ocampo', company: 'RetailRevolution', email: 'mia.ocampo@retailrev.com', status: 'Qualified', lastContact: format(new Date(2024, 2, 20), "yyyy-MM-dd"), website: 'https://retailrev.com', title: 'E-commerce Strategist', phone: '(555) 334-4556', avatar: 'https://placehold.co/40x40.png?text=MO', location: "Miami, FL", industry: "E-commerce" },
+  { id: 'L014', name: 'Noah Patel', company: 'AeroDynamics Ltd.', email: 'noah.patel@aerodynamics.com', status: 'Proposal Sent', lastContact: format(new Date(2024, 3, 25), "yyyy-MM-dd"), website: 'https://aerodynamics.com', title: 'Aerospace Engineer', phone: '(555) 445-5667', avatar: 'https://placehold.co/40x40.png?text=NP', location: "Huntsville, AL", industry: "Aerospace" },
+  { id: 'L015', name: 'Olivia Quinn', company: 'SoundWave Audio', email: 'olivia.quinn@soundwave.com', status: 'New', lastContact: format(new Date(2024, 4, 8), "yyyy-MM-dd"), website: 'https://soundwave.com', title: 'Audio Engineer', phone: '(555) 556-6778', avatar: 'https://placehold.co/40x40.png?text=OQ', location: "Nashville, TN", industry: "Music Production" },
+  { id: 'L016', name: 'Peter Roberts', company: 'CyberGuard Inc.', email: 'peter.roberts@cyberguard.com', status: 'Contacted', lastContact: format(new Date(2024, 0, 1), "yyyy-MM-dd"), website: 'https://cyberguard.com', title: 'Security Analyst', phone: '(555) 667-7889', avatar: 'https://placehold.co/40x40.png?text=PR', location: "Washington D.C.", industry: "Cybersecurity" },
+  { id: 'L017', name: 'Quinn Sanchez', company: 'Velocity Motors', email: 'quinn.sanchez@velocity.com', status: 'Qualified', lastContact: format(new Date(2024, 1, 5), "yyyy-MM-dd"), website: 'https://velocity.com', title: 'Automotive Designer', phone: '(555) 778-8990', avatar: 'https://placehold.co/40x40.png?text=QS', location: "Detroit, MI", industry: "Automotive" },
+  { id: 'L018', name: 'Rachel Taylor', company: 'GlobalConnect Telecom', email: 'r.taylor@globalconnect.com', status: 'Proposal Sent', lastContact: format(new Date(2024, 2, 15), "yyyy-MM-dd"), website: 'https://globalconnect.com', title: 'Network Engineer', phone: '(555) 889-9001', avatar: 'https://placehold.co/40x40.png?text=RT', location: "Atlanta, GA", industry: "Telecommunications" },
+  { id: 'L019', name: 'Samuel White', company: 'TerraForm Realty', email: 'samuel.white@terraform.com', status: 'Closed - Won', lastContact: format(new Date(2024, 3, 22), "yyyy-MM-dd"), website: 'https://terraform.com', title: 'Real Estate Developer', phone: '(555) 990-0112', avatar: 'https://placehold.co/40x40.png?text=SW', location: "Phoenix, AZ", industry: "Real Estate" },
+  { id: 'L020', name: 'Tara Young', company: 'Zenith Travel', email: 'tara.young@zenithtravel.com', status: 'New', lastContact: format(new Date(2024, 4, 2), "yyyy-MM-dd"), website: 'https://zenithtravel.com', title: 'Travel Consultant', phone: '(555) 001-1223', avatar: 'https://placehold.co/40x40.png?text=TY', location: "Orlando, FL", industry: "Travel & Tourism" },
+  { id: 'L021', name: 'Uma Patel', company: 'BioGenesis Labs', email: 'uma.patel@biogenesis.com', status: 'Contacted', lastContact: format(new Date(2024, 0, 28), "yyyy-MM-dd"), website: 'https://biogenesis.com', title: 'Lab Director', phone: '(555) 121-2324', avatar: 'https://placehold.co/40x40.png?text=UP', location: "San Diego, CA", industry: "Biotechnology" },
+  { id: 'L022', name: 'Victor Chen', company: 'Quantum Computing Ltd', email: 'v.chen@quantum.com', status: 'Qualified', lastContact: format(new Date(2024, 1, 22), "yyyy-MM-dd"), website: 'https://quantum.com', title: 'Quantum Physicist', phone: '(555) 232-3435', avatar: 'https://placehold.co/40x40.png?text=VC', location: "Cambridge, MA", industry: "Quantum Computing" },
+  { id: 'L023', name: 'Wendy Garcia', company: 'FoodieFiesta Catering', email: 'wendy.g@foodiefiesta.com', status: 'Proposal Sent', lastContact: format(new Date(2024, 2, 18), "yyyy-MM-dd"), website: 'https://foodiefiesta.com', title: 'Head Chef', phone: '(555) 343-4546', avatar: 'https://placehold.co/40x40.png?text=WG', location: "New Orleans, LA", industry: "Food & Beverage" },
+  { id: 'L024', name: 'Xavier Rodriguez', company: 'Solstice Energy', email: 'x.rodriguez@solstice.com', status: 'New', lastContact: format(new Date(2024, 3, 10), "yyyy-MM-dd"), website: 'https://solstice.com', title: 'Renewable Energy Specialist', phone: '(555) 454-5657', avatar: 'https://placehold.co/40x40.png?text=XR', location: "Sacramento, CA", industry: "Renewable Energy" },
+  { id: 'L025', name: 'Yara Ahmed', company: 'FashionForward Online', email: 'yara.ahmed@fashionforward.com', status: 'Contacted', lastContact: format(new Date(2024, 4, 5), "yyyy-MM-dd"), website: 'https://fashionforward.com', title: 'Lead Stylist', phone: '(555) 565-6768', avatar: 'https://placehold.co/40x40.png?text=YA', location: "New York, NY", industry: "Fashion" },
 ];
+
 
 const LOCAL_STORAGE_KEY_LEADS = 'axesflowLeads';
 const LOCAL_STORAGE_KEY_CHATS = 'chatsData'; 
@@ -288,7 +309,7 @@ export default function LeadsPage() {
     const storedChats = localStorage.getItem(LOCAL_STORAGE_KEY_CHATS);
     const currentChats: Chat[] = storedChats ? JSON.parse(storedChats) : [];
     const newChat: Chat = {
-      id: `C-${Date.now()}`,
+      id: `CHAT-${Date.now()}`, // Changed ID prefix for clarity
       contact: `${lead.name} (${lead.company})`,
       lastMessage: 'Chat initiated with lead...',
       timestamp: format(new Date(), "PPpp"),
@@ -305,7 +326,7 @@ export default function LeadsPage() {
     const storedMeetings = localStorage.getItem(LOCAL_STORAGE_KEY_MEETINGS);
     const currentMeetings: Meeting[] = storedMeetings ? JSON.parse(storedMeetings) : [];
     const newMeeting: Meeting = {
-      id: `M-${Date.now()}`,
+      id: `MEET-${Date.now()}`, // Changed ID prefix for clarity
       title: `Meeting with ${lead.name} (${lead.company})`,
       type: 'Video Call',
       dateTime: format(new Date(new Date().setDate(new Date().getDate() + 1)), "PPpp"), 
@@ -809,7 +830,7 @@ export default function LeadsPage() {
                       <p><strong>Location:</strong> {selectedLead.location || 'N/A'}</p>
                       <p><strong>Industry:</strong> {selectedLead.industry || 'N/A'}</p>
                       <p><strong>Status:</strong> <Badge variant={statusVariantMap[selectedLead.status]}>{selectedLead.status}</Badge></p>
-                      <p><strong>Last Contact:</strong> {format(parseISO(selectedLead.lastContact), "PPP")}</p>
+                      <p><strong>Last Contact:</strong> {selectedLead.lastContact ? format(parseISO(selectedLead.lastContact), "PPP") : 'N/A'}</p>
                   </div>
               )}
               <DialogFooter>
@@ -821,3 +842,4 @@ export default function LeadsPage() {
     </MainLayout>
   );
 }
+
