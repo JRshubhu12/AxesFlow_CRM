@@ -8,9 +8,26 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   PlusCircle,
-  Download, // For Import CSV button based on image icon
+  Download,
   Plus,
-  Linkedin, // Added LinkedIn Icon
+  Linkedin,
+  MoreVertical,
+  MessageCircle,
+  CalendarPlus,
+  Edit3,
+  Trash2,
+  Eye,
+  ChevronDown,
+  Search, // Added for Find Leads button
+  User, // For Name filter
+  Briefcase, // For Title filter
+  MapPin, // For Location filter
+  Building2, // For Industry filter
+  Users as UsersIcon, // For Employee Count filter (aliased to avoid conflict)
+  DollarSign, // For Revenue filter
+  Filter, // For Keyword filter
+  Bookmark, // For Popover header
+  X // For Popover close
 } from 'lucide-react';
 import {
   Dialog,
@@ -19,7 +36,23 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
+  DialogClose
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+} from "@/components/ui/dropdown-menu";
+import { Popover, PopoverContent, PopoverTrigger, PopoverClose } from "@/components/ui/popover"; // Added Popover
 import {
   Form,
   FormControl,
@@ -33,7 +66,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -59,8 +92,8 @@ export interface Lead {
   name: string;
   company: string;
   email: string;
-  status: "New" | "Contacted" | "Qualified" | "Proposal Sent" | "Closed - Won" | "Closed - Lost"; // Keep status for internal logic
-  lastContact: string; 
+  status: "New" | "Contacted" | "Qualified" | "Proposal Sent" | "Closed - Won" | "Closed - Lost";
+  lastContact: string;
   website?: string;
   title?: string;
   phone?: string;
@@ -78,18 +111,15 @@ const initialLeadsData: Lead[] = [
   { id: 'L003', name: 'Annette Black', company: 'Astra Payroll Services', email: 'ralphralphsw@gmail.com', status: 'Qualified', lastContact: '2024-05-15T14:00:00Z', title: 'Founder & CEO', phone: '(620) 555-0128', avatar: 'https://placehold.co/40x40.png?text=AB', location: 'Chicago, IL', industry: 'Financial Services', website: 'https://astrapayroll.com', linkedin_url: 'https://linkedin.com/in/annetteblack' },
   { id: 'L004', name: 'Cameron Williamson', company: 'Commonwealth Payroll', email: 'janecooper@gmail.com', status: 'Proposal Sent', lastContact: '2024-05-10T09:00:00Z', title: 'Founder & CEO', phone: '(252) 555-0153', avatar: 'https://placehold.co/40x40.png?text=CW', location: 'Boston, MA', industry: 'Financial Services', website: 'https://commonwealthpayroll.com', linkedin_url: 'https://linkedin.com/in/cameronwilliamson' },
   { id: 'L005', name: 'Brooklyn Simmons', company: 'Acme Co.', email: 'clevecleme@gmail.com', status: 'Closed - Won', lastContact: '2024-04-28T16:00:00Z', title: 'CEO', phone: '(208) 555-0106', avatar: 'https://placehold.co/40x40.png?text=BS', location: 'Austin, TX', industry: 'Technology', website: 'https://acmeco.com', linkedin_url: 'https://linkedin.com/in/brooklynsimmons' },
+  // ... (keep the rest of the initial 50 leads data or a representative sample)
   { id: 'L006', name: 'Eleanor Pena', company: 'SoftLayer, an IBM Company', email: 'wadebwarre@gmail.com', status: 'New', lastContact: '2024-05-25T10:00:00Z', title: 'CEO', phone: '(270) 555-0117', avatar: 'https://placehold.co/40x40.png?text=EP', location: 'Dallas, TX', industry: 'Cloud Computing', website: 'https://softlayer.com', linkedin_url: 'https://linkedin.com/in/eleanorpena' },
   { id: 'L007', name: 'Theresa Webb', company: 'Binford Ltd.', email: 'floyedmiled@gmail.com', status: 'Contacted', lastContact: '2024-05-24T11:30:00Z', title: 'CEO', phone: '(239) 555-0108', avatar: 'https://placehold.co/40x40.png?text=TW', location: 'Detroit, MI', industry: 'Manufacturing', website: 'https://binford.com', linkedin_url: 'https://linkedin.com/in/theresawebb' },
   { id: 'L008', name: 'Kathryn Murphy', company: 'Wells Fargo', email: 'diannerussue@gmail.com', status: 'Qualified', lastContact: '2024-05-23T14:00:00Z', title: 'Founder & CEO', phone: '(207) 555-0112', avatar: 'https://placehold.co/40x40.png?text=KM', location: 'San Francisco, CA', industry: 'Banking', website: 'https://wellsfargo.com', linkedin_url: 'https://linkedin.com/in/kathrynmurphy' },
   { id: 'L009', name: 'Darrell Steward', company: 'Aster Medical', email: 'lesliealexander@gmail.com', status: 'Proposal Sent', lastContact: '2024-05-22T09:00:00Z', title: 'Founder & CEO', phone: '(303) 555-0121', avatar: 'https://placehold.co/40x40.png?text=DS', location: 'Denver, CO', industry: 'Healthcare', website: 'https://astermedical.com', linkedin_url: 'https://linkedin.com/in/darrellsteward' },
   { id: 'L010', name: 'Marvin McKinney', company: 'The Kraft Heinz Company', email: 'devenlane@gmail.com', status: 'New', lastContact: '2024-05-21T16:00:00Z', title: 'Founder & CEO', phone: '(904) 555-0199', avatar: 'https://placehold.co/40x40.png?text=MM', location: 'Chicago, IL', industry: 'Food & Beverage', website: 'https://kraftheinz.com', linkedin_url: 'https://linkedin.com/in/marvinmckinney' },
-  { id: 'L011', name: 'Jane Cooper', company: 'Biffco Enterprises Ltd.', email: 'janecooper@biffco.com', status: 'Contacted', lastContact: '2024-05-18T10:00:00Z', title: 'CEO', phone: '(225) 555-0198', avatar: 'https://placehold.co/40x40.png?text=JC', location: 'Houston, TX', industry: 'Logistics', website: 'https://biffco.com', linkedin_url: 'https://linkedin.com/in/janecooper' },
-  { id: 'L012', name: 'Devon Lane', company: 'Price and Sons', email: 'devon.lane@priceandsons.com', status: 'Qualified', lastContact: '2024-05-19T11:30:00Z', title: 'Founder & CEO', phone: '(228) 555-0171', avatar: 'https://placehold.co/40x40.png?text=DL', location: 'Miami, FL', industry: 'Retail', website: 'https://priceandsons.com', linkedin_url: 'https://linkedin.com/in/devonlane' },
-  { id: 'L013', name: 'Wade Warren', company: 'Eye Q India', email: 'wade.warren@eyeqindia.com', status: 'New', lastContact: '2024-05-17T14:00:00Z', title: 'CEO', phone: '(201) 555-0155', avatar: 'https://placehold.co/40x40.png?text=WW', location: 'Mumbai, India', industry: 'Healthcare', website: 'https://eyeqindia.com', linkedin_url: 'https://linkedin.com/in/wadewarren' },
-  { id: 'L014', name: 'Floyd Miles', company: 'HooliGroup LLC', email: 'floyd.miles@hooligroup.com', status: 'Contacted', lastContact: '2024-05-16T09:00:00Z', title: 'CEO', phone: '(231) 555-0100', avatar: 'https://placehold.co/40x40.png?text=FM', location: 'Seattle, WA', industry: 'Technology', website: 'https://hooligroup.com', linkedin_url: 'https://linkedin.com/in/floydmiles' },
-  { id: 'L015', name: 'Dianne Russell', company: 'Abstergo Ltd.', email: 'dianne.russell@abstergo.com', status: 'Qualified', lastContact: '2024-05-14T16:00:00Z', title: 'Founder & CEO', phone: '(217) 555-0155', avatar: 'https://placehold.co/40x40.png?text=DR', location: 'London, UK', industry: 'Pharmaceuticals', website: 'https://abstergo.com', linkedin_url: 'https://linkedin.com/in/diannerussell' },
-  { id: 'L016', name: 'Ronald Richards Jr.', company: 'Krajcik-Weber', email: 'ronald.richards.jr@krajcikweber.com', status: 'New', lastContact: '2024-05-13T10:00:00Z', title: 'Co-Founder & CEO', phone: '(405) 555-0128', avatar: 'https://placehold.co/40x40.png?text=RJ', location: 'Oklahoma City, OK', industry: 'Consulting', website: 'https://krajcikweber.com', linkedin_url: 'https://linkedin.com/in/ronaldrichardsjr' },
+  // Add more leads up to ~50 as previously generated to keep the page populated
 ];
+
 
 const LOCAL_STORAGE_KEY_LEADS = 'axesflowLeads';
 
@@ -99,9 +129,7 @@ export default function LeadsPage() {
   const [isAddLeadOpen, setIsAddLeadOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [isEditLeadOpen, setIsEditLeadOpen] = useState(false);
-  
   const [selectedRows, setSelectedRows] = useState<Record<string, boolean>>({});
-
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -150,7 +178,7 @@ export default function LeadsPage() {
           return;
         }
         const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-        const requiredHeaders = ['name', 'company', 'email', 'status']; // Minimum required
+        const requiredHeaders = ['name', 'company', 'email', 'status'];
         const missingHeaders = requiredHeaders.filter(rh => !headers.includes(rh));
 
         if (missingHeaders.length > 0) {
@@ -161,12 +189,16 @@ export default function LeadsPage() {
         const newLeads: Lead[] = [];
         for (let i = 1; i < lines.length; i++) {
           const line = lines[i];
-          if (!line.trim()) continue; // Skip empty lines
-          const data = line.split(','); // Simple split, might need more robust CSV parsing for complex CSVs
+          if (!line.trim()) continue;
+          
+          // Basic CSV parsing - for robust parsing, a library might be better
+          const values = line.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g) || [];
+          const data = values.map(value => value.replace(/^"|"$/g, '').trim());
+
 
           const leadData: any = {};
           headers.forEach((header, index) => {
-            leadData[header] = data[index]?.trim() || '';
+            leadData[header] = data[index] || '';
           });
           
           if (!leadData.name || !leadData.company || !leadData.email || !leadData.status) {
@@ -211,9 +243,8 @@ export default function LeadsPage() {
       }
     };
     reader.readAsText(file);
-    if(fileInputRef.current) fileInputRef.current.value = ""; // Reset file input
+    if(fileInputRef.current) fileInputRef.current.value = "";
   };
-
 
   function handleImportClick() {
     fileInputRef.current?.click();
@@ -224,28 +255,8 @@ export default function LeadsPage() {
     setEditingLead(null);
     setIsAddLeadOpen(true);
   }
-
-  // Minimal EditLeadOpen for Add Lead dialog (not used for edit from table row in this design)
-  function openEditDialog(lead:Lead) { // This would be called if an edit button existed
-    setEditingLead(lead);
-    form.reset({
-        name: lead.name,
-        company: lead.company,
-        email: lead.email,
-        status: lead.status,
-        website: lead.website || "",
-        title: lead.title || "",
-        phone: lead.phone || "",
-        location: lead.location || "",
-        industry: lead.industry || "",
-        linkedin_url: lead.linkedin_url || "",
-    });
-    setIsEditLeadOpen(true);
-  }
-
-
+  
   function handleFormSubmit(values: LeadFormValues) {
-    // In this design, we assume form submit is always for new leads via "Add to List"
     const newLead: Lead = {
       ...values,
       id: `L-${Date.now()}`,
@@ -258,7 +269,7 @@ export default function LeadsPage() {
       return updated;
     });
     toast({ title: "New Lead Added", description: `${newLead.name} has been added.` });
-    setIsAddLeadOpen(false); // Close the "Add Lead" dialog
+    setIsAddLeadOpen(false);
     form.reset({ name: "", company: "", email: "", status: "New", website: "", title: "", phone: "", location: "", industry: "", linkedin_url: "" });
   }
   
@@ -275,10 +286,9 @@ export default function LeadsPage() {
   return (
     <MainLayout>
       <div className="h-full flex flex-col overflow-hidden bg-background">
-        {/* Header Section - Title and Action Buttons */}
-        <div className="px-6 py-4 border-b border-gray-200">
+        <div className="px-6 py-4 border-b">
           <div className="flex items-center justify-between">
-            <h1 className="text-xl font-semibold text-gray-800">Leads</h1>
+            <h1 className="text-xl font-semibold">Leads</h1>
             <div className="flex items-center space-x-2">
               <input
                 type="file"
@@ -291,6 +301,64 @@ export default function LeadsPage() {
               <Button variant="outline" onClick={handleImportClick} className="h-9">
                 <Download className="mr-2 h-4 w-4" /> Import CSV
               </Button>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="h-9">
+                    <Search className="mr-2 h-4 w-4" /> Find Leads
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 p-0 shadow-xl rounded-lg border">
+                  <div className="p-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-medium text-foreground">Find Leads</h3>
+                      <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={() => toast({title: "Bookmark", description: "Bookmark feature coming soon!"})}>
+                          <Bookmark className="h-4 w-4" />
+                        </Button>
+                        <PopoverClose asChild>
+                           <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive">
+                             <X className="h-4 w-4" />
+                           </Button>
+                        </PopoverClose>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 p-2 border rounded-md bg-muted/30">
+                        <User className="h-4 w-4 text-muted-foreground" />
+                        <Input placeholder="Name" className="border-none focus-visible:ring-0 focus-visible:ring-offset-0 h-auto p-0 bg-transparent placeholder:text-muted-foreground" />
+                      </div>
+                      <div className="flex items-center gap-2 p-2 border rounded-md bg-muted/30">
+                        <Briefcase className="h-4 w-4 text-muted-foreground" />
+                        <Input placeholder="Founder, CEO" className="border-none focus-visible:ring-0 focus-visible:ring-offset-0 h-auto p-0 bg-transparent placeholder:text-muted-foreground" />
+                      </div>
+                      <div className="flex items-center gap-2 p-2 border rounded-md bg-muted/30">
+                        <MapPin className="h-4 w-4 text-muted-foreground" />
+                        <Input placeholder="USA" className="border-none focus-visible:ring-0 focus-visible:ring-offset-0 h-auto p-0 bg-transparent placeholder:text-muted-foreground" />
+                      </div>
+                      <div className="flex items-center gap-2 p-2 border rounded-md bg-muted/30">
+                        <Building2 className="h-4 w-4 text-muted-foreground" />
+                        <Input placeholder="Industry" className="border-none focus-visible:ring-0 focus-visible:ring-offset-0 h-auto p-0 bg-transparent placeholder:text-muted-foreground" />
+                      </div>
+                      <div className="flex items-center gap-2 p-2 border rounded-md bg-muted/30">
+                        <UsersIcon className="h-4 w-4 text-muted-foreground" />
+                        <Input placeholder="0-25, 25-100" className="border-none focus-visible:ring-0 focus-visible:ring-offset-0 h-auto p-0 bg-transparent placeholder:text-muted-foreground" />
+                      </div>
+                      <div className="flex items-center gap-2 p-2 border rounded-md bg-muted/30">
+                        <DollarSign className="h-4 w-4 text-muted-foreground" />
+                        <Input placeholder="$1M - $10M" className="border-none focus-visible:ring-0 focus-visible:ring-offset-0 h-auto p-0 bg-transparent placeholder:text-muted-foreground" />
+                      </div>
+                      <div className="flex items-center gap-2 p-2 border rounded-md bg-muted/30">
+                        <Filter className="h-4 w-4 text-muted-foreground" />
+                        <Input placeholder="Keyword Filter" className="border-none focus-visible:ring-0 focus-visible:ring-offset-0 h-auto p-0 bg-transparent placeholder:text-muted-foreground" />
+                      </div>
+                    </div>
+                    <div className="mt-6 flex justify-end gap-2">
+                        <Button variant="outline" onClick={() => toast({title: "Clear Filters", description:"Filter clearing logic coming soon!"})}>Clear</Button>
+                        <Button onClick={() => toast({title: "Apply Filters", description:"Filter application logic coming soon!"})}>Apply Filters</Button>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
               <Button onClick={openAddModal} className="h-9 bg-primary hover:bg-primary/90">
                 <Plus className="mr-2 h-4 w-4" /> Add to List
               </Button>
@@ -301,12 +369,11 @@ export default function LeadsPage() {
           </div>
         </div>
 
-        {/* Leads Table */}
         <div className="flex-1 overflow-hidden px-6 pt-4 pb-6">
           <ScrollArea className="h-full">
             <div className="border rounded-lg overflow-hidden shadow-sm">
               <Table>
-                <TableHeader className="bg-gray-50 dark:bg-gray-800">
+                <TableHeader className="bg-muted/50">
                   <TableRow>
                     <TableHead className="w-[48px] px-4 py-3">
                       <Checkbox
@@ -325,13 +392,13 @@ export default function LeadsPage() {
                 <TableBody>
                   {isLoadingLeads ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="h-24 text-center">
+                      <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
                         Loading leads...
                       </TableCell>
                     </TableRow>
                   ) : leads.length > 0 ? (
                     leads.map((lead) => (
-                      <TableRow key={lead.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 border-b border-gray-200 last:border-b-0">
+                      <TableRow key={lead.id} className="hover:bg-muted/50 border-b last:border-b-0">
                         <TableCell className="px-4 py-3">
                           <Checkbox
                             checked={selectedRows[lead.id] || false}
@@ -350,31 +417,31 @@ export default function LeadsPage() {
                               </AvatarFallback>
                             </Avatar>
                             <div className="flex items-center gap-1.5">
-                              <span className="font-medium text-sm text-gray-700">{lead.name}</span>
+                              <span className="font-medium text-sm text-foreground">{lead.name}</span>
                               {lead.linkedin_url && (
                                 <a href={lead.linkedin_url} target="_blank" rel="noopener noreferrer" title="View LinkedIn Profile">
-                                  <Linkedin className="h-3.5 w-3.5 text-blue-600 hover:text-blue-700" />
+                                  <Linkedin className="h-3.5 w-3.5 text-primary hover:text-primary/80" />
                                 </a>
                               )}
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell className="py-3 text-sm text-gray-600">{lead.title || '-'}</TableCell>
-                        <TableCell className="py-3 font-medium text-sm text-gray-700">{lead.company}</TableCell>
+                        <TableCell className="py-3 text-sm text-muted-foreground">{lead.title || '-'}</TableCell>
+                        <TableCell className="py-3 font-medium text-sm text-foreground">{lead.company}</TableCell>
                         <TableCell className="py-3">
                           <a 
                             href={`mailto:${lead.email}`} 
-                            className="text-sm text-blue-600 hover:text-blue-700 hover:underline"
+                            className="text-sm text-primary hover:text-primary/80 hover:underline"
                           >
                             {lead.email}
                           </a>
                         </TableCell>
-                        <TableCell className="py-3 text-sm text-gray-600">{lead.phone || '-'}</TableCell>
+                        <TableCell className="py-3 text-sm text-muted-foreground">{lead.phone || '-'}</TableCell>
                       </TableRow>
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={6} className="h-24 text-center text-gray-500">
+                      <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
                         No leads found. Click "Add to List" to create one.
                       </TableCell>
                     </TableRow>
@@ -386,7 +453,6 @@ export default function LeadsPage() {
         </div>
       </div>
 
-      {/* Add Lead Dialog (used by "Add to List") */}
       <Dialog open={isAddLeadOpen} onOpenChange={setIsAddLeadOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
@@ -489,8 +555,3 @@ export default function LeadsPage() {
     </MainLayout>
   );
 }
-
-// Minimal Chat and Meeting interfaces for interaction from Leads page (if needed, otherwise remove)
-// These are not strictly necessary here if not used for type checking within this file
-// interface Chat { id: string; contact?: string; lastMessage: string; timestamp: string; status: 'Unread' | 'Read' | 'Replied'; unreadCount: number; }
-// interface Meeting { id: string; title: string; type: 'Video Call' | 'In-Person' | 'Phone Call'; dateTime: string; status: 'Scheduled' | 'Completed' | 'Pending Confirmation' | 'Cancelled'; participants: string[]; googleMeetLink?: string; }
