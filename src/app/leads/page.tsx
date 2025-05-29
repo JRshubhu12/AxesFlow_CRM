@@ -10,6 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Label } from '@/components/ui/label';
 import {
   Users,
   PlusCircle,
@@ -121,9 +122,9 @@ export interface Lead {
   status: "New" | "Contacted" | "Qualified" | "Proposal Sent" | "Closed - Won" | "Closed - Lost";
   lastContact: string;
   website?: string;
-  title?: string; // Added for new design
-  phone?: string; // Added for new design
-  avatar?: string; // Added for avatar
+  title?: string; 
+  phone?: string; 
+  avatar?: string; 
 }
 
 const leadStatuses = ["New", "Contacted", "Qualified", "Proposal Sent", "Closed - Won", "Closed - Lost"] as const;
@@ -137,6 +138,9 @@ const initialLeadsData: Lead[] = [
 ];
 
 const LOCAL_STORAGE_KEY_LEADS = 'axesflowLeads';
+const LOCAL_STORAGE_KEY_CHATS = 'chatsData'; // For initiating chats
+const LOCAL_STORAGE_KEY_MEETINGS = 'meetingsData'; // For scheduling meetings
+
 
 const statusVariantMap: { [key: string]: "default" | "secondary" | "destructive" | "outline" } = {
   'New': 'default',
@@ -172,7 +176,7 @@ export default function LeadsPage() {
   const [isEditLeadOpen, setIsEditLeadOpen] = useState(false);
   const [isViewLeadOpen, setIsViewLeadOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
-  const [statusFilter, setStatusFilter] = useState<string>("All"); // Keep for Add/Edit dialog if needed elsewhere
+  const [statusFilter, setStatusFilter] = useState<string>("All");
   const { toast } = useToast();
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -225,7 +229,84 @@ export default function LeadsPage() {
     form.reset();
     setIsAddLeadOpen(false);
   };
+
+  const handleEditLeadSubmit = async (values: LeadFormValues) => {
+    if (!selectedLead) return;
+    const updatedLead: Lead = {
+      ...selectedLead,
+      ...values,
+    };
+    const updatedLeads = leads.map(lead => lead.id === selectedLead.id ? updatedLead : lead);
+    setLeads(updatedLeads);
+    saveLeadsToLocalStorage(updatedLeads);
+    toast({ title: "Lead Updated", description: `${values.name} has been updated.` });
+    setIsEditLeadOpen(false);
+    setSelectedLead(null);
+  };
+
+  const openEditModal = (lead: Lead) => {
+    setSelectedLead(lead);
+    editForm.reset({
+        name: lead.name,
+        company: lead.company,
+        email: lead.email,
+        status: lead.status,
+        website: lead.website || "",
+        title: lead.title || "",
+        phone: lead.phone || "",
+    });
+    setIsEditLeadOpen(true);
+  };
+
+  const openViewModal = (lead: Lead) => {
+    setSelectedLead(lead);
+    setIsViewLeadOpen(true);
+  };
   
+  const handleChangeStatus = (leadId: string, newStatus: Lead['status']) => {
+    const updatedLeads = leads.map(lead =>
+      lead.id === leadId ? { ...lead, status: newStatus, lastContact: format(new Date(), "yyyy-MM-dd") } : lead
+    );
+    setLeads(updatedLeads);
+    saveLeadsToLocalStorage(updatedLeads);
+    toast({ title: "Status Updated", description: `Lead status changed to ${newStatus}.` });
+  };
+
+  const handleStartChat = (lead: Lead) => {
+    const storedChats = localStorage.getItem(LOCAL_STORAGE_KEY_CHATS);
+    const currentChats: Chat[] = storedChats ? JSON.parse(storedChats) : [];
+    const newChat: Chat = {
+      id: `C-${Date.now()}`,
+      contact: `${lead.name} (${lead.company})`,
+      lastMessage: 'Chat initiated with lead...',
+      timestamp: format(new Date(), "PPpp"),
+      status: 'Unread',
+      unreadCount: 1,
+    };
+    const updatedChats = [newChat, ...currentChats];
+    localStorage.setItem(LOCAL_STORAGE_KEY_CHATS, JSON.stringify(updatedChats));
+    toast({ title: "Chat Initiated", description: `Chat with ${lead.name} started. Redirecting...` });
+    router.push('/communications?tab=chats');
+  };
+
+  const handleScheduleMeeting = (lead: Lead) => {
+    const storedMeetings = localStorage.getItem(LOCAL_STORAGE_KEY_MEETINGS);
+    const currentMeetings: Meeting[] = storedMeetings ? JSON.parse(storedMeetings) : [];
+    const newMeeting: Meeting = {
+      id: `M-${Date.now()}`,
+      title: `Meeting with ${lead.name} (${lead.company})`,
+      type: 'Video Call',
+      dateTime: format(new Date(new Date().setDate(new Date().getDate() + 1)), "PPpp"), // Default to next day
+      status: 'Scheduled',
+      participants: ['You', lead.name],
+      googleMeetLink: 'https://meet.google.com/new', // Placeholder
+    };
+    const updatedMeetings = [newMeeting, ...currentMeetings];
+    localStorage.setItem(LOCAL_STORAGE_KEY_MEETINGS, JSON.stringify(updatedMeetings));
+    toast({ title: "Meeting Scheduled", description: `Meeting with ${lead.name} scheduled. Redirecting...` });
+    router.push('/communications?tab=meetings');
+  };
+
   // Placeholder functions for new actions
   const handleDownloadCSV = () => toast({ title: "Download CSV", description: "Functionality to download CSV coming soon!" });
   const handleAddToCampaign = () => toast({ title: "Add to Campaign", description: "Functionality to add to campaign coming soon!" });
@@ -350,6 +431,15 @@ export default function LeadsPage() {
     setSelectedRows(prev => ({ ...prev, [leadId]: checked }));
   };
 
+  const filteredLeads = useMemo(() => {
+    if (statusFilter === "All") {
+      return leads;
+    }
+    return leads.filter(lead => lead.status === statusFilter);
+  }, [leads, statusFilter]);
+
+  const isAllSelected = filteredLeads.length > 0 && filteredLeads.every(lead => selectedRows[lead.id]);
+
   const handleSelectAllRows = (checked: boolean) => {
     const newSelectedRows: Record<string, boolean> = {};
     if (checked) {
@@ -357,14 +447,6 @@ export default function LeadsPage() {
     }
     setSelectedRows(newSelectedRows);
   };
-
-  const isAllSelected = filteredLeads.length > 0 && filteredLeads.every(lead => selectedRows[lead.id]);
-
-
-  const filteredLeads = useMemo(() => {
-    // Placeholder for actual filtering logic based on sidebar inputs
-    return leads;
-  }, [leads]);
 
   return (
     <MainLayout>
@@ -398,8 +480,21 @@ export default function LeadsPage() {
                       <section.icon className="h-4 w-4" />
                       {section.label}
                     </Label>
-                    <Input placeholder={section.placeholder} className="h-9"/>
-                    {/* Placeholder for selected filter badges */}
+                    {section.id === 'status' ? (
+                        <Select value={statusFilter} onValueChange={setStatusFilter}>
+                            <SelectTrigger className="h-9">
+                                <SelectValue placeholder="Filter by status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="All">All Statuses</SelectItem>
+                                {leadStatuses.map(status => (
+                                    <SelectItem key={status} value={status}>{status}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    ) : (
+                        <Input placeholder={section.placeholder} className="h-9"/>
+                    )}
                     {(section.id === 'title' || section.id === 'location' || section.id === 'employeeCount' || section.id === 'revenue' || section.id === 'education') && (
                        <div className="flex flex-wrap gap-1 mt-1">
                          {section.id === 'title' && <>
@@ -433,7 +528,7 @@ export default function LeadsPage() {
                     style={{ display: 'none' }}
                     id="csv-upload"
                   />
-                   <Button variant="outline" onClick={handleImportClick}> {/* Changed to Import CSV */}
+                   <Button variant="outline" onClick={handleImportClick}> 
                     <Upload className="mr-2 h-4 w-4" /> Import CSV 
                   </Button>
                   <Dialog open={isAddLeadOpen} onOpenChange={setIsAddLeadOpen}>
@@ -489,6 +584,7 @@ export default function LeadsPage() {
                         <TableHead>Company</TableHead>
                         <TableHead>Email</TableHead>
                         <TableHead>Phone Numbers</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -518,6 +614,55 @@ export default function LeadsPage() {
                             </a>
                           </TableCell>
                           <TableCell>{lead.phone || 'N/A'}</TableCell>
+                          <TableCell className="text-right">
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                                            <MoreHorizontal className="h-4 w-4" />
+                                            <span className="sr-only">Actions</span>
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onClick={() => handleStartChat(lead)}>
+                                            <MessageCircle className="mr-2 h-4 w-4" />
+                                            Start Chat
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => handleScheduleMeeting(lead)}>
+                                            <CalendarPlus className="mr-2 h-4 w-4" />
+                                            Schedule Meeting
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem onClick={() => openViewModal(lead)}>
+                                            <Eye className="mr-2 h-4 w-4" />
+                                            View Details
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => openEditModal(lead)}>
+                                            <Edit3 className="mr-2 h-4 w-4" />
+                                            Edit Lead
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSub>
+                                            <DropdownMenuSubTrigger>
+                                                <CheckSquare className="mr-2 h-4 w-4" />
+                                                Change Status
+                                            </DropdownMenuSubTrigger>
+                                            <DropdownMenuPortal>
+                                                <DropdownMenuSubContent>
+                                                    <DropdownMenuRadioGroup 
+                                                        value={lead.status} 
+                                                        onValueChange={(newStatus) => handleChangeStatus(lead.id, newStatus as Lead['status'])}
+                                                    >
+                                                        {leadStatuses.map((status) => (
+                                                            <DropdownMenuRadioItem key={status} value={status}>
+                                                                {status}
+                                                            </DropdownMenuRadioItem>
+                                                        ))}
+                                                    </DropdownMenuRadioGroup>
+                                                </DropdownMenuSubContent>
+                                            </DropdownMenuPortal>
+                                        </DropdownMenuSub>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -560,11 +705,83 @@ export default function LeadsPage() {
           </TabsContent>
         </Tabs>
 
-        {/* Dialogs for Add/Edit/View (keeping existing ones for Add, can be adapted) */}
         {/* Add Lead Dialog (now "Add to List") */}
-        {/* Edit/View dialogs would need to be triggered differently, perhaps from a context menu on selected rows or from the action buttons above the table when a single row is selected. This is out of scope for the current UI redesign pass. */}
+         <Dialog open={isAddLeadOpen} onOpenChange={setIsAddLeadOpen}>
+            {/* DialogTrigger is handled by the "Add to List" button */}
+            <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                    <DialogTitle>Add New Lead</DialogTitle>
+                    <DialogDescription>
+                        Fill in the details for the new lead. Click save when you're done.
+                    </DialogDescription>
+                </DialogHeader>
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(handleAddLeadSubmit)} className="space-y-4 py-4">
+                        <FormField control={form.control} name="name" render={({ field }) => (<FormItem><FormLabel>Name</FormLabel><FormControl><Input placeholder="e.g., John Doe" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="title" render={({ field }) => (<FormItem><FormLabel>Title</FormLabel><FormControl><Input placeholder="e.g., CEO" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="company" render={({ field }) => (<FormItem><FormLabel>Company</FormLabel><FormControl><Input placeholder="e.g., Innovate Corp" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="email" render={({ field }) => (<FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" placeholder="e.g., john.doe@example.com" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="phone" render={({ field }) => (<FormItem><FormLabel>Phone</FormLabel><FormControl><Input placeholder="e.g., (123) 456-7890" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="website" render={({ field }) => (<FormItem><FormLabel>Website (Optional)</FormLabel><FormControl><Input placeholder="e.g., https://www.example.com" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="status" render={({ field }) => (<FormItem><FormLabel>Status</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select lead status" /></SelectTrigger></FormControl><SelectContent>{leadStatuses.map(status => (<SelectItem key={status} value={status}>{status}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>)} />
+                        <DialogFooter><Button type="submit">Save Lead</Button></DialogFooter>
+                    </form>
+                </Form>
+            </DialogContent>
+        </Dialog>
+
+        {/* Edit Lead Dialog */}
+        <Dialog open={isEditLeadOpen} onOpenChange={setIsEditLeadOpen}>
+            <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                    <DialogTitle>Edit Lead</DialogTitle>
+                    <DialogDescription>
+                        Update the lead's details. Click save when you're done.
+                    </DialogDescription>
+                </DialogHeader>
+                <Form {...editForm}>
+                    <form onSubmit={editForm.handleSubmit(handleEditLeadSubmit)} className="space-y-4 py-4">
+                        <FormField control={editForm.control} name="name" render={({ field }) => (<FormItem><FormLabel>Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={editForm.control} name="title" render={({ field }) => (<FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={editForm.control} name="company" render={({ field }) => (<FormItem><FormLabel>Company</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={editForm.control} name="email" render={({ field }) => (<FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={editForm.control} name="phone" render={({ field }) => (<FormItem><FormLabel>Phone</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={editForm.control} name="website" render={({ field }) => (<FormItem><FormLabel>Website (Optional)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={editForm.control} name="status" render={({ field }) => (<FormItem><FormLabel>Status</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select lead status" /></SelectTrigger></FormControl><SelectContent>{leadStatuses.map(status => (<SelectItem key={status} value={status}>{status}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>)} />
+                        <DialogFooter><Button type="submit">Save Changes</Button></DialogFooter>
+                    </form>
+                </Form>
+            </DialogContent>
+        </Dialog>
+
+        {/* View Lead Dialog */}
+        <Dialog open={isViewLeadOpen} onOpenChange={setIsViewLeadOpen}>
+            <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                    <DialogTitle>Lead Details</DialogTitle>
+                </DialogHeader>
+                {selectedLead && (
+                    <div className="py-4 space-y-2">
+                        <p><strong>Name:</strong> {selectedLead.name}</p>
+                        <p><strong>Title:</strong> {selectedLead.title || 'N/A'}</p>
+                        <p><strong>Company:</strong> {selectedLead.company}</p>
+                        <p><strong>Email:</strong> <a href={`mailto:${selectedLead.email}`} className="text-primary hover:underline">{selectedLead.email}</a></p>
+                        <p><strong>Phone:</strong> {selectedLead.phone || 'N/A'}</p>
+                        <p><strong>Website:</strong> {selectedLead.website ? <a href={selectedLead.website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{selectedLead.website}</a> : 'N/A'}</p>
+                        <p><strong>Status:</strong> <Badge variant={statusVariantMap[selectedLead.status]}>{selectedLead.status}</Badge></p>
+                        <p><strong>Last Contact:</strong> {format(parseISO(selectedLead.lastContact), "PPP")}</p>
+                    </div>
+                )}
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsViewLeadOpen(false)}>Close</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
 
       </div>
     </MainLayout>
   );
 }
+
+
+    
