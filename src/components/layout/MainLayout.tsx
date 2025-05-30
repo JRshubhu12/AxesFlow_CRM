@@ -2,7 +2,7 @@
 "use client";
 
 import Link from 'next/link';
-import { Search, ChevronDown, User, Settings, LogOut, Shield } from 'lucide-react'; // Removed Bell, Folder
+import { Search, ChevronDown, User, Settings, LogOut, Shield } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
@@ -123,16 +123,14 @@ function PageTitleDisplay() {
 
     const findNavItem = (items: typeof appNavItems, currentPath: string): string | null => {
       for (const item of items) {
-        if (currentPath.startsWith(item.href)) {
-          // Check sub-items first
-          if (item.subItems) {
-            const subNavItemTitle = findNavItem(item.subItems, currentPath);
-            if (subNavItemTitle) return subNavItemTitle;
-          }
-          // If no sub-item matched or no sub-items, return parent title if it's a closer match
-          if (currentPath === item.href || currentPath.startsWith(item.href + '/')) {
+        // Check sub-items first
+        if (item.subItems) {
+          const subNavItemTitle = findNavItem(item.subItems, currentPath);
+          if (subNavItemTitle && (currentPath === item.href || currentPath.startsWith(item.href + '/'))) return subNavItemTitle;
+        }
+        // If no sub-item matched or no sub-items, return parent title if it's a closer match
+        if (currentPath === item.href || (item.href !== '/' && currentPath.startsWith(item.href + '/'))) {
             return item.title;
-          }
         }
       }
       return null;
@@ -140,7 +138,21 @@ function PageTitleDisplay() {
     
     // Sort navItems to check more specific paths first
     const sortedNavItems = [...appNavItems].sort((a, b) => b.href.length - a.href.length);
-    const navItemTitle = findNavItem(sortedNavItems, pathname);
+    let navItemTitle = findNavItem(sortedNavItems, pathname);
+
+    // Handle sub-item titles specifically
+    for (const item of sortedNavItems) {
+      if (item.subItems) {
+        for (const subItem of item.subItems) {
+          if (pathname === subItem.href) {
+            navItemTitle = subItem.title;
+            break;
+          }
+        }
+      }
+      if (navItemTitle && (pathname === item.href || pathname.startsWith(item.href + '/'))) break;
+    }
+
 
     if (navItemTitle) {
       pageTitle = navItemTitle;
@@ -152,10 +164,14 @@ function PageTitleDisplay() {
       pageTitle = 'Project Details';
     } else if (pathname.startsWith('/activity')) {
       pageTitle = 'Activity Log';
+    } else if (pathname === '/') {
+      pageTitle = 'Login';
     }
     
     setTitle(pageTitle);
   }, [pathname]);
+
+  if (pathname === '/') return null; // Don't show title on login page
 
   return <h1 className="text-xl font-semibold text-foreground">{title}</h1>;
 }
@@ -180,7 +196,7 @@ const CustomBellIcon = ({ className }: { className?: string }) => (
     xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 24 24"
     className={className}
-    fill="hsl(var(--accent))"
+    fill="hsl(var(--accent))" // Use accent color from theme
   >
     <path d="M12 22C13.1046 22 14 21.1046 14 20H10C10 21.1046 10.8954 22 12 22ZM19.5 17.5C19.5 17.5 19 14.5 19 11C19 7.13401 15.866 4 12 4C8.13401 4 5 7.13401 5 11C5 14.5 4.5 17.5 4.5 17.5H19.5Z" />
   </svg>
@@ -189,36 +205,49 @@ const CustomBellIcon = ({ className }: { className?: string }) => (
 
 export default function MainLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const navItems = appNavItems; // Use the imported navItems
+  const navItems = appNavItems;
+
+  // Hide sidebar and header for login page
+  if (pathname === '/') {
+    return <>{children}</>;
+  }
 
   return (
     <div className="flex min-h-screen bg-background">
       {/* Sidebar */}
       <div className="w-60 border-r bg-sidebar-background p-0 sticky top-0 h-screen flex flex-col">
-        <div className="mb-3 px-4 pt-5 pb-3"> {/* Adjusted AppLogo spacing */}
+        <div className="mb-3 px-4 pt-5 pb-3"> 
           <AppLogo />
         </div>
         <nav className="space-y-1 px-3 overflow-y-auto flex-grow">
           {navItems.map((item) => {
-            const isParentActive = pathname.startsWith(item.href);
-            const isActive = (pathname === item.href || (item.href !== '/dashboard' && isParentActive && item.href.length >= ('/dashboard'.length)));
+            // Determine if the current path or any of its sub-paths match the item's href
+            let isParentActive = pathname === item.href || pathname.startsWith(item.href + '/');
+            if (item.href === '/dashboard' && pathname !== '/dashboard') {
+                isParentActive = false; // Special case for dashboard, only active if path is exactly /dashboard
+            }
+
+            // Determine if the item itself is active (exact match)
+            const isItemExactlyActive = pathname === item.href;
+
+            // An item is considered "active" for styling if it's an exact match OR if it's a parent and the current path is under it.
+            const isActiveForStyling = isItemExactlyActive || (isParentActive && item.href !== '/dashboard' && item.href.length > 1);
 
             return (
               <div key={item.title}>
                 <Link
                   href={item.href}
                   className={cn(
-                    "group flex items-center px-3 py-2.5 rounded-md transition-colors text-sm", // text-sm for nav items
-                    isActive
-                      ? 'bg-primary text-primary-foreground font-medium hover:bg-primary/90' // Active: primary bg, white text, medium font
-                      : 'text-foreground font-normal hover:bg-muted hover:text-foreground' // Inactive: dark text, normal font
+                    "group flex items-center px-3 py-2.5 rounded-md transition-colors text-sm",
+                    isActiveForStyling
+                      ? 'bg-primary text-primary-foreground font-medium hover:bg-primary/90'
+                      : 'text-foreground font-normal hover:bg-muted hover:text-foreground'
                   )}
                   title={item.tooltip || item.title}
                 >
-                  {/* Icons are removed from sidebar items as per image reference */}
                   <span>{item.title}</span>
                 </Link>
-                {isActive && item.subItems && item.subItems.length > 0 && (
+                {isParentActive && item.subItems && item.subItems.length > 0 && (
                   <ul className="ml-4 mt-1 space-y-0.5 pl-3 border-l border-primary/20">
                     {item.subItems.map(subItem => (
                       <li key={subItem.title}>
@@ -265,11 +294,11 @@ export default function MainLayout({ children }: { children: ReactNode }) {
 
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="icon" className="hover:bg-primary/10 h-9 w-9">
-              <CustomFolderIcon className="h-6 w-6" /> {/* Increased size */}
+              <CustomFolderIcon className="h-7 w-7" />
               <span className="sr-only">Folder</span>
             </Button>
             <Button variant="ghost" size="icon" className="hover:bg-accent/10 h-9 w-9">
-              <CustomBellIcon className="h-6 w-6 text-accent" /> {/* Increased size and ensured accent color */}
+              <CustomBellIcon className="h-7 w-7 text-accent" />
               <span className="sr-only">Notifications</span>
             </Button>
             <UserNav />
