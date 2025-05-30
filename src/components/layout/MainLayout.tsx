@@ -2,7 +2,7 @@
 "use client";
 
 import Link from 'next/link';
-import { Search, Bell, ChevronDown, User, Settings, LogOut, Shield } from 'lucide-react'; // Shield might be unused now if AppLogo changed
+import { Search, ChevronDown, User, Settings, LogOut } from 'lucide-react'; // Removed Bell from here
 import { usePathname, useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
@@ -150,19 +150,30 @@ function PageTitleDisplay() {
   return <h1 className="text-xl font-semibold text-foreground">{title}</h1>;
 }
 
-
 // Custom Folder SVG Icon - Updated to match the new reference image
 const CustomFolderIcon = ({ className }: { className?: string }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 24 24"
     className={className} // Allows Tailwind size classes like h-5 w-5
-    fill="none" // Important if paths have their own fill
+    // fill removed to allow path fills
   >
     {/* Darker Blue Tab - Drawn first to be "behind" */}
     <path d="M9 3H4C2.89543 3 2 3.89543 2 5V8H22V7C22 5.89543 21.1046 5 20 5H11L9 3Z" fill="#4285F4"/>
     {/* Lighter Blue Body - Drawn second to be "in front" where it overlaps */}
     <path d="M2 8V19C2 20.1046 2.89543 21 4 21H20C21.1046 21 22 20.1046 22 19V8H2Z" fill="#73A9FF"/>
+  </svg>
+);
+
+// Custom Bell SVG Icon - Based on the new reference image
+const CustomBellIcon = ({ className }: { className?: string }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24" // Adjusted viewBox to better fit typical icon proportions
+    className={className}
+    fill="hsl(var(--accent))" // Use accent color for fill
+  >
+    <path d="M12 22C13.1046 22 14 21.1046 14 20H10C10 21.1046 10.8954 22 12 22ZM19.5 17.5C19.5 17.5 19 14.5 19 11C19 7.13401 15.866 4 12 4C8.13401 4 5 7.13401 5 11C5 14.5 4.5 17.5 4.5 17.5H19.5Z" />
   </svg>
 );
 
@@ -175,7 +186,7 @@ export default function MainLayout({ children }: { children: ReactNode }) {
     <div className="flex min-h-screen bg-background">
       {/* Sidebar */}
       <div className="w-60 border-r bg-sidebar-background p-0 sticky top-0 h-screen flex flex-col">
-        <div className="mb-3 px-4 pt-5 pb-3"> {/* Adjusted spacing */}
+        <div className="mb-3 px-4 pt-5 pb-3">
           <AppLogo />
         </div>
         <nav className="space-y-1 px-3 overflow-y-auto flex-grow">
@@ -189,14 +200,13 @@ export default function MainLayout({ children }: { children: ReactNode }) {
                 <Link
                   href={item.href}
                   className={cn(
-                    "group flex items-center px-3 py-2.5 text-sm rounded-md transition-colors",
+                    "group flex items-center px-3 py-2.5 rounded-md transition-colors",
                     isActive
                       ? 'bg-primary text-primary-foreground font-medium hover:bg-primary/90'
                       : 'text-foreground font-normal hover:bg-muted hover:text-foreground'
                   )}
                   title={item.tooltip || item.title}
                 >
-                  {/* Icon removed to match image reference */}
                   <span>{item.title}</span>
                 </Link>
                 {/* Render sub-items if they exist and the parent is active */}
@@ -224,7 +234,6 @@ export default function MainLayout({ children }: { children: ReactNode }) {
             );
           })}
         </nav>
-        {/* Sidebar Footer (removed Settings icon to match image) */}
       </div>
 
       {/* Main Content Area */}
@@ -251,8 +260,8 @@ export default function MainLayout({ children }: { children: ReactNode }) {
               <CustomFolderIcon className="h-5 w-5" />
               <span className="sr-only">Folder</span>
             </Button>
-            <Button variant="ghost" size="icon" className="text-primary hover:bg-primary/10 h-9 w-9">
-              <Bell className="h-5 w-5" />
+            <Button variant="ghost" size="icon" className="text-accent hover:bg-accent/10 h-9 w-9"> {/* Changed text-primary to text-accent */}
+              <CustomBellIcon className="h-5 w-5" /> {/* Used CustomBellIcon */}
               <span className="sr-only">Notifications</span>
             </Button>
             <UserNav />
