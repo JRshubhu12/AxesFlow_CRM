@@ -10,8 +10,26 @@ import {
   Download,
   Search,
   ArrowUpDown,
+  X,
+  Bookmark,
+  ChevronDown,
+  User,
+  Briefcase,
+  MapPin,
+  Building2,
+  Users as UsersIcon,
+  DollarSign,
+  Settings,
+  GraduationCap,
+  AtSign,
+  Link2,
+  Layers,
 } from 'lucide-react';
-import { useState, useEffect } from "react";
+import React, { useState } from "react";
+import sampleLeads from './sample.json';
+import { useRouter, usePathname } from 'next/navigation';
+import { Popover, PopoverContent, PopoverTrigger, PopoverClose } from '@/components/ui/popover';
+import { Input } from '@/components/ui/input';
 
 // LinkedIn SVG icon as in the image (blue background, white "in")
 const LinkedInIcon = () => (
@@ -72,34 +90,24 @@ const initialLeadsData: Lead[] = [
   // ... add the rest of your leads here ...
 ];
 
-const LOCAL_STORAGE_KEY_LEADS = 'axesflowLeads';
-
-const columns = [
-  { key: "name", label: "Name" },
-  { key: "title", label: "Title" },
-  { key: "company", label: "Company" },
-  { key: "email", label: "Email" },
-  { key: "phone", label: "Phone Numbers" },
-];
-
 export default function LeadsPage() {
-  const [leads, setLeads] = useState<Lead[]>([]);
-  const [selectedRows, setSelectedRows] = useState<Record<string, boolean>>({});
-  const [sortField, setSortField] = useState<string>("name");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
-  const [isLoadingLeads, setIsLoadingLeads] = useState(true);
+  const router = useRouter();
+  const pathname = usePathname();
 
-  useEffect(() => {
-    setIsLoadingLeads(true);
-    const storedLeads = localStorage.getItem(LOCAL_STORAGE_KEY_LEADS);
-    if (storedLeads) {
-      setLeads(JSON.parse(storedLeads));
-    } else {
-      setLeads(initialLeadsData);
-      localStorage.setItem(LOCAL_STORAGE_KEY_LEADS, JSON.stringify(initialLeadsData));
-    }
-    setIsLoadingLeads(false);
-  }, []);
+  // Tab navigation for subpages
+  const tabs = [
+    { label: 'Find Leads', path: '/leads' },
+    { label: 'Manage Leads', path: '/leads/manage' },
+  ];
+
+  // Dynamically get columns from the first lead in sample.json
+  const leads: any[] = sampleLeads;
+  const columns = leads.length > 0 ? Object.keys(leads[0]) : [];
+
+  const [selectedRows, setSelectedRows] = useState<Record<string, boolean>>({});
+  const [sortField, setSortField] = useState<string>(columns[0] || "");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [isFindPopoverOpen, setIsFindPopoverOpen] = useState(false);
 
   function handleSort(field: string) {
     if (sortField === field) {
@@ -111,35 +119,35 @@ export default function LeadsPage() {
   }
 
   const sortedLeads = [...leads].sort((a, b) => {
-    let valA = (a[sortField as keyof Lead] || "") as string;
-    let valB = (b[sortField as keyof Lead] || "") as string;
+    let valA = (a[sortField] || "") as string;
+    let valB = (b[sortField] || "") as string;
     return sortDir === "asc" ? valA.localeCompare(valB) : valB.localeCompare(valA);
   });
 
-  const isAllSelected = leads.length > 0 && leads.every(lead => selectedRows[lead.id]);
+  const isAllSelected = leads.length > 0 && leads.every((lead, idx) => selectedRows[idx]);
+
+  // Remove the profilePic (or similar) and status column from the columns array before rendering the table
+  const filteredColumns = columns.filter(col => col.toLowerCase() !== 'profilepic' && col.toLowerCase() !== 'profile picture' && col.toLowerCase() !== 'avatar' && col.toLowerCase() !== 'status');
 
   return (
     <MainLayout>
       <div className="h-full flex flex-col overflow-hidden bg-background">
+        {/* Subpage Tabs */}
+        <div className="flex items-center gap-2 px-10 pt-8 pb-2">
+          {tabs.map(tab => (
+            <button
+              key={tab.path}
+              onClick={() => router.push(tab.path)}
+              className={`px-4 py-2 rounded-lg font-medium text-base transition-colors duration-150 ${pathname === tab.path ? 'bg-[#7F57F1] text-white' : 'bg-[#F4F4F7] text-[#222]'}`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
         {/* Top search & heading */}
         <div className="flex items-center justify-between px-10 pt-8 pb-2">
           <div className="flex-1 flex items-center">
             <h2 className="font-semibold text-2xl mr-6">Find Leads</h2>
-            <div className="flex items-center flex-1">
-              <div className="flex-1 flex justify-center">
-                <div className="w-full max-w-xl">
-                  <div className="relative">
-                    <input
-                      type="text"
-                      placeholder="search for features, settings and more"
-                      className="w-full h-10 px-10 rounded-full border border-[#E1E1F0] bg-white placeholder:text-gray-400 text-base focus:outline-none"
-                      style={{ boxShadow: "0 1px 0 0 #ececec" }}
-                    />
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-5 w-5" />
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
         {/* Top actions */}
@@ -153,9 +161,119 @@ export default function LeadsPage() {
           <Button variant="outline" className="h-9 px-4 font-medium flex items-center gap-2">
             <Plus className="h-4 w-4" /> Add to Campaign
           </Button>
-          <Button variant="outline" className="h-9 px-4 font-medium flex items-center gap-2">
-            <Search className="h-4 w-4" /> Find more
-          </Button>
+          <div className="flex-1" />
+          {/* Find Leads Popover */}
+          <Popover open={isFindPopoverOpen} onOpenChange={setIsFindPopoverOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="default" className="h-9 px-6 font-semibold flex items-center gap-2 bg-[#7F57F1] text-white">
+                Find Leads
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[400px] p-0 shadow-xl rounded-lg border overflow-auto max-h-[90vh]">
+              <div className="flex items-center justify-between px-4 pt-3 pb-2 border-b">
+                <h3 className="text-base font-semibold">Find Leads</h3>
+                <div className="flex items-center gap-2">
+                  <Bookmark className="text-[#7F57F1] h-5 w-5" />
+                  <PopoverClose asChild>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive">
+                      <X className="h-5 w-5" />
+                    </Button>
+                  </PopoverClose>
+                </div>
+              </div>
+              <div className="p-4 space-y-3">
+                {/* Name */}
+                <div className="flex items-center border rounded-lg px-3 py-2 bg-[#FAFAFB]">
+                  <User className="h-5 w-5 text-muted-foreground mr-2" />
+                  <Input placeholder="Name" className="border-0 bg-transparent p-0 h-7 focus:ring-0" />
+                </div>
+                {/* Title */}
+                <div className="flex items-center border rounded-lg px-3 py-2 bg-[#FAFAFB]">
+                  <Briefcase className="h-5 w-5 text-muted-foreground mr-2" />
+                  <div className="flex flex-wrap gap-1 flex-1">
+                    {/* Example selected chips */}
+                    <span className="bg-[#E5E7EB] text-[#222] rounded-full px-2 py-0.5 text-xs flex items-center">Founder <X className="ml-1 h-3 w-3 cursor-pointer" /></span>
+                    <span className="bg-[#E5E7EB] text-[#222] rounded-full px-2 py-0.5 text-xs flex items-center">CEO <X className="ml-1 h-3 w-3 cursor-pointer" /></span>
+                  </div>
+                  <ChevronDown className="ml-auto h-4 w-4 text-muted-foreground" />
+                </div>
+                {/* Location */}
+                <div className="flex items-center border rounded-lg px-3 py-2 bg-[#FAFAFB]">
+                  <MapPin className="h-5 w-5 text-muted-foreground mr-2" />
+                  <div className="flex flex-wrap gap-1 flex-1">
+                    <span className="bg-[#E5E7EB] text-[#222] rounded-full px-2 py-0.5 text-xs flex items-center">USA <X className="ml-1 h-3 w-3 cursor-pointer" /></span>
+                  </div>
+                  <ChevronDown className="ml-auto h-4 w-4 text-muted-foreground" />
+                </div>
+                {/* Industry */}
+                <div className="flex items-center border rounded-lg px-3 py-2 bg-[#FAFAFB]">
+                  <Building2 className="h-5 w-5 text-muted-foreground mr-2" />
+                  <span className="text-muted-foreground flex-1">Industry</span>
+                  <ChevronDown className="ml-auto h-4 w-4 text-muted-foreground" />
+                </div>
+                {/* Employee Size */}
+                <div className="flex items-center border rounded-lg px-3 py-2 bg-[#FAFAFB]">
+                  <UsersIcon className="h-5 w-5 text-muted-foreground mr-2" />
+                  <div className="flex flex-wrap gap-1 flex-1">
+                    <span className="bg-[#E5E7EB] text-[#222] rounded-full px-2 py-0.5 text-xs flex items-center">0-25 <X className="ml-1 h-3 w-3 cursor-pointer" /></span>
+                    <span className="bg-[#E5E7EB] text-[#222] rounded-full px-2 py-0.5 text-xs flex items-center">25-100 <X className="ml-1 h-3 w-3 cursor-pointer" /></span>
+                  </div>
+                  <ChevronDown className="ml-auto h-4 w-4 text-muted-foreground" />
+                </div>
+                {/* Revenue */}
+                <div className="flex items-center border rounded-lg px-3 py-2 bg-[#FAFAFB]">
+                  <DollarSign className="h-5 w-5 text-muted-foreground mr-2" />
+                  <div className="flex flex-wrap gap-1 flex-1">
+                    <span className="bg-[#E5E7EB] text-[#222] rounded-full px-2 py-0.5 text-xs flex items-center">$1M - $10M <X className="ml-1 h-3 w-3 cursor-pointer" /></span>
+                  </div>
+                  <ChevronDown className="ml-auto h-4 w-4 text-muted-foreground" />
+                </div>
+                {/* Keyword Filter */}
+                <div className="flex items-center border rounded-lg px-3 py-2 bg-[#FAFAFB]">
+                  <Settings className="h-5 w-5 text-muted-foreground mr-2" />
+                  <span className="text-muted-foreground flex-1">Keyword Filter</span>
+                  <ChevronDown className="ml-auto h-4 w-4 text-muted-foreground" />
+                </div>
+                {/* Education */}
+                <div className="flex items-center border rounded-lg px-3 py-2 bg-[#FAFAFB]">
+                  <GraduationCap className="h-5 w-5 text-muted-foreground mr-2" />
+                  <span className="text-muted-foreground flex-1">Education</span>
+                  <ChevronDown className="ml-auto h-4 w-4 text-muted-foreground" />
+                </div>
+                {/* Contact Info */}
+                <div className="flex items-center border rounded-lg px-3 py-2 bg-[#FAFAFB]">
+                  <AtSign className="h-5 w-5 text-muted-foreground mr-2" />
+                  <span className="text-muted-foreground flex-1">Contact Info</span>
+                  <ChevronDown className="ml-auto h-4 w-4 text-muted-foreground" />
+                </div>
+                {/* LinkedIn URL or Twitter */}
+                <div className="flex items-center border rounded-lg px-3 py-2 bg-[#FAFAFB]">
+                  <Link2 className="h-5 w-5 text-muted-foreground mr-2" />
+                  <Input placeholder="LinkedIn URL or Twitter" className="border-0 bg-transparent p-0 h-7 focus:ring-0" />
+                </div>
+                {/* Skills */}
+                <div className="flex items-center border rounded-lg px-3 py-2 bg-[#FAFAFB]">
+                  <Layers className="h-5 w-5 text-muted-foreground mr-2" />
+                  <span className="text-muted-foreground flex-1">Skills</span>
+                  <ChevronDown className="ml-auto h-4 w-4 text-muted-foreground" />
+                </div>
+                {/* Department */}
+                <div className="flex items-center border rounded-lg px-3 py-2 bg-[#FAFAFB]">
+                  <UsersIcon className="h-5 w-5 text-muted-foreground mr-2" />
+                  <span className="text-muted-foreground flex-1">Department</span>
+                  <ChevronDown className="ml-auto h-4 w-4 text-muted-foreground" />
+                </div>
+              </div>
+              <div className="flex gap-2 px-4 py-3 border-t mt-2">
+                <Button variant="outline" className="w-1/2 border-destructive text-destructive hover:bg-destructive/10" onClick={() => setIsFindPopoverOpen(false)}>
+                  Clear (8)
+                </Button>
+                <Button className="w-1/2 bg-[#7F57F1] text-white font-semibold" onClick={() => setIsFindPopoverOpen(false)}>
+                  Find Leads
+                </Button>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
         {/* Table */}
         <div className="flex-1 overflow-auto px-10 pb-8">
@@ -163,25 +281,14 @@ export default function LeadsPage() {
             <Table className="min-w-full border-separate border-spacing-0">
               <TableHeader>
                 <TableRow className="border-b border-[#E1E1F0]">
-                  <TableHead className="w-[48px] py-3 px-4 border-r border-[#E1E1F0] bg-[#FAFAFB]">
-                    <Checkbox
-                      checked={isAllSelected}
-                      onCheckedChange={checked => {
-                        const all: Record<string, boolean> = {};
-                        if (checked) leads.forEach(l => { all[l.id] = true });
-                        setSelectedRows(all);
-                      }}
-                      aria-label="Select all rows"
-                    />
-                  </TableHead>
-                  {columns.map(col => (
+                  {filteredColumns.map(col => (
                     <TableHead
-                      key={col.key}
-                      className="py-3 px-3 font-semibold text-[#222] align-middle border-r border-[#E1E1F0] bg-[#FAFAFB] group cursor-pointer select-none"
-                      onClick={() => handleSort(col.key)}
+                      key={col}
+                      className="py-2 px-3 font-semibold text-[#222] align-middle border-r border-[#E1E1F0] bg-[#FAFAFB] group select-none"
+                      onClick={() => handleSort(col)}
                     >
                       <div className="flex items-center gap-1">
-                        {col.label}
+                        {col}
                         <ArrowUpDown className="h-4 w-4 text-[#B8B8C0] opacity-80 group-hover:text-[#7F57F1]" />
                       </div>
                     </TableHead>
@@ -189,69 +296,51 @@ export default function LeadsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoadingLeads ? (
+                {leads.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={columns.length + 1} className="py-8 text-center text-muted-foreground">
-                      Loading leads...
-                    </TableCell>
-                  </TableRow>
-                ) : sortedLeads.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={columns.length + 1} className="py-8 text-center text-muted-foreground">
+                    <TableCell colSpan={filteredColumns.length} className="py-8 text-center text-muted-foreground">
                       No leads found.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  sortedLeads.map((lead) => (
-                    <TableRow key={lead.id} className="border-b border-[#E1E1F0] hover:bg-[#F7F7FA]">
-                      <TableCell className="py-3 px-4 border-r border-[#E1E1F0] align-middle">
-                        <Checkbox
-                          checked={selectedRows[lead.id] || false}
-                          onCheckedChange={checked =>
-                            setSelectedRows(prev => ({ ...prev, [lead.id]: Boolean(checked) }))
-                          }
-                          aria-label={`Select row for ${lead.name}`}
-                        />
-                      </TableCell>
-                      {/* Name + LinkedIn */}
-                      <TableCell className="py-2 px-3 border-r border-[#E1E1F0] align-middle">
-                        <div className="flex items-center gap-2">
-                          <Avatar className="h-8 w-8 border shadow-sm">
-                            <AvatarImage src={lead.avatar} alt={lead.name} />
-                            <AvatarFallback>
-                              {lead.name.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="font-medium text-sm text-[#222]">{lead.name}</span>
-                          {lead.linkedin_url && (
-                            <a
-                              href={lead.linkedin_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="ml-1"
-                              title="LinkedIn"
-                            >
-                              <LinkedInIcon />
+                  sortedLeads.map((lead, idx) => (
+                    <TableRow key={idx} className="border-b border-[#E1E1F0] hover:bg-[#F7F7FA]">
+                      {filteredColumns.map(col => (
+                        <TableCell key={col} className={`py-1 px-2 border-r border-[#E1E1F0] align-top${col === 'Problem' ? ' max-w-[220px]' : ''}`}> 
+                          {col.toLowerCase().includes('name') ? (
+                            <div className="flex items-center">
+                              <div className="flex items-center gap-2 flex-1 min-w-0">
+                                {(lead.avatar || lead["profilePic"] || lead["Profile Picture"]) && (
+                                  <span className="inline-block h-8 w-8 rounded-full overflow-hidden border border-[#E1E1F0] bg-gray-100">
+                                    <img
+                                      src={lead.avatar || lead["profilePic"] || lead["Profile Picture"]}
+                                      alt={lead.name || lead["Name"]}
+                                      className="h-8 w-8 object-cover"
+                                    />
+                                  </span>
+                                )}
+                                <span className="font-medium text-sm text-[#222] whitespace-nowrap text-ellipsis overflow-hidden block">
+                                  {lead.name || lead["Name"]}
+                                </span>
+                              </div>
+                              {/* LinkedIn icon in its own flex column for perfect vertical alignment */}
+                              <div className="flex items-center justify-center min-w-[32px] pl-2">
+                                <LinkedInIcon />
+                              </div>
+                            </div>
+                          ) : col === 'Problem' ? (
+                            <div className="max-h-16 overflow-y-auto text-xs pr-1" style={{whiteSpace: 'pre-line'}}>
+                              {lead[col] !== null && lead[col] !== undefined && lead[col] !== '' ? lead[col] : '-'}
+                            </div>
+                          ) : lead[col] && typeof lead[col] === 'string' && lead[col].startsWith('http') ? (
+                            <a href={lead[col]} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline text-xs">
+                              {lead[col]}
                             </a>
+                          ) : (
+                            <span className="text-xs">{lead[col] !== null && lead[col] !== undefined && lead[col] !== '' ? lead[col] : '-'}</span>
                           )}
-                        </div>
-                      </TableCell>
-                      {/* Title */}
-                      <TableCell className="py-2 px-3 border-r border-[#E1E1F0] align-middle">
-                        <span className="text-sm text-[#222]">{lead.title || '-'}</span>
-                      </TableCell>
-                      {/* Company */}
-                      <TableCell className="py-2 px-3 border-r border-[#E1E1F0] align-middle">
-                        <span className="text-sm text-[#222]">{lead.company}</span>
-                      </TableCell>
-                      {/* Email */}
-                      <TableCell className="py-2 px-3 border-r border-[#E1E1F0] align-middle">
-                        <span className="text-sm text-[#222]">{lead.email}</span>
-                      </TableCell>
-                      {/* Phone */}
-                      <TableCell className="py-2 px-3 align-middle">
-                        <span className="text-sm text-[#222]">{lead.phone || '-'}</span>
-                      </TableCell>
+                        </TableCell>
+                      ))}
                     </TableRow>
                   ))
                 )}
