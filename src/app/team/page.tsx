@@ -1,4 +1,3 @@
-
 "use client";
 
 import MainLayout from '@/components/layout/MainLayout';
@@ -16,7 +15,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  DialogClose,
 } from "@/components/ui/dialog";
 import {
   Form,
@@ -33,8 +31,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { useRouter } from 'next/navigation'; // Added for redirection
-import { format } from 'date-fns'; // For formatting dates
+import { useRouter } from 'next/navigation';
+import { format } from 'date-fns';
 
 const teamMemberSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -51,7 +49,6 @@ export interface TeamMember extends TeamMemberFormValues {
   avatar: string;
 }
 
-// These interfaces would ideally be shared from communications/page.tsx
 interface Chat {
   id: string;
   contact?: string;
@@ -72,12 +69,43 @@ interface Meeting {
   googleMeetLink?: string;
 }
 
-
 const initialTeamMembersData: TeamMember[] = [
-  { id: 'T001', name: 'Alice Wonderland', role: 'Project Manager', email: 'alice@example.com', tasksAssigned: 5, avatar: 'https://placehold.co/40x40.png?text=AW', status: 'Active' },
-  { id: 'T002', name: 'Bob The Builder', role: 'Lead Developer', email: 'bob@example.com', tasksAssigned: 8, avatar: 'https://placehold.co/40x40.png?text=BB', status: 'Active' },
-  { id: 'T003', name: 'Carol Danvers', role: 'UX Designer', email: 'carol@example.com', tasksAssigned: 3, avatar: 'https://placehold.co/40x40.png?text=CD', status: 'Active' },
-  { id: 'T004', name: 'Dave Lister', role: 'QA Tester', email: 'dave@example.com', tasksAssigned: 2, avatar: 'https://placehold.co/40x40.png?text=DL', status: 'Inactive' },
+  { 
+    id: 'T001', 
+    name: 'Alice Wonderland', 
+    role: 'Project Manager', 
+    email: 'alice@example.com', 
+    tasksAssigned: 5, 
+    avatar: 'https://placehold.co/100x100.png?text=AW', 
+    status: 'Active' 
+  },
+  { 
+    id: 'T002', 
+    name: 'Bob The Builder', 
+    role: 'Lead Developer', 
+    email: 'bob@example.com', 
+    tasksAssigned: 8, 
+    avatar: 'https://placehold.co/100x100.png?text=BB', 
+    status: 'Active' 
+  },
+  { 
+    id: 'T003', 
+    name: 'Carol Danvers', 
+    role: 'UX Designer', 
+    email: 'carol@example.com', 
+    tasksAssigned: 3, 
+    avatar: 'https://placehold.co/100x100.png?text=CD', 
+    status: 'Active' 
+  },
+  { 
+    id: 'T004', 
+    name: 'Dave Lister', 
+    role: 'QA Tester', 
+    email: 'dave@example.com', 
+    tasksAssigned: 2, 
+    avatar: 'https://placehold.co/100x100.png?text=DL', 
+    status: 'Inactive' 
+  },
 ];
 
 export default function TeamPage() {
@@ -112,21 +140,27 @@ export default function TeamPage() {
     const newMember: TeamMember = {
       ...values,
       id: `T${Date.now()}`,
-      tasksAssigned: 0, // New members start with 0 tasks
-      avatar: `https://placehold.co/40x40.png?text=${values.name.split(' ').map(n => n[0]).join('').toUpperCase()}`,
+      tasksAssigned: 0,
+      avatar: `https://placehold.co/100x100.png?text=${values.name.split(' ').map(n => n[0]).join('').toUpperCase()}`,
     };
     const updatedTeamMembers = [...teamMembers, newMember];
     setTeamMembers(updatedTeamMembers);
     localStorage.setItem('teamMembers', JSON.stringify(updatedTeamMembers));
-    toast({ title: "Team Member Added", description: `${newMember.name} has been added to the team.` });
+    toast({ 
+      title: "Team Member Added", 
+      description: `${newMember.name} has been added to the team.`,
+      variant: "success"
+    });
     form.reset();
     setIsAddMemberOpen(false);
   };
 
   const handleAssignTask = (memberName: string) => {
-    // For now, this remains a placeholder as full task assignment is complex
-    toast({ title: "Assign Task", description: `Navigating to task assignment for ${memberName}... (Feature in development)` });
-    // router.push(`/tasks?assignTo=${memberName}`); // Possible future enhancement
+    toast({ 
+      title: "Assign Task", 
+      description: `Navigating to task assignment for ${memberName}...`,
+      variant: "default"
+    });
   };
 
   const openViewModal = (member: TeamMember) => {
@@ -139,7 +173,7 @@ export default function TeamPage() {
     const currentChats: Chat[] = storedChats ? JSON.parse(storedChats) : [];
     const newChat: Chat = {
       id: `C-${Date.now()}`,
-      contact: member.name, // Chatting with the team member
+      contact: member.name,
       lastMessage: 'Chat initiated with team member...',
       timestamp: 'Just now',
       status: 'Unread',
@@ -147,7 +181,11 @@ export default function TeamPage() {
     };
     const updatedChats = [newChat, ...currentChats];
     localStorage.setItem('chatsData', JSON.stringify(updatedChats));
-    toast({ title: "Chat Initiated", description: `Chat with ${member.name} started. Redirecting...` });
+    toast({ 
+      title: "Chat Initiated", 
+      description: `Chat with ${member.name} started. Redirecting...`,
+      variant: "success"
+    });
     router.push('/communications?tab=chats');
   };
 
@@ -161,100 +199,119 @@ export default function TeamPage() {
       dateTime: `Scheduled on ${format(new Date(), 'PPp')}`,
       status: 'Scheduled',
       participants: ['You', member.name],
-      googleMeetLink: 'https://meet.google.com/new', // Placeholder
+      googleMeetLink: 'https://meet.google.com/new',
     };
     const updatedMeetings = [newMeeting, ...currentMeetings];
     localStorage.setItem('meetingsData', JSON.stringify(updatedMeetings));
-    toast({ title: "Meeting Scheduled", description: `Meeting with ${member.name} scheduled. Redirecting...` });
+    toast({ 
+      title: "Meeting Scheduled", 
+      description: `Meeting with ${member.name} scheduled. Redirecting...`,
+      variant: "success"
+    });
     router.push('/communications?tab=meetings');
   };
-
 
   return (
     <MainLayout>
       <div className="space-y-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-bold flex items-center gap-2"><Users2 className="h-8 w-8 text-primary" /> Team Members</h1>
-            <p className="text-muted-foreground">Manage your agency&apos;s team and assign tasks.</p>
+          <div className="space-y-1">
+            <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
+              <Users2 className="h-8 w-8 text-primary" /> 
+              Team Management
+            </h1>
+            <p className="text-muted-foreground text-sm">
+              Manage your team members, assign tasks, and coordinate collaboration.
+            </p>
           </div>
+          
           <Dialog open={isAddMemberOpen} onOpenChange={setIsAddMemberOpen}>
             <DialogTrigger asChild>
-              <Button>
-                <UserPlus className="mr-2 h-4 w-4" /> Add Team Member
+              <Button className="gap-2">
+                <UserPlus className="h-4 w-4" /> 
+                Add Team Member
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-[500px]">
               <DialogHeader>
-                <DialogTitle>Add New Team Member</DialogTitle>
-                <DialogDescription>
-                  Fill in the details for the new team member.
+                <DialogTitle className="text-xl">Add New Team Member</DialogTitle>
+                <DialogDescription className="text-sm">
+                  Complete the form to add a new member to your team.
                 </DialogDescription>
               </DialogHeader>
+              
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(handleAddMemberSubmit)} className="space-y-4 py-4">
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Full Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g., Alex Johnson" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="role"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Role</FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g., Software Engineer" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input type="email" placeholder="e.g., alex.j@example.com" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="status"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Status</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <form onSubmit={form.handleSubmit(handleAddMemberSubmit)} className="space-y-4">
+                  <div className="grid grid-cols-1 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Full Name</FormLabel>
                           <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select status" />
-                            </SelectTrigger>
+                            <Input placeholder="e.g., Alex Johnson" {...field} />
                           </FormControl>
-                          <SelectContent>
-                            <SelectItem value="Active">Active</SelectItem>
-                            <SelectItem value="Inactive">Inactive</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                          <FormMessage className="text-xs" />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="role"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Role</FormLabel>
+                          <FormControl>
+                            <Input placeholder="e.g., Software Engineer" {...field} />
+                          </FormControl>
+                          <FormMessage className="text-xs" />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email</FormLabel>
+                          <FormControl>
+                            <Input type="email" placeholder="e.g., alex.j@example.com" {...field} />
+                          </FormControl>
+                          <FormMessage className="text-xs" />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="status"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Status</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select status" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="Active">Active</SelectItem>
+                              <SelectItem value="Inactive">Inactive</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage className="text-xs" />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  
                   <DialogFooter>
-                    <Button type="submit">Save Member</Button>
+                    <Button type="submit" className="w-full sm:w-auto">
+                      Save Team Member
+                    </Button>
                   </DialogFooter>
                 </form>
               </Form>
@@ -264,90 +321,194 @@ export default function TeamPage() {
 
         {/* View Member Dialog */}
         <Dialog open={isViewMemberOpen} onOpenChange={setIsViewMemberOpen}>
-          <DialogContent className="sm:max-w-[425px]">
+          <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
-              <DialogTitle>Team Member Details</DialogTitle>
+              <DialogTitle className="text-xl">Team Member Details</DialogTitle>
             </DialogHeader>
+            
             {selectedMember && (
-              <div className="py-4 space-y-3">
-                <div className="flex items-center gap-3 mb-4">
-                    <Avatar className="h-16 w-16">
-                        <AvatarImage src={selectedMember.avatar} alt={selectedMember.name} data-ai-hint="person portrait"/>
-                        <AvatarFallback>{selectedMember.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                    </Avatar>
-                    <div>
-                        <h3 className="text-xl font-semibold">{selectedMember.name}</h3>
-                        <p className="text-muted-foreground">{selectedMember.role}</p>
-                    </div>
+              <div className="space-y-6 py-2">
+                <div className="flex items-center gap-4">
+                  <Avatar className="h-20 w-20">
+                      <AvatarImage src={selectedMember.avatar} alt={selectedMember.name} />
+                      <AvatarFallback>
+                        {selectedMember.name.split(' ').map(n => n[0]).join('')}
+                      </AvatarFallback>
+                  </Avatar>
+                  <div className="space-y-1">
+                      <h3 className="text-xl font-semibold">{selectedMember.name}</h3>
+                      <p className="text-muted-foreground">{selectedMember.role}</p>
+                      <Badge 
+                        variant={selectedMember.status === 'Active' ? 'default' : 'destructive'} 
+                        className={selectedMember.status === 'Active' 
+                          ? 'bg-green-600 text-white hover:bg-green-700' 
+                          : ''}
+                      >
+                        {selectedMember.status}
+                      </Badge>
+                  </div>
                 </div>
-                <div><strong className="font-medium">ID:</strong> {selectedMember.id}</div>
-                <div><strong className="font-medium">Email:</strong> {selectedMember.email}</div>
-                <div><strong className="font-medium">Status:</strong> <Badge variant={selectedMember.status === 'Active' ? 'default' : 'destructive'} className={selectedMember.status === 'Active' ? 'bg-green-500 text-white hover:bg-green-600' : ''}>{selectedMember.status}</Badge></div>
-                <div><strong className="font-medium">Tasks Assigned:</strong> {selectedMember.tasksAssigned}</div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-muted-foreground">Member ID</p>
+                    <p className="text-sm">{selectedMember.id}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-muted-foreground">Email</p>
+                    <p className="text-sm">{selectedMember.email}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-muted-foreground">Tasks Assigned</p>
+                    <p className="text-sm">{selectedMember.tasksAssigned}</p>
+                  </div>
+                </div>
+                
+                <div className="flex justify-end gap-2 pt-4">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => handleStartChat(selectedMember)}
+                    className="gap-2"
+                  >
+                    <MessageCircle className="h-4 w-4" /> Message
+                  </Button>
+                  <Button 
+                    variant="default" 
+                    onClick={() => handleScheduleMeeting(selectedMember)}
+                    className="gap-2"
+                  >
+                    <CalendarPlus className="h-4 w-4" /> Schedule Meeting
+                  </Button>
+                </div>
               </div>
             )}
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsViewMemberOpen(false)}>Close</Button>
-            </DialogFooter>
           </DialogContent>
         </Dialog>
 
-
-        <Card className="shadow-lg">
-          <CardHeader>
-            <CardTitle>Team Overview</CardTitle>
-            <CardDescription>View all team members and their current assignments.</CardDescription>
+        <Card className="border-0 shadow-sm">
+          <CardHeader className="px-6 py-4 border-b">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <CardTitle>Team Members</CardTitle>
+                <CardDescription>
+                  {teamMembers.length} {teamMembers.length === 1 ? 'member' : 'members'} in your team
+                </CardDescription>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">
+                  {teamMembers.filter(m => m.status === 'Active').length} Active
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  {teamMembers.filter(m => m.status === 'Inactive').length} Inactive
+                </span>
+              </div>
+            </div>
           </CardHeader>
-          <CardContent>
+          
+          <CardContent className="p-0">
             <Table>
-              <TableHeader>
+              <TableHeader className="bg-muted/50">
                 <TableRow>
-                  <TableHead>Member</TableHead>
+                  <TableHead className="w-[250px]">Member</TableHead>
                   <TableHead>Role</TableHead>
                   <TableHead>Email</TableHead>
-                  <TableHead>Tasks Assigned</TableHead>
+                  <TableHead className="text-center">Tasks</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
+              
               <TableBody>
                 {teamMembers.map((member) => (
-                  <TableRow key={member.id} className="hover:bg-muted/50">
+                  <TableRow key={member.id} className="hover:bg-muted/10">
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <Avatar>
-                          <AvatarImage src={member.avatar} alt={member.name} data-ai-hint="person portrait"/>
-                          <AvatarFallback>{member.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                        <Avatar className="h-9 w-9">
+                          <AvatarImage src={member.avatar} alt={member.name} />
+                          <AvatarFallback>
+                            {member.name.split(' ').map(n => n[0]).join('')}
+                          </AvatarFallback>
                         </Avatar>
-                        <span className="font-medium">{member.name}</span>
+                        <div>
+                          <p className="font-medium">{member.name}</p>
+                          <p className="text-sm text-muted-foreground">{member.id}</p>
+                        </div>
                       </div>
                     </TableCell>
-                    <TableCell>{member.role}</TableCell>
-                    <TableCell>{member.email}</TableCell>
-                    <TableCell className="text-center">{member.tasksAssigned}</TableCell>
+                    
                     <TableCell>
-                      <Badge variant={member.status === 'Active' ? 'default' : 'destructive'} className={member.status === 'Active' ? 'bg-green-500 text-white hover:bg-green-600' : ''}>{member.status}</Badge>
+                      <p className="font-medium">{member.role}</p>
                     </TableCell>
-                    <TableCell className="text-right space-x-1">
-                       <Button variant="ghost" size="sm" onClick={() => handleStartChat(member)} title="Start Chat">
-                        <MessageCircle className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleScheduleMeeting(member)} title="Schedule Meeting">
-                        <CalendarPlus className="h-4 w-4" />
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={() => handleAssignTask(member.name)} title="Assign Task">
-                        <MessageSquarePlus className="mr-1 h-3 w-3" /> Assign
-                      </Button>
-                      <Button variant="ghost" size="sm" className="text-primary hover:text-primary/80" onClick={() => openViewModal(member)} title="View Profile"><Eye className="h-4 w-4" /></Button>
+                    
+                    <TableCell>
+                      <p className="text-sm text-muted-foreground hover:text-primary cursor-pointer">
+                        {member.email}
+                      </p>
+                    </TableCell>
+                    
+                    <TableCell className="text-center">
+                      <Badge variant="outline" className="px-3 py-1">
+                        {member.tasksAssigned} {member.tasksAssigned === 1 ? 'task' : 'tasks'}
+                      </Badge>
+                    </TableCell>
+                    
+                    <TableCell>
+                      <Badge 
+                        variant={member.status === 'Active' ? 'default' : 'destructive'} 
+                        className={member.status === 'Active' 
+                          ? 'bg-green-600 text-white hover:bg-green-700' 
+                          : ''}
+                      >
+                        {member.status}
+                      </Badge>
+                    </TableCell>
+                    
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => openViewModal(member)}
+                          className="text-muted-foreground hover:text-primary"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => handleStartChat(member)}
+                          className="text-muted-foreground hover:text-primary"
+                        >
+                          <MessageCircle className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => handleAssignTask(member.name)}
+                          className="gap-1"
+                        >
+                          <MessageSquarePlus className="h-3.5 w-3.5" />
+                          <span>Task</span>
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
+            
             {teamMembers.length === 0 && (
-                <div className="text-center py-10 text-muted-foreground">
-                    No team members found.
-                </div>
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <Users2 className="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium">No team members found</h3>
+                <p className="text-sm text-muted-foreground max-w-md px-4">
+                  Get started by adding your first team member to collaborate on projects.
+                </p>
+                <Button className="mt-4 gap-2" onClick={() => setIsAddMemberOpen(true)}>
+                  <UserPlus className="h-4 w-4" />
+                  Add Team Member
+                </Button>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -355,7 +516,3 @@ export default function TeamPage() {
     </MainLayout>
   );
 }
-
-    
-
-    
