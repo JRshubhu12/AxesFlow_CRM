@@ -7,7 +7,7 @@ export function AppLogo({ className }: { className?: string }) {
       <Image
         src="/images/logo.webp" // Corrected path
         alt="AxesFlow Logo Icon"
-        width={880}
+        width={200}
         height={28}
         className="h-70 w-70"
       />
