@@ -25,7 +25,7 @@ import {
   Link2,
   Layers,
 } from 'lucide-react';
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import sampleLeads from './sample.json';
 import { useRouter, usePathname } from 'next/navigation';
 import { Popover, PopoverContent, PopoverTrigger, PopoverClose } from '@/components/ui/popover';
@@ -55,14 +55,10 @@ export interface Lead {
   linkedin_url?: string;
 }
 
-// Example initial data (use your full previous array for real usage)
-const initialLeadsData: Lead[] = [
-  // ... your leads here ...
-];
-
 export default function LeadsPage() {
   const router = useRouter();
   const pathname = usePathname();
+  const findLeadsBtnRef = useRef<HTMLButtonElement>(null);
 
   // Tab navigation for subpages
   const tabs = [
@@ -203,20 +199,33 @@ export default function LeadsPage() {
         </div>
         {/* Top actions */}
         <div className="flex items-center gap-3 px-10 pt-3 pb-2">
-          <Button variant="outline" className="h-9 px-4 font-medium flex items-center gap-2">
-            <Download className="h-4 w-4" /> Download CSV
+          <Button variant="outline" className="group h-9 px-4 font-medium flex items-center gap-2 hover:bg-[#6D69C9] hover:text-white focus:bg-[#6D69C9] focus:text-white">
+            <Download className="h-4 w-4 text-gray-500 group-hover:text-white group-focus:text-white" /> Download CSV
           </Button>
-          <Button variant="outline" className="h-9 px-4 font-medium flex items-center gap-2">
-            <Plus className="h-4 w-4" /> Add to List
+          <Button variant="outline" className="group h-9 px-4 font-medium flex items-center gap-2 hover:bg-[#6D69C9] hover:text-white focus:bg-[#6D69C9] focus:text-white">
+            <Plus className="h-4 w-4 text-gray-500 group-hover:text-white group-focus:text-white" /> Add to List
           </Button>
-          <Button variant="outline" className="h-9 px-4 font-medium flex items-center gap-2">
-            <Plus className="h-4 w-4" /> Add to Campaign
+          <Button variant="outline" className="group h-9 px-4 font-medium flex items-center gap-2 hover:bg-[#6D69C9] hover:text-white focus:bg-[#6D69C9] focus:text-white">
+            <Plus className="h-4 w-4 text-gray-500 group-hover:text-white group-focus:text-white" /> Add to Campaign
           </Button>
           <div className="flex-1" />
           {/* Find Leads Popover */}
-          <Popover open={isFindPopoverOpen} onOpenChange={setIsFindPopoverOpen}>
+          <Popover
+            open={isFindPopoverOpen}
+            onOpenChange={(open) => {
+              setIsFindPopoverOpen(open);
+              if (!open && findLeadsBtnRef.current) {
+                findLeadsBtnRef.current.blur();
+              }
+            }}
+          >
             <PopoverTrigger asChild>
-              <Button variant="default" className="h-9 px-6 font-semibold flex items-center gap-2 bg-[#7F57F1] text-white">
+              <Button
+                ref={findLeadsBtnRef}
+                variant="outline"
+                className="group h-11 px-8 font-semibold flex items-center justify-center gap-2 min-w-[160px] rounded-lg border border-[#7F57F1] shadow-none transition-colors duration-150 bg-white text-[#7F57F1] hover:bg-[#6D69C9] hover:text-white"
+                style={{ boxShadow: 'none' }}
+              >
                 Find Leads
               </Button>
             </PopoverTrigger>

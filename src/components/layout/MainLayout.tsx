@@ -18,6 +18,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { navItems as appNavItems } from '@/config/nav';
 import { cn } from '@/lib/utils';
+import Image from 'next/image';
 
 // UserNav Component (avatar styled for round and border as in image)
 interface UserNavProps {
@@ -183,6 +184,8 @@ const CustomBellIcon = ({ className }: { className?: string }) => (
 export default function MainLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const navItems = appNavItems;
+  const router = useRouter();
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   if (pathname === '/') {
     return <>{children}</>;
@@ -268,17 +271,45 @@ export default function MainLayout({ children }: { children: ReactNode }) {
             </div>
           </div>
 
-          {/* Right: Big Icons and Avatar */}
-          <div className="flex items-center gap-7 ml-5">
-            <Button variant="ghost" size="icon" className="h-14 w-14 p-0 hover:bg-transparent flex items-center justify-center">
-              <CustomFolderIcon className="h-9 w-9" />
+          <div className="flex items-center gap-12">
+            <Button variant="ghost" size="icon" className="hover:bg-primary/10 h-8 w-8 ml-[-8px]">
+              <Image src="/images/folder.svg" alt="Folder" width={28} height={28} className="w-7 h-7" />
               <span className="sr-only">Folder</span>
             </Button>
-            <Button variant="ghost" size="icon" className="h-14 w-14 p-0 hover:bg-transparent flex items-center justify-center">
-              <CustomBellIcon className="h-9 w-9" />
+            <Button variant="ghost" size="icon" className="hover:bg-accent/10 h-8 w-8">
+              <Image src="/images/Notification.svg" alt="Notifications" width={28} height={28} className="w-7 h-7" />
               <span className="sr-only">Notifications</span>
             </Button>
-            <UserNav />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="relative h-8 w-8 flex items-center justify-center rounded-full bg-white shadow-md hover:bg-muted focus:outline-none focus:ring-2 focus:ring-primary/50"
+                >
+                  <span className="absolute inset-0 rounded-full shadow-lg" style={{ boxShadow: '0 2px 8px 0 rgba(0,0,0,0.10)' }} />
+                  <Image src="/images/user.svg" alt="User" width={28} height={28} className="w-7 h-7 relative z-10" />
+                  <span className="sr-only">User</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-40" align="end" forceMount>
+                <DropdownMenuLabel className="font-normal">Account</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => router.push('/profile')} className="cursor-pointer">
+                  <User className="mr-2 h-4 w-4" />
+                  <span>Profile</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => router.push('/settings')} className="cursor-pointer">
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Settings</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => router.push('/')} className="cursor-pointer hover:bg-red-100 text-red-600">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Logout</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </header>
 
