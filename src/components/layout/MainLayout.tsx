@@ -1,12 +1,14 @@
+
 "use client";
 
 import Link from 'next/link';
-import { Search, ChevronDown, User, Settings, LogOut } from 'lucide-react';
+import { Search, ChevronDown, User, Settings, LogOut, Shield } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 import { AppLogo } from '@/components/AppLogo';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,7 +21,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { navItems as appNavItems } from '@/config/nav';
 import { cn } from '@/lib/utils';
 
-// UserNav Component (avatar styled for round and border as in image)
+// UserNav Component
 interface UserNavProps {
   agencyNameProp?: string | null;
   userEmailProp?: string | null;
@@ -41,6 +43,7 @@ function UserNav({ agencyNameProp, userEmailProp, agencyLogoUrlProp }: UserNavPr
         setUserEmail(parsed.contactEmail || "user@example.com");
         setAgencyLogoUrl(parsed.agencyLogoUrl);
       } catch (e) {
+        console.error("Failed to parse userProfileData from localStorage", e);
         setAgencyName("Agency Name");
         setUserEmail("user@example.com");
         setAgencyLogoUrl(null);
@@ -53,11 +56,11 @@ function UserNav({ agencyNameProp, userEmailProp, agencyLogoUrlProp }: UserNavPr
   };
 
   useEffect(() => {
-    loadProfileData();
+    loadProfileData(); // Load on mount
 
     const handleStorageChange = (event: StorageEvent) => {
       if (event.key === 'userProfileData') {
-        loadProfileData();
+        loadProfileData(); // Reload when storage changes
       }
     };
     window.addEventListener('storage', handleStorageChange);
@@ -66,6 +69,7 @@ function UserNav({ agencyNameProp, userEmailProp, agencyLogoUrlProp }: UserNavPr
     };
   }, []);
 
+
   const handleLogout = () => {
     router.push('/');
   };
@@ -73,12 +77,12 @@ function UserNav({ agencyNameProp, userEmailProp, agencyLogoUrlProp }: UserNavPr
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-12 w-12 rounded-full p-0 hover:bg-transparent">
-          <Avatar className="h-11 w-11 rounded-full border-2 border-[#e0e0e0] shadow" style={{ boxShadow: '0 1px 6px 0 #eeeeee' }}>
-            <AvatarImage src={agencyLogoUrl || "https://placehold.co/44x44.png?text=A"} alt={agencyName || "User"} />
+        <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0">
+          <Avatar className="h-9 w-9">
+            <AvatarImage src={agencyLogoUrl || "https://placehold.co/40x40.png?text=A"} alt={agencyName || "User"} data-ai-hint="logo company"/>
             <AvatarFallback>{agencyName ? agencyName.charAt(0).toUpperCase() : "U"}</AvatarFallback>
           </Avatar>
-          <ChevronDown className="h-5 w-5 absolute right-[-10px] bottom-1 text-[#bababa]" />
+          <ChevronDown className="h-4 w-4 absolute right-[-8px] bottom-0 text-muted-foreground" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>
@@ -109,28 +113,34 @@ function UserNav({ agencyNameProp, userEmailProp, agencyLogoUrlProp }: UserNavPr
   );
 }
 
-// PageTitleDisplay Component (unchanged)
+// PageTitleDisplay Component
 function PageTitleDisplay() {
   const pathname = usePathname();
   const [title, setTitle] = useState('');
 
   useEffect(() => {
-    let pageTitle = "Dashboard";
+    let pageTitle = "Dashboard"; // Default title
+
     const findNavItem = (items: typeof appNavItems, currentPath: string): string | null => {
       for (const item of items) {
+        // Check sub-items first
         if (item.subItems) {
           const subNavItemTitle = findNavItem(item.subItems, currentPath);
           if (subNavItemTitle && (currentPath === item.href || currentPath.startsWith(item.href + '/'))) return subNavItemTitle;
         }
+        // If no sub-item matched or no sub-items, return parent title if it's a closer match
         if (currentPath === item.href || (item.href !== '/' && currentPath.startsWith(item.href + '/'))) {
-          return item.title;
+            return item.title;
         }
       }
       return null;
     };
+    
+    // Sort navItems to check more specific paths first
     const sortedNavItems = [...appNavItems].sort((a, b) => b.href.length - a.href.length);
     let navItemTitle = findNavItem(sortedNavItems, pathname);
 
+    // Handle sub-item titles specifically
     for (const item of sortedNavItems) {
       if (item.subItems) {
         for (const subItem of item.subItems) {
@@ -142,6 +152,7 @@ function PageTitleDisplay() {
       }
       if (navItemTitle && (pathname === item.href || pathname.startsWith(item.href + '/'))) break;
     }
+
 
     if (navItemTitle) {
       pageTitle = navItemTitle;
@@ -156,34 +167,47 @@ function PageTitleDisplay() {
     } else if (pathname === '/') {
       pageTitle = 'Login';
     }
-
+    
     setTitle(pageTitle);
   }, [pathname]);
 
-  if (pathname === '/') return null;
+  if (pathname === '/') return null; // Don't show title on login page
 
-  return <h1 className="text-xl font-semibold text-[#424242]">{title}</h1>;
+  return <h1 className="text-xl font-semibold text-foreground">{title}</h1>;
 }
 
-// Custom Folder SVG Icon (bigger)
+// Custom Folder SVG Icon - Based on the two-tone blue folder image
 const CustomFolderIcon = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className={className}>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    className={className}
+  >
+    {/* Darker Blue Tab */}
     <path d="M9 3H4C2.89543 3 2 3.89543 2 5V8H22V7C22 5.89543 21.1046 5 20 5H11L9 3Z" fill="#4285F4"/>
+    {/* Lighter Blue Body */}
     <path d="M2 8V19C2 20.1046 2.89543 21 4 21H20C21.1046 21 22 20.1046 22 19V8H2Z" fill="#73A9FF"/>
   </svg>
 );
 
-// Custom Bell SVG Icon (bigger)
+// Custom Bell SVG Icon - Based on the accent blue bell image
 const CustomBellIcon = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className={className} fill="none">
-    <path d="M12 22C13.1046 22 14 21.1046 14 20H10C10 21.1046 10.8954 22 12 22ZM19.5 17.5C19.5 17.5 19 14.5 19 11C19 7.13401 15.866 4 12 4C8.13401 4 5 7.13401 5 11C5 14.5 4.5 17.5 4.5 17.5H19.5Z" fill="#4285F4"/>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    className={className}
+    fill="hsl(var(--accent))" // Use accent color from theme
+  >
+    <path d="M12 22C13.1046 22 14 21.1046 14 20H10C10 21.1046 10.8954 22 12 22ZM19.5 17.5C19.5 17.5 19 14.5 19 11C19 7.13401 15.866 4 12 4C8.13401 4 5 7.13401 5 11C5 14.5 4.5 17.5 4.5 17.5H19.5Z" />
   </svg>
 );
+
 
 export default function MainLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const navItems = appNavItems;
 
+  // Hide sidebar and header for login page
   if (pathname === '/') {
     return <>{children}</>;
   }
@@ -197,12 +221,18 @@ export default function MainLayout({ children }: { children: ReactNode }) {
         </div>
         <nav className="space-y-1 px-3 overflow-y-auto flex-grow">
           {navItems.map((item) => {
+            // Determine if the current path or any of its sub-paths match the item's href
             let isParentActive = pathname === item.href || pathname.startsWith(item.href + '/');
             if (item.href === '/dashboard' && pathname !== '/dashboard') {
-                isParentActive = false;
+                isParentActive = false; // Special case for dashboard, only active if path is exactly /dashboard
             }
+
+            // Determine if the item itself is active (exact match)
             const isItemExactlyActive = pathname === item.href;
+
+            // An item is considered "active" for styling if it's an exact match OR if it's a parent and the current path is under it.
             const isActiveForStyling = isItemExactlyActive || (isParentActive && item.href !== '/dashboard' && item.href.length > 1);
+
             return (
               <div key={item.title}>
                 <Link
@@ -223,7 +253,7 @@ export default function MainLayout({ children }: { children: ReactNode }) {
                       <li key={subItem.title}>
                         <Link
                           href={subItem.href}
-                          className={cn(
+                           className={cn(
                             "group flex items-center px-2 py-1.5 text-xs rounded-md transition-colors w-full",
                             pathname === subItem.href
                               ? 'text-primary-foreground font-semibold' 
@@ -245,37 +275,30 @@ export default function MainLayout({ children }: { children: ReactNode }) {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-auto">
-        {/* Top Bar - matches the reference image, with bigger icons and styled avatar */}
-        <header
-          className="sticky top-0 z-10 flex h-[56px] items-center border-b bg-white px-8"
-          style={{ boxShadow: 'none' }}
-        >
-          {/* Left: Page Title */}
-          <div className="flex items-center min-w-[180px] mr-5">
+        {/* Top Bar */}
+        <header className="sticky top-0 z-10 flex h-[60px] items-center justify-between border-b bg-card px-6 py-3">
+          <div className="flex items-center">
             <PageTitleDisplay />
           </div>
 
-          {/* Center: Search Bar */}
-          <div className="flex-1 flex justify-center">
-            <div className="relative w-full max-w-lg">
-              <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#a1a1a1]" />
-              <input
+          <div className="flex-1 flex justify-center px-4">
+            <div className="relative w-full max-w-md">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
                 type="search"
                 placeholder="search for features, settings and more"
-                className="w-full h-[40px] pl-12 pr-4 rounded-full border border-[#bdbdbd] bg-transparent text-[15px] font-normal placeholder:text-[#8d8d8d] focus:outline-none focus:ring-2 focus:ring-primary transition"
-                style={{ boxShadow: 'none' }}
+                className="w-full rounded-lg bg-background pl-10 pr-4 h-9 text-sm focus-visible:ring-primary"
               />
             </div>
           </div>
 
-          {/* Right: Big Icons and Avatar */}
-          <div className="flex items-center gap-7 ml-5">
-            <Button variant="ghost" size="icon" className="h-14 w-14 p-0 hover:bg-transparent flex items-center justify-center">
-              <CustomFolderIcon className="h-9 w-9" />
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" className="hover:bg-primary/10 h-9 w-9">
+              <CustomFolderIcon className="h-7 w-7" />
               <span className="sr-only">Folder</span>
             </Button>
-            <Button variant="ghost" size="icon" className="h-14 w-14 p-0 hover:bg-transparent flex items-center justify-center">
-              <CustomBellIcon className="h-9 w-9" />
+            <Button variant="ghost" size="icon" className="hover:bg-accent/10 h-9 w-9">
+              <CustomBellIcon className="h-7 w-7 text-accent" />
               <span className="sr-only">Notifications</span>
             </Button>
             <UserNav />
