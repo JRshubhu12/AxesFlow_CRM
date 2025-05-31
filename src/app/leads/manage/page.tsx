@@ -5,7 +5,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import sampleLeads from '../sample.json';
 import { Button } from '@/components/ui/button';
 import { useRouter, usePathname } from 'next/navigation';
-import { ChevronDown, Download } from 'lucide-react';
+import { ChevronDown, Download, Eye, Edit2, Mail, Trash2, Link2 } from 'lucide-react';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 
 const LinkedInIcon = () => (
   <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -24,6 +25,20 @@ export default function ManageLeadsPage() {
     { label: 'Find Leads', path: '/leads' },
     { label: 'Manage Leads', path: '/leads/manage' },
   ];
+
+  // Action functions (stubbed for demo)
+  const handleView = (lead) => {
+    alert(`Viewing details for: ${lead.name}`);
+  };
+  const handleEdit = (lead) => {
+    alert(`Edit feature for: ${lead.name}`);
+  };
+  const handleEmail = (lead) => {
+    window.location.href = `mailto:${lead.email}`;
+  };
+  const handleDelete = (lead) => {
+    alert(`Delete action for: ${lead.name}`);
+  };
 
   return (
     <MainLayout>
@@ -117,7 +132,54 @@ export default function ManageLeadsPage() {
                       <span className="text-sm font-semibold">{lead.status || lead["Status"] || '-'}</span>
                     </TableCell>
                     <TableCell className="py-1 px-2 border-r border-[#E1E1F0] align-middle">
-                      <Button className="bg-[#7F57F1] text-white px-6 py-1 rounded-md text-sm font-medium">View</Button>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            className="bg-[#7F57F1] text-white px-6 py-1 rounded-md text-sm font-medium"
+                            variant="default"
+                          >
+                            Actions
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="p-2 w-48">
+                          <div className="flex flex-col gap-1">
+                            <button
+                              className="flex items-center gap-2 px-3 py-2 hover:bg-[#F7F7FA] rounded text-sm w-full text-left"
+                              onClick={() => handleView(lead)}
+                            >
+                              <Eye className="h-4 w-4" /> View Details
+                            </button>
+                            <button
+                              className="flex items-center gap-2 px-3 py-2 hover:bg-[#F7F7FA] rounded text-sm w-full text-left"
+                              onClick={() => handleEdit(lead)}
+                            >
+                              <Edit2 className="h-4 w-4" /> Edit Lead
+                            </button>
+                            <button
+                              className="flex items-center gap-2 px-3 py-2 hover:bg-[#F7F7FA] rounded text-sm w-full text-left"
+                              onClick={() => handleEmail(lead)}
+                            >
+                              <Mail className="h-4 w-4" /> Send Email
+                            </button>
+                            {lead.linkedin_url && (
+                              <a
+                                href={lead.linkedin_url}
+                                className="flex items-center gap-2 px-3 py-2 hover:bg-[#F7F7FA] rounded text-sm w-full text-left"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                <Link2 className="h-4 w-4" /> View LinkedIn
+                              </a>
+                            )}
+                            <button
+                              className="flex items-center gap-2 px-3 py-2 hover:bg-red-50 rounded text-sm w-full text-left text-red-600"
+                              onClick={() => handleDelete(lead)}
+                            >
+                              <Trash2 className="h-4 w-4" /> Delete Lead
+                            </button>
+                          </div>
+                        </PopoverContent>
+                      </Popover>
                     </TableCell>
                   </TableRow>
                 ))}
