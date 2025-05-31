@@ -15,6 +15,18 @@ const LinkedInIcon = () => (
   </svg>
 );
 
+// Utility for color based on status
+const getStatusColor = (status: string) => {
+  switch (status?.toLowerCase()) {
+    case "pending":
+      return "bg-yellow-100 text-yellow-800 border-yellow-300";
+    case "active":
+      return "bg-green-100 text-green-800 border-green-300";
+    default:
+      return "bg-gray-100 text-gray-700 border-gray-200";
+  }
+};
+
 export default function ManageLeadsPage() {
   const router = useRouter();
   const pathname = usePathname();
@@ -57,28 +69,31 @@ export default function ManageLeadsPage() {
         </div>
         {/* Manage Leads Table UI */}
         {/* Top actions row as in screenshot */}
-        <div className="flex items-center gap-4 px-10 pt-2 pb-4">
-          <div className="flex items-center border rounded-md px-3 py-2 bg-white w-64">
-            <svg className="h-5 w-5 text-gray-400 mr-2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
-            <input
-              type="text"
-              placeholder="Search"
-              className="border-0 bg-transparent p-0 h-6 w-full text-sm focus:ring-0 focus:outline-none"
-            />
+        <div className="flex items-center gap-4 px-10 pt-2 pb-4 justify-between">
+          {/* Left controls */}
+          <div className="flex items-center gap-4">
+            <div className="flex items-center border rounded-md px-3 py-2 bg-white w-64">
+              <svg className="h-5 w-5 text-gray-400 mr-2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+              <input
+                type="text"
+                placeholder="Search"
+                className="border-0 bg-transparent p-0 h-6 w-full text-sm focus:ring-0 focus:outline-none"
+              />
+            </div>
+            <Button variant="outline" className="group flex items-center gap-2 hover:bg-[#6D69C9] hover:text-white focus:bg-[#6D69C9] focus:text-white">
+              {/* List View icon (grid) */}
+              <svg className="h-5 w-5 text-gray-500 group-hover:text-white group-focus:text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /></svg>
+              List View
+              <ChevronDown className="h-4 w-4 ml-1 text-gray-500 group-hover:text-white group-focus:text-white" />
+            </Button>
+            <Button variant="outline" className="flex items-center gap-2 hover:bg-[#6D69C9] hover:text-white focus:bg-[#6D69C9] focus:text-white">
+              Newest
+              <ChevronDown className="h-4 w-4 ml-1 text-gray-500 group-hover:text-white group-focus:text-white" />
+            </Button>
           </div>
-          <Button variant="outline" className="flex items-center gap-2">
-            {/* List View icon (grid) */}
-            <svg className="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /></svg>
-            List View
-            <ChevronDown className="h-4 w-4 ml-1 text-gray-500" />
-          </Button>
-          <Button variant="outline" className="flex items-center gap-2">
-            Newest
-            <ChevronDown className="h-4 w-4 ml-1 text-gray-500" />
-          </Button>
-          <div className="flex-1" />
-          <Button variant="outline" className="flex items-center gap-2">
-            <Download className="h-5 w-5 text-gray-500" />
+          {/* Right control: Download CSV */}
+          <Button variant="outline" className="group flex items-center gap-2 hover:bg-[#6D69C9] hover:text-white focus:bg-[#6D69C9] focus:text-white">
+            <Download className="h-5 w-5 text-gray-500 group-hover:text-white group-focus:text-white" />
             Download CSV
           </Button>
         </div>
@@ -96,93 +111,104 @@ export default function ManageLeadsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {leads.map((lead, idx) => (
-                  <TableRow key={idx} className="border-b border-[#E1E1F0] hover:bg-[#F7F7FA]">
-                    <TableCell className="w-12 px-3">
-                      <input type="checkbox" />
-                    </TableCell>
-                    <TableCell className="py-1 px-2 border-r border-[#E1E1F0] align-middle">
-                      <div className="flex items-center">
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                          {lead.profilePic && (
-                            <span className="inline-block h-8 w-8 rounded-full overflow-hidden border border-[#E1E1F0] bg-gray-100">
-                              <img
-                                src={lead.profilePic}
-                                alt={lead.name}
-                                className="h-8 w-8 object-cover"
-                              />
-                            </span>
-                          )}
-                          <span className="font-medium text-sm text-[#222] whitespace-nowrap text-ellipsis overflow-hidden block">
-                            {lead.name}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-center min-w-[32px] pl-2">
-                          <LinkedInIcon />
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="py-1 px-2 border-r border-[#E1E1F0] align-middle">
-                      <span className="text-sm">{lead.title || lead["Title"] || '-'}</span>
-                    </TableCell>
-                    <TableCell className="py-1 px-2 border-r border-[#E1E1F0] align-middle">
-                      <span className="text-sm">{lead.company || lead["Company"] || '-'}</span>
-                    </TableCell>
-                    <TableCell className="py-1 px-2 border-r border-[#E1E1F0] align-middle">
-                      <span className="text-sm font-semibold">{lead.status || lead["Status"] || '-'}</span>
-                    </TableCell>
-                    <TableCell className="py-1 px-2 border-r border-[#E1E1F0] align-middle">
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            className="bg-[#7F57F1] text-white px-6 py-1 rounded-md text-sm font-medium"
-                            variant="default"
-                          >
-                            Actions
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="p-2 w-48">
-                          <div className="flex flex-col gap-1">
-                            <button
-                              className="flex items-center gap-2 px-3 py-2 hover:bg-[#F7F7FA] rounded text-sm w-full text-left"
-                              onClick={() => handleView(lead)}
-                            >
-                              <Eye className="h-4 w-4" /> View Details
-                            </button>
-                            <button
-                              className="flex items-center gap-2 px-3 py-2 hover:bg-[#F7F7FA] rounded text-sm w-full text-left"
-                              onClick={() => handleEdit(lead)}
-                            >
-                              <Edit2 className="h-4 w-4" /> Edit Lead
-                            </button>
-                            <button
-                              className="flex items-center gap-2 px-3 py-2 hover:bg-[#F7F7FA] rounded text-sm w-full text-left"
-                              onClick={() => handleEmail(lead)}
-                            >
-                              <Mail className="h-4 w-4" /> Send Email
-                            </button>
-                            {lead.linkedin_url && (
-                              <a
-                                href={lead.linkedin_url}
-                                className="flex items-center gap-2 px-3 py-2 hover:bg-[#F7F7FA] rounded text-sm w-full text-left"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                              >
-                                <Link2 className="h-4 w-4" /> View LinkedIn
-                              </a>
+                {leads.map((lead, idx) => {
+                  // Support both string and object keys for status
+                  const status = lead.status || lead["Status"] || "";
+                  // Color for status
+                  let statusColor = getStatusColor(status);
+                  return (
+                    <TableRow key={idx} className="border-b border-[#E1E1F0] hover:bg-[#F7F7FA]">
+                      <TableCell className="w-12 px-3">
+                        <input type="checkbox" />
+                      </TableCell>
+                      <TableCell className="py-1 px-2 border-r border-[#E1E1F0] align-middle">
+                        <div className="flex items-center">
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            {lead.profilePic && (
+                              <span className="inline-block h-8 w-8 rounded-full overflow-hidden border border-[#E1E1F0] bg-gray-100">
+                                <img
+                                  src={lead.profilePic}
+                                  alt={lead.name}
+                                  className="h-8 w-8 object-cover"
+                                />
+                              </span>
                             )}
-                            <button
-                              className="flex items-center gap-2 px-3 py-2 hover:bg-red-50 rounded text-sm w-full text-left text-red-600"
-                              onClick={() => handleDelete(lead)}
-                            >
-                              <Trash2 className="h-4 w-4" /> Delete Lead
-                            </button>
+                            <span className="font-medium text-sm text-[#222] whitespace-nowrap text-ellipsis overflow-hidden block">
+                              {lead.name}
+                            </span>
                           </div>
-                        </PopoverContent>
-                      </Popover>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                          <div className="flex items-center justify-center min-w-[32px] pl-2">
+                            <LinkedInIcon />
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-1 px-2 border-r border-[#E1E1F0] align-middle">
+                        <span className="text-sm">{lead.title || lead["Title"] || '-'}</span>
+                      </TableCell>
+                      <TableCell className="py-1 px-2 border-r border-[#E1E1F0] align-middle">
+                        <span className="text-sm">{lead.company || lead["Company"] || '-'}</span>
+                      </TableCell>
+                      <TableCell className="py-1 px-2 border-r border-[#E1E1F0] align-middle">
+                        <span
+                          className={`text-sm font-semibold rounded border px-2 py-1 inline-block ${statusColor}`}
+                        >
+                          {status}
+                        </span>
+                      </TableCell>
+                      <TableCell className="py-1 px-2 border-r border-[#E1E1F0] align-middle">
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              className="px-3 py-1 rounded text-xs font-medium h-7 min-w-0 hover:bg-[#5a56a3] focus:bg-[#6D69C9]"
+                              style={{ backgroundColor: "#6D69C9", color: "white" }}
+                              variant="default"
+                            >
+                              Actions
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="p-2 w-48">
+                            <div className="flex flex-col gap-1">
+                              <button
+                                className="flex items-center gap-2 px-3 py-2 hover:bg-[#F7F7FA] rounded text-sm w-full text-left"
+                                onClick={() => handleView(lead)}
+                              >
+                                <Eye className="h-4 w-4" /> View Details
+                              </button>
+                              <button
+                                className="flex items-center gap-2 px-3 py-2 hover:bg-[#F7F7FA] rounded text-sm w-full text-left"
+                                onClick={() => handleEdit(lead)}
+                              >
+                                <Edit2 className="h-4 w-4" /> Edit Lead
+                              </button>
+                              <button
+                                className="flex items-center gap-2 px-3 py-2 hover:bg-[#F7F7FA] rounded text-sm w-full text-left"
+                                onClick={() => handleEmail(lead)}
+                              >
+                                <Mail className="h-4 w-4" /> Send Email
+                              </button>
+                              {lead.linkedin_url && (
+                                <a
+                                  href={lead.linkedin_url}
+                                  className="flex items-center gap-2 px-3 py-2 hover:bg-[#F7F7FA] rounded text-sm w-full text-left"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  <Link2 className="h-4 w-4" /> View LinkedIn
+                                </a>
+                              )}
+                              <button
+                                className="flex items-center gap-2 px-3 py-2 hover:bg-red-50 rounded text-sm w-full text-left text-red-600"
+                                onClick={() => handleDelete(lead)}
+                              >
+                                <Trash2 className="h-4 w-4" /> Delete Lead
+                              </button>
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
