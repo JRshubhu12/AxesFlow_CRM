@@ -57,157 +57,7 @@ export interface Lead {
 
 // Example initial data (use your full previous array for real usage)
 const initialLeadsData: Lead[] = [
-  {
-    id: "1",
-    name: "Ronald Richards",
-    company: "Aster Medical",
-    email: "ronaldrichards@gmail.com",
-    status: "New",
-    lastContact: "2024-05-30T09:00:00.000Z",
-    website: "https://astermedical.com",
-    title: "Founder & CEO",
-    phone: "(219) 555-0114",
-    avatar: "https://randomuser.me/api/portraits/men/1.jpg",
-    location: "New York, NY",
-    industry: "Healthcare",
-    linkedin_url: "https://linkedin.com/in/ronaldrichards"
-  },
-  {
-    id: "2",
-    name: "Ronald Richards",
-    company: "Aster Medical",
-    email: "ronaldrichards@gmail.com",
-    status: "New",
-    lastContact: "2024-05-30T09:00:00.000Z",
-    website: "https://astermedical.com",
-    title: "Founder & CEO",
-    phone: "(219) 555-0114",
-    avatar: "https://randomuser.me/api/portraits/men/1.jpg",
-    location: "New York, NY",
-    industry: "Healthcare",
-    linkedin_url: "https://linkedin.com/in/ronaldrichards"
-  },
-  {
-    id: "3",
-    name: "Ronald Richards",
-    company: "Aster Medical",
-    email: "ronaldrichards@gmail.com",
-    status: "New",
-    lastContact: "2024-05-30T09:00:00.000Z",
-    website: "https://astermedical.com",
-    title: "Founder & CEO",
-    phone: "(219) 555-0114",
-    avatar: "https://randomuser.me/api/portraits/men/1.jpg",
-    location: "New York, NY",
-    industry: "Healthcare",
-    linkedin_url: "https://linkedin.com/in/ronaldrichards"
-  },
-  {
-    id: "4",
-    name: "Ronald Richards",
-    company: "Aster Medical",
-    email: "ronaldrichards@gmail.com",
-    status: "New",
-    lastContact: "2024-05-30T09:00:00.000Z",
-    website: "https://astermedical.com",
-    title: "Founder & CEO",
-    phone: "(219) 555-0114",
-    avatar: "https://randomuser.me/api/portraits/men/1.jpg",
-    location: "New York, NY",
-    industry: "Healthcare",
-    linkedin_url: "https://linkedin.com/in/ronaldrichards"
-  },
-  {
-    id: "5",
-    name: "Ronald Richards",
-    company: "Aster Medical",
-    email: "ronaldrichards@gmail.com",
-    status: "New",
-    lastContact: "2024-05-30T09:00:00.000Z",
-    website: "https://astermedical.com",
-    title: "Founder & CEO",
-    phone: "(219) 555-0114",
-    avatar: "https://randomuser.me/api/portraits/men/1.jpg",
-    location: "New York, NY",
-    industry: "Healthcare",
-    linkedin_url: "https://linkedin.com/in/ronaldrichards"
-  },
-  {
-    id: "6",
-    name: "Ronald Richards",
-    company: "Aster Medical",
-    email: "ronaldrichards@gmail.com",
-    status: "New",
-    lastContact: "2024-05-30T09:00:00.000Z",
-    website: "https://astermedical.com",
-    title: "Founder & CEO",
-    phone: "(219) 555-0114",
-    avatar: "https://randomuser.me/api/portraits/men/1.jpg",
-    location: "New York, NY",
-    industry: "Healthcare",
-    linkedin_url: "https://linkedin.com/in/ronaldrichards"
-  },
-  {
-    id: "7",
-    name: "Courtney Henry",
-    company: "Big Kahuna Burger Ltd.",
-    email: "courtneyhenry@gmail.com",
-    status: "Contacted",
-    lastContact: "2024-05-29T09:00:00.000Z",
-    website: "",
-    title: "CEO",
-    phone: "(907) 555-0101",
-    avatar: "https://randomuser.me/api/portraits/women/1.jpg",
-    location: "San Francisco, CA",
-    industry: "Food & Beverage",
-    linkedin_url: "https://linkedin.com/in/courtneyhenry"
-  },
-  {
-    id: "8",
-    name: "Ronald Richards",
-    company: "Aster Medical",
-    email: "ronaldrichards@gmail.com",
-    status: "New",
-    lastContact: "2024-05-30T09:00:00.000Z",
-    website: "https://astermedical.com",
-    title: "Founder & CEO",
-    phone: "(219) 555-0114",
-    avatar: "https://randomuser.me/api/portraits/men/1.jpg",
-    location: "New York, NY",
-    industry: "Healthcare",
-    linkedin_url: "https://linkedin.com/in/ronaldrichards"
-  },
-  {
-    id: "9",
-    name: "Ronald Richards",
-    company: "Aster Medical",
-    email: "ronaldrichards@gmail.com",
-    status: "New",
-    lastContact: "2024-05-30T09:00:00.000Z",
-    website: "https://astermedical.com",
-    title: "Founder & CEO",
-    phone: "(219) 555-0114",
-    avatar: "https://randomuser.me/api/portraits/men/1.jpg",
-    location: "New York, NY",
-    industry: "Healthcare",
-    linkedin_url: "https://linkedin.com/in/ronaldrichards"
-  },
-  {
-    id: "10",
-    name: "Ronald Richards",
-    company: "Aster Medical",
-    email: "ronaldrichards@gmail.com",
-    status: "New",
-    lastContact: "2024-05-30T09:00:00.000Z",
-    website: "https://astermedical.com",
-    title: "Founder & CEO",
-    phone: "(219) 555-0114",
-    avatar: "https://randomuser.me/api/portraits/men/1.jpg",
-    location: "New York, NY",
-    industry: "Healthcare",
-    linkedin_url: "https://linkedin.com/in/ronaldrichards"
-  },
-  // ... add the rest of your leads here ...
+  // ... your leads here ...
 ];
 
 export default function LeadsPage() {
@@ -229,6 +79,43 @@ export default function LeadsPage() {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [isFindPopoverOpen, setIsFindPopoverOpen] = useState(false);
 
+  // Search filter state
+  const [filters, setFilters] = useState<{
+    name: string;
+    title: string[];
+    location: string[];
+    industry: string;
+    employeeSize: string[];
+    revenue: string[];
+    linkedinOrTwitter: string;
+  }>({
+    name: "",
+    title: [],
+    location: [],
+    industry: "",
+    employeeSize: [],
+    revenue: [],
+    linkedinOrTwitter: "",
+  });
+
+  // Helper functions for chips
+  const addFilterChip = (type: keyof typeof filters, value: string) => {
+    if (Array.isArray(filters[type])) {
+      setFilters(f => ({
+        ...f,
+        [type]: (f[type] as string[]).includes(value) ? f[type] : [...(f[type] as string[]), value],
+      }));
+    }
+  };
+  const removeFilterChip = (type: keyof typeof filters, value: string) => {
+    if (Array.isArray(filters[type])) {
+      setFilters(f => ({
+        ...f,
+        [type]: (f[type] as string[]).filter(v => v !== value),
+      }));
+    }
+  };
+
   function handleSort(field: string) {
     if (sortField === field) {
       setSortDir(dir => dir === "asc" ? "desc" : "asc");
@@ -238,7 +125,24 @@ export default function LeadsPage() {
     }
   }
 
-  const sortedLeads = [...leads].sort((a, b) => {
+  // Main filtering logic
+  const filteredLeads = leads.filter((lead: any) => {
+    // Name filter
+    if (filters.name && !lead.name?.toLowerCase().includes(filters.name.toLowerCase())) return false;
+    // Title filter
+    if (filters.title.length > 0 && !filters.title.some(t => lead.title?.toLowerCase().includes(t.toLowerCase()))) return false;
+    // Location filter
+    if (filters.location.length > 0 && !filters.location.some(l => lead.location?.toLowerCase().includes(l.toLowerCase()))) return false;
+    // Industry filter
+    if (filters.industry && !lead.industry?.toLowerCase().includes(filters.industry.toLowerCase())) return false;
+    // Employee size (assume you have a field for this, else skip or adjust)
+    // Revenue (assume you have a field for this, else skip or adjust)
+    // LinkedIn/Twitter filter (search linkedin_url or twitter_url fields)
+    if (filters.linkedinOrTwitter && !((lead.linkedin_url || "").toLowerCase().includes(filters.linkedinOrTwitter.toLowerCase()) || (lead.twitter_url || "").toLowerCase().includes(filters.linkedinOrTwitter.toLowerCase()))) return false;
+    return true;
+  });
+
+  const sortedLeads = [...filteredLeads].sort((a, b) => {
     let valA = (a[sortField] || "") as string;
     let valB = (b[sortField] || "") as string;
     return sortDir === "asc" ? valA.localeCompare(valB) : valB.localeCompare(valA);
@@ -248,6 +152,33 @@ export default function LeadsPage() {
 
   // Remove the profilePic (or similar) and status column from the columns array before rendering the table
   const filteredColumns = columns.filter(col => col.toLowerCase() !== 'profilepic' && col.toLowerCase() !== 'profile picture' && col.toLowerCase() !== 'avatar' && col.toLowerCase() !== 'status');
+
+  // Input handlers for filters
+  const handleInputChange = (type: keyof typeof filters, value: string) => {
+    setFilters(f => ({
+      ...f,
+      [type]: value,
+    }));
+  };
+
+  // For chips: in real app, use autocomplete/select. Here, fake chips for demo.
+  // Example options
+  const titleOptions = ["Founder", "CEO", "CTO", "Manager"];
+  const locationOptions = ["USA", "India", "UK", "New York, NY", "San Francisco, CA"];
+  const employeeSizeOptions = ["0-25", "25-100", "100-500"];
+  const revenueOptions = ["$1M - $10M", "$10M - $50M"];
+
+  function handleClearFilters() {
+    setFilters({
+      name: "",
+      title: [],
+      location: [],
+      industry: "",
+      employeeSize: [],
+      revenue: [],
+      linkedinOrTwitter: "",
+    });
+  }
 
   return (
     <MainLayout>
@@ -305,15 +236,29 @@ export default function LeadsPage() {
                 {/* Name */}
                 <div className="flex items-center border rounded-lg px-3 py-2 bg-[#FAFAFB]">
                   <User className="h-5 w-5 text-muted-foreground mr-2" />
-                  <Input placeholder="Name" className="border-0 bg-transparent p-0 h-7 focus:ring-0" />
+                  <Input
+                    placeholder="Name"
+                    className="border-0 bg-transparent p-0 h-7 focus:ring-0"
+                    value={filters.name}
+                    onChange={e => handleInputChange("name", e.target.value)}
+                  />
                 </div>
                 {/* Title */}
                 <div className="flex items-center border rounded-lg px-3 py-2 bg-[#FAFAFB]">
                   <Briefcase className="h-5 w-5 text-muted-foreground mr-2" />
                   <div className="flex flex-wrap gap-1 flex-1">
-                    {/* Example selected chips */}
-                    <span className="bg-[#E5E7EB] text-[#222] rounded-full px-2 py-0.5 text-xs flex items-center">Founder <X className="ml-1 h-3 w-3 cursor-pointer" /></span>
-                    <span className="bg-[#E5E7EB] text-[#222] rounded-full px-2 py-0.5 text-xs flex items-center">CEO <X className="ml-1 h-3 w-3 cursor-pointer" /></span>
+                    {filters.title.map(t => (
+                      <span key={t} className="bg-[#E5E7EB] text-[#222] rounded-full px-2 py-0.5 text-xs flex items-center">
+                        {t}
+                        <X className="ml-1 h-3 w-3 cursor-pointer" onClick={() => removeFilterChip("title", t)} />
+                      </span>
+                    ))}
+                    {/* Demo: Add buttons for titles */}
+                    {titleOptions.filter(opt => !filters.title.includes(opt)).map(opt => (
+                      <button key={opt} className="bg-[#F5F5F7] rounded-full px-2 py-0.5 text-xs border ml-1" type="button" onClick={() => addFilterChip("title", opt)}>
+                        {opt}
+                      </button>
+                    ))}
                   </div>
                   <ChevronDown className="ml-auto h-4 w-4 text-muted-foreground" />
                 </div>
@@ -321,22 +266,47 @@ export default function LeadsPage() {
                 <div className="flex items-center border rounded-lg px-3 py-2 bg-[#FAFAFB]">
                   <MapPin className="h-5 w-5 text-muted-foreground mr-2" />
                   <div className="flex flex-wrap gap-1 flex-1">
-                    <span className="bg-[#E5E7EB] text-[#222] rounded-full px-2 py-0.5 text-xs flex items-center">USA <X className="ml-1 h-3 w-3 cursor-pointer" /></span>
+                    {filters.location.map(loc => (
+                      <span key={loc} className="bg-[#E5E7EB] text-[#222] rounded-full px-2 py-0.5 text-xs flex items-center">
+                        {loc}
+                        <X className="ml-1 h-3 w-3 cursor-pointer" onClick={() => removeFilterChip("location", loc)} />
+                      </span>
+                    ))}
+                    {/* Demo: Add buttons for locations */}
+                    {locationOptions.filter(opt => !filters.location.includes(opt)).map(opt => (
+                      <button key={opt} className="bg-[#F5F5F7] rounded-full px-2 py-0.5 text-xs border ml-1" type="button" onClick={() => addFilterChip("location", opt)}>
+                        {opt}
+                      </button>
+                    ))}
                   </div>
                   <ChevronDown className="ml-auto h-4 w-4 text-muted-foreground" />
                 </div>
                 {/* Industry */}
                 <div className="flex items-center border rounded-lg px-3 py-2 bg-[#FAFAFB]">
                   <Building2 className="h-5 w-5 text-muted-foreground mr-2" />
-                  <span className="text-muted-foreground flex-1">Industry</span>
+                  <Input
+                    placeholder="Industry"
+                    className="border-0 bg-transparent p-0 h-7 focus:ring-0"
+                    value={filters.industry}
+                    onChange={e => handleInputChange("industry", e.target.value)}
+                  />
                   <ChevronDown className="ml-auto h-4 w-4 text-muted-foreground" />
                 </div>
                 {/* Employee Size */}
                 <div className="flex items-center border rounded-lg px-3 py-2 bg-[#FAFAFB]">
                   <UsersIcon className="h-5 w-5 text-muted-foreground mr-2" />
                   <div className="flex flex-wrap gap-1 flex-1">
-                    <span className="bg-[#E5E7EB] text-[#222] rounded-full px-2 py-0.5 text-xs flex items-center">0-25 <X className="ml-1 h-3 w-3 cursor-pointer" /></span>
-                    <span className="bg-[#E5E7EB] text-[#222] rounded-full px-2 py-0.5 text-xs flex items-center">25-100 <X className="ml-1 h-3 w-3 cursor-pointer" /></span>
+                    {filters.employeeSize.map(s => (
+                      <span key={s} className="bg-[#E5E7EB] text-[#222] rounded-full px-2 py-0.5 text-xs flex items-center">
+                        {s}
+                        <X className="ml-1 h-3 w-3 cursor-pointer" onClick={() => removeFilterChip("employeeSize", s)} />
+                      </span>
+                    ))}
+                    {employeeSizeOptions.filter(opt => !filters.employeeSize.includes(opt)).map(opt => (
+                      <button key={opt} className="bg-[#F5F5F7] rounded-full px-2 py-0.5 text-xs border ml-1" type="button" onClick={() => addFilterChip("employeeSize", opt)}>
+                        {opt}
+                      </button>
+                    ))}
                   </div>
                   <ChevronDown className="ml-auto h-4 w-4 text-muted-foreground" />
                 </div>
@@ -344,49 +314,35 @@ export default function LeadsPage() {
                 <div className="flex items-center border rounded-lg px-3 py-2 bg-[#FAFAFB]">
                   <DollarSign className="h-5 w-5 text-muted-foreground mr-2" />
                   <div className="flex flex-wrap gap-1 flex-1">
-                    <span className="bg-[#E5E7EB] text-[#222] rounded-full px-2 py-0.5 text-xs flex items-center">$1M - $10M <X className="ml-1 h-3 w-3 cursor-pointer" /></span>
+                    {filters.revenue.map(r => (
+                      <span key={r} className="bg-[#E5E7EB] text-[#222] rounded-full px-2 py-0.5 text-xs flex items-center">
+                        {r}
+                        <X className="ml-1 h-3 w-3 cursor-pointer" onClick={() => removeFilterChip("revenue", r)} />
+                      </span>
+                    ))}
+                    {revenueOptions.filter(opt => !filters.revenue.includes(opt)).map(opt => (
+                      <button key={opt} className="bg-[#F5F5F7] rounded-full px-2 py-0.5 text-xs border ml-1" type="button" onClick={() => addFilterChip("revenue", opt)}>
+                        {opt}
+                      </button>
+                    ))}
                   </div>
-                  <ChevronDown className="ml-auto h-4 w-4 text-muted-foreground" />
-                </div>
-                {/* Keyword Filter */}
-                <div className="flex items-center border rounded-lg px-3 py-2 bg-[#FAFAFB]">
-                  <Settings className="h-5 w-5 text-muted-foreground mr-2" />
-                  <span className="text-muted-foreground flex-1">Keyword Filter</span>
-                  <ChevronDown className="ml-auto h-4 w-4 text-muted-foreground" />
-                </div>
-                {/* Education */}
-                <div className="flex items-center border rounded-lg px-3 py-2 bg-[#FAFAFB]">
-                  <GraduationCap className="h-5 w-5 text-muted-foreground mr-2" />
-                  <span className="text-muted-foreground flex-1">Education</span>
-                  <ChevronDown className="ml-auto h-4 w-4 text-muted-foreground" />
-                </div>
-                {/* Contact Info */}
-                <div className="flex items-center border rounded-lg px-3 py-2 bg-[#FAFAFB]">
-                  <AtSign className="h-5 w-5 text-muted-foreground mr-2" />
-                  <span className="text-muted-foreground flex-1">Contact Info</span>
                   <ChevronDown className="ml-auto h-4 w-4 text-muted-foreground" />
                 </div>
                 {/* LinkedIn URL or Twitter */}
                 <div className="flex items-center border rounded-lg px-3 py-2 bg-[#FAFAFB]">
                   <Link2 className="h-5 w-5 text-muted-foreground mr-2" />
-                  <Input placeholder="LinkedIn URL or Twitter" className="border-0 bg-transparent p-0 h-7 focus:ring-0" />
+                  <Input
+                    placeholder="LinkedIn URL or Twitter"
+                    className="border-0 bg-transparent p-0 h-7 focus:ring-0"
+                    value={filters.linkedinOrTwitter}
+                    onChange={e => handleInputChange("linkedinOrTwitter", e.target.value)}
+                  />
                 </div>
-                {/* Skills */}
-                <div className="flex items-center border rounded-lg px-3 py-2 bg-[#FAFAFB]">
-                  <Layers className="h-5 w-5 text-muted-foreground mr-2" />
-                  <span className="text-muted-foreground flex-1">Skills</span>
-                  <ChevronDown className="ml-auto h-4 w-4 text-muted-foreground" />
-                </div>
-                {/* Department */}
-                <div className="flex items-center border rounded-lg px-3 py-2 bg-[#FAFAFB]">
-                  <UsersIcon className="h-5 w-5 text-muted-foreground mr-2" />
-                  <span className="text-muted-foreground flex-1">Department</span>
-                  <ChevronDown className="ml-auto h-4 w-4 text-muted-foreground" />
-                </div>
+                {/* Other filters, skills, department etc, can be added similarly */}
               </div>
               <div className="flex gap-2 px-4 py-3 border-t mt-2">
-                <Button variant="outline" className="w-1/2 border-destructive text-destructive hover:bg-destructive/10" onClick={() => setIsFindPopoverOpen(false)}>
-                  Clear (8)
+                <Button variant="outline" className="w-1/2 border-destructive text-destructive hover:bg-destructive/10" onClick={handleClearFilters}>
+                  Clear ({Object.values(filters).some(f => Array.isArray(f) ? f.length : f) ? Object.values(filters).filter(f => Array.isArray(f) ? f.length : f).length : 0})
                 </Button>
                 <Button className="w-1/2 bg-[#7F57F1] text-white font-semibold" onClick={() => setIsFindPopoverOpen(false)}>
                   Find Leads
@@ -416,7 +372,7 @@ export default function LeadsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {leads.length === 0 ? (
+                {sortedLeads.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={filteredColumns.length} className="py-8 text-center text-muted-foreground">
                       No leads found.
