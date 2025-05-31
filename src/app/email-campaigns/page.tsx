@@ -1,4 +1,3 @@
-
 "use client";
 
 import MainLayout from '@/components/layout/MainLayout';
@@ -11,11 +10,13 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Sparkles, Copy, Download, AlertTriangle, ChevronRight, Bookmark, Target, Mail, Send } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import sampleEmail from './sample_email.json';
+import { TypeAnimation } from 'react-type-animation';
 
 // --- Form Validation Schema ---
 const campaignSchema = z.object({
@@ -34,11 +35,17 @@ const campaignSchema = z.object({
 
 type CampaignFormValues = z.infer<typeof campaignSchema>;
 
+// Remove fetch polyfill for Node.js (not needed with Next.js 13+)
+
 export default function EmailCampaignsPage() {
   const { toast } = useToast();
   const [generatedCampaignText, setGeneratedCampaignText] = useState<string | null>(null);
+  const [displayedText, setDisplayedText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [activeTab, setActiveTab] = useState('preview');
+  const typingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const iRef = useRef(0);
 
   const form = useForm<CampaignFormValues>({
     resolver: zodResolver(campaignSchema),
@@ -51,10 +58,38 @@ export default function EmailCampaignsPage() {
     },
   });
 
+  // Typing animation effect for Plain Text tab only, with correct handling for intervals and index
+  useEffect(() => {
+    if (generatedCampaignText && !isLoading && activeTab === 'plaintext') {
+      setDisplayedText('');
+      iRef.current = 0;
+      const chars = Array.from(generatedCampaignText); // Always use generatedCampaignText
+      if (typingIntervalRef.current) clearInterval(typingIntervalRef.current);
+      typingIntervalRef.current = setInterval(() => {
+        setDisplayedText((prev) => {
+          if (iRef.current >= chars.length) {
+            if (typingIntervalRef.current) clearInterval(typingIntervalRef.current);
+            return prev;
+          }
+          const next = prev + chars[iRef.current];
+          iRef.current++;
+          return next;
+        });
+      }, 12);
+      return () => {
+        if (typingIntervalRef.current) clearInterval(typingIntervalRef.current);
+      };
+    } else {
+      setDisplayedText(generatedCampaignText || '');
+      if (typingIntervalRef.current) clearInterval(typingIntervalRef.current);
+    }
+  }, [generatedCampaignText, isLoading, activeTab]);
+
   const onSubmit = async (data: CampaignFormValues) => {
     setIsLoading(true);
     setGeneratedCampaignText(null);
     setProgress(0);
+    setActiveTab('plaintext'); // Switch to Plain Text tab on generate
 
     // Simulate progress updates
     const interval = setInterval(() => {
@@ -67,83 +102,29 @@ export default function EmailCampaignsPage() {
       });
     }, 300);
 
-    // Simulate AI call delay
-    await new Promise(resolve => setTimeout(resolve, 2500));
+    // Simulate delay
+    await new Promise(resolve => setTimeout(resolve, 1200));
 
-    // Generate more realistic placeholder content based on inputs
-    const campaignExamples = {
-      professional: `Subject: Elevating ${data.targetIndustry} Operations Through Strategic Partnership
-
-Dear [First Name],
-
-In today's competitive ${data.targetIndustry} landscape, achieving ${data.campaignGoal} requires innovative solutions. Our team at AxesFlow has helped companies like yours overcome similar challenges through:
-
-${data.messageTemplates.split('\n').filter(Boolean).slice(0, 3).map(point => `• ${point}`).join('\n')}
-
-I'd welcome the opportunity to discuss how we might support your objectives. Would you be available for a brief call next week?
-
-Best regards,
-[Your Name]
-[Your Position]
-AxesFlow Solutions`,
-
-      friendly: `Hey [First Name],
-
-I noticed your work in ${data.targetIndustry} and thought you might find this interesting!
-
-We've been helping businesses like yours ${data.campaignGoal} with solutions that:
-${data.messageTemplates.split('\n').filter(Boolean).slice(0, 2).map(point => `- ${point}`).join('\n')}
-
-No pressure at all, but if you'd like to chat about how this could work for you, I'd be happy to set up a quick call. Let me know what you think!
-
-Cheers,
-[Your Name]
-[Your Company]`,
-
-      persuasive: `Subject: Last Chance to Transform Your ${data.targetIndustry} Results!
-
-Hi [First Name],
-
-Time is running out to ${data.campaignGoal} - but we can help! 
-
-Here's what our clients are saying:
-"${data.messageTemplates.split('\n')[0] || 'Transformative results in record time'}"
-
-Limited availability this month - book your consultation now before spots fill up!
-
-[Your Name]
-[Your Company]
-[Call-to-Action Button]`,
-
-      urgent: `Subject: Action Required: Critical ${data.targetIndustry} Update
-
-[First Name],
-
-Our records indicate your business may be missing key opportunities to ${data.campaignGoal}. 
-
-Immediate action recommended:
-✓ ${data.messageTemplates.split('\n')[0] || 'Address critical inefficiencies'}
-✓ ${data.messageTemplates.split('\n')[1] || 'Implement proven solutions'}
-
-Response required by [date]. Click here to secure your position.
-
-Regards,
-[Your Name]
-[Your Title]`
-    };
-
-    const placeholderText = campaignExamples[data.tone] || campaignExamples.professional;
-
-    setGeneratedCampaignText(placeholderText);
+    // Use the sample email for display
+    const emailText = [
+      sampleEmail.subject,
+      '',
+      sampleEmail.greeting,
+      '',
+      sampleEmail.body,
+      '',
+      sampleEmail.signature
+    ].join('\n');
+    setGeneratedCampaignText(emailText);
     setProgress(100);
     clearInterval(interval);
-    
+
     toast({
-      title: "Campaign Draft Generated",
-      description: "Your email campaign is ready for review.",
+      title: "Sample Campaign Loaded",
+      description: "A sample email campaign is displayed.",
       variant: "default",
     });
-    
+
     setTimeout(() => setIsLoading(false), 500);
   };
 
@@ -381,23 +362,35 @@ Regards,
 
               {generatedCampaignText && !isLoading && (
                 <div className="space-y-6">
-                  <Tabs defaultValue="preview" className="w-full">
+                  <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                     <TabsList className="grid w-full grid-cols-2">
                       <TabsTrigger value="preview">Preview</TabsTrigger>
                       <TabsTrigger value="plaintext">Plain Text</TabsTrigger>
                     </TabsList>
                     <TabsContent value="preview">
-                      <div className="prose prose-sm dark:prose-invert max-w-none p-6 border rounded-lg bg-muted/5 h-[360px] overflow-y-auto">
-                        {generatedCampaignText.split('\n').map((line, i) => (
-                          <p key={i} className={line.startsWith('Subject:') ? 'font-semibold text-primary' : ''}>
+                      <div className="prose prose-sm dark:prose-invert max-w-none p-6 border rounded-lg bg-muted/5 h-[360px] overflow-y-auto font-sans text-[15px]">
+                        {/* Render full campaign output as plain text, preserving line breaks */}
+                        {generatedCampaignText?.split('\n').map((line, idx) => (
+                          <span key={idx}>
                             {line}
-                          </p>
+                            <br />
+                          </span>
                         ))}
                       </div>
                     </TabsContent>
                     <TabsContent value="plaintext">
                       <div className="p-4 border rounded-lg bg-muted/5 font-mono text-sm h-[360px] overflow-y-auto whitespace-pre-wrap">
-                        {generatedCampaignText}
+                        {generatedCampaignText && !isLoading ? (
+                          <TypeAnimation
+                            sequence={[generatedCampaignText, 1000]}
+                            speed={100} // Even faster typing speed
+                            style={{ whiteSpace: 'pre-line', display: 'block' }}
+                            repeat={0}
+                            cursor={false}
+                          />
+                        ) : (
+                          displayedText
+                        )}
                       </div>
                     </TabsContent>
                   </Tabs>

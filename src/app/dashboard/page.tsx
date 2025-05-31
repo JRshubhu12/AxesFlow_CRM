@@ -133,9 +133,9 @@ export default function DashboardPage() {
                   {kpiData.map((kpi) => (
                     <div
                       key={kpi.title}
-                      className="flex-1 bg-white border border-[#e3e1f2] rounded-2xl flex flex-col shadow-none h-[118px] min-w-0"
+                      className="flex-1 bg-white border border-[#e3e1f2] rounded-2xl flex flex-col h-[118px] min-w-0"
                       style={{
-                        boxShadow: "0 0 0 2px #f2f2fa",
+                        boxShadow: "0 12px 32px 0 rgba(124,92,255,0.18)",
                         minWidth: 0,
                       }}
                     >
@@ -170,40 +170,42 @@ export default function DashboardPage() {
                 </div>
               </div>
               {/* Monthly Revenue below KPIs */}
-              <div className="w-full bg-white border border-[#E1E1F0] rounded-2xl p-6 flex flex-col justify-start items-start min-h-[340px]" style={{boxShadow: "0 0 0 2px #f2f2fa", border: "1.5px solid #e3e1f2"}}>
-                <div className="font-semibold text-lg mb-2 text-[#313144]">Monthly Revenue</div>
-                <div className="w-full" style={{ height: 250 }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={revenueData}>
-                      <CartesianGrid stroke="#F0F0F6" />
-                      <XAxis dataKey="name" stroke="#A5A5BA" fontSize={14} tickLine={false} axisLine={false} />
-                      <YAxis stroke="#A5A5BA" fontSize={14} tickLine={false} axisLine={false} domain={[0, 25]} ticks={[0, 5, 10, 15, 20, 25]} />
-                      <RechartsTooltip
-                        contentStyle={{
-                          backgroundColor: "#fff",
-                          border: "1px solid #E1E1F0",
-                          borderRadius: "8px",
-                          fontSize: 14,
-                          boxShadow: "none"
-                        }}
-                        wrapperStyle={{ boxShadow: 'none' }}
-                      />
-                      <Line
-                        type="linear"
-                        dataKey="value"
-                        stroke="#7c5cff"
-                        strokeWidth={3}
-                        dot={{ r: 5, fill: "#fff", stroke: "#7c5cff", strokeWidth: 2 }}
-                        activeDot={{ r: 7, fill: "#7c5cff" }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
+              <div className="flex-1 flex flex-col">
+                <div className="w-full bg-white border border-[#E1E1F0] rounded-2xl p-6 flex flex-col justify-start items-start min-h-[340px] h-full" style={{boxShadow: "0 0 0 2px #f2f2fa", border: "1.5px solid #e3e1f2"}}>
+                  <div className="font-semibold text-lg mb-2 text-[#313144]">Monthly Revenue</div>
+                  <div className="w-full" style={{ height: 250 }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={revenueData}>
+                        <CartesianGrid stroke="#F0F0F6" />
+                        <XAxis dataKey="name" stroke="#A5A5BA" fontSize={14} tickLine={false} axisLine={false} />
+                        <YAxis stroke="#A5A5BA" fontSize={14} tickLine={false} axisLine={false} domain={[0, 25]} ticks={[0, 5, 10, 15, 20, 25]} />
+                        <RechartsTooltip
+                          contentStyle={{
+                            backgroundColor: "#fff",
+                            border: "1px solid #E1E1F0",
+                            borderRadius: "8px",
+                            fontSize: 14,
+                            boxShadow: "none"
+                          }}
+                          wrapperStyle={{ boxShadow: 'none' }}
+                        />
+                        <Line
+                          type="linear"
+                          dataKey="value"
+                          stroke="#7c5cff"
+                          strokeWidth={3}
+                          dot={{ r: 5, fill: "#fff", stroke: "#7c5cff", strokeWidth: 2 }}
+                          activeDot={{ r: 7, fill: "#7c5cff" }}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
                 </div>
               </div>
             </div>
             {/* My Tasks */}
-            <div className="w-full md:w-[370px] flex-shrink-0">
-              <div className="bg-white border border-[#E1E1F0] rounded-2xl flex flex-col min-w-[320px] max-w-[370px]" style={{boxShadow: "0 0 0 2px #f2f2fa", border: "1.5px solid #e3e1f2"}}>
+            <div className="w-full md:w-[370px] flex-shrink-0 flex flex-col h-full">
+              <div className="bg-white border border-[#E1E1F0] rounded-2xl flex flex-col min-w-[320px] max-w-[370px] h-full" style={{boxShadow: "0 0 0 2px #f2f2fa", border: "1.5px solid #e3e1f2"}}>
                 <div className="flex items-center justify-between border-b border-[#E1E1F0] px-6 py-4">
                   <span className="font-semibold text-lg text-[#313144]">My Tasks</span>
                   <span className="rounded-lg bg-[#7c5cff] text-white text-sm font-semibold px-4 py-1">
