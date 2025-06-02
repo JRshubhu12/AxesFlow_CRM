@@ -170,10 +170,10 @@ export default function DashboardPage() {
                 </div>
               </div>
               {/* Monthly Revenue below KPIs */}
-              <div className="flex-1 flex flex-col">
-                <div className="w-full bg-white border border-[#E1E1F0] rounded-2xl p-6 flex flex-col justify-start items-start min-h-[340px] h-full" style={{boxShadow: "0 0 0 2px #f2f2fa", border: "1.5px solid #e3e1f2"}}>
-                  <div className="font-semibold text-lg mb-2 text-[#313144]">Monthly Revenue</div>
-                  <div className="w-full" style={{ height: 250 }}>
+              <div className="flex-1 flex flex-col justify-center">
+                <div className="w-full bg-white border border-[#E1E1F0] rounded-2xl p-6 flex flex-col justify-center items-center min-h-[260px] h-full" style={{boxShadow: "0 0 0 2px #f2f2fa", border: "1.5px solid #e3e1f2"}}>
+                  <div className="font-semibold text-lg mb-2 text-[#313144] w-full text-center">Monthly Revenue</div>
+                  <div className="w-full flex items-center justify-center flex-1" style={{ height: 170 }}>
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={revenueData}>
                         <CartesianGrid stroke="#F0F0F6" />
@@ -208,7 +208,7 @@ export default function DashboardPage() {
               <div className="bg-white border border-[#E1E1F0] rounded-2xl flex flex-col min-w-[320px] max-w-[370px] h-full" style={{boxShadow: "0 0 0 2px #f2f2fa", border: "1.5px solid #e3e1f2"}}>
                 <div className="flex items-center justify-between border-b border-[#E1E1F0] px-6 py-4">
                   <span className="font-semibold text-lg text-[#313144]">My Tasks</span>
-                  <span className="rounded-lg bg-[#7c5cff] text-white text-sm font-semibold px-4 py-1">
+                  <span className="rounded-lg bg-[#6D69C9] text-white text-sm font-semibold px-4 py-1">
                     {currentDate}
                   </span>
                 </div>
@@ -227,7 +227,7 @@ export default function DashboardPage() {
                           </span>
                         ))}
                       </div>
-                      <Button className="bg-[#7c5cff] hover:bg-[#6c4de6] text-white mt-2 h-7 rounded-lg text-xs font-semibold shadow-none w-full">
+                      <Button className="bg-[#6D69C9] hover:bg-[#5a57a6] text-white mt-2 h-7 rounded-lg text-xs font-semibold shadow-none w-full">
                         View Task
                       </Button>
                     </div>
@@ -293,7 +293,7 @@ export default function DashboardPage() {
                       </td>
                       <td className="py-2 px-3 font-semibold text-[#313144] text-sm">{meeting.host}</td>
                       <td className="py-2 px-3">
-                        <Button className="bg-[#7c5cff] hover:bg-[#6c4de6] text-white rounded-lg h-8 px-5 text-sm font-semibold shadow-none">
+                        <Button className="bg-[#6D69C9] hover:bg-[#5a57a6] text-white rounded-lg h-8 px-5 text-sm font-semibold shadow-none">
                           View
                         </Button>
                       </td>
