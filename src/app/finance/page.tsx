@@ -14,7 +14,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { format, parseISO, isAfter, isToday, differenceInDays } from 'date-fns';
 import { useState, useEffect, useMemo } from 'react';
-import { DollarSign, CalendarIcon, TrendingUp, AlertCircle, Receipt, Eye, Download, Search, Filter, ChevronDown, BarChart, CreditCard, Plus, Trash2 } from 'lucide-react';
+import { DollarSign, CalendarIcon, TrendingUp, AlertCircle, Receipt, Eye, Download, Search, Filter, ChevronDown, CreditCard, Plus, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
@@ -29,6 +29,9 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegendContent } from '@/components/ui/chart';
+import { Bar, XAxis, YAxis, CartesianGrid, BarChart as RechartsBarChart, ResponsiveContainer } from 'recharts';
+import { BarChart2 } from 'lucide-react';
 
 // Define the Invoice interface
 export interface Invoice {
@@ -189,16 +192,16 @@ export default function FinancePage() {
     
     switch (status.toLowerCase()) {
       case 'paid':
-        return <Badge className="bg-green-500 text-white hover:bg-green-600">Paid</Badge>;
+        return <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border border-emerald-300">Paid</Badge>;
       case 'pending':
         if (isAfter(new Date(), due)) {
-          return <Badge variant="destructive">Overdue</Badge>;
+          return <Badge className="bg-rose-100 text-rose-800 hover:bg-rose-200 border border-rose-300">Overdue</Badge>;
         }
         return (
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger>
-                <Badge className="bg-yellow-500 text-white hover:bg-yellow-600">
+                <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-200 border border-amber-300">
                   Pending{daysUntilDue >= 0 ? ` (${daysUntilDue}d)` : ''}
                 </Badge>
               </TooltipTrigger>
@@ -209,7 +212,7 @@ export default function FinancePage() {
           </TooltipProvider>
         );
       case 'overdue':
-        return <Badge variant="destructive">Overdue</Badge>;
+        return <Badge className="bg-rose-100 text-rose-800 hover:bg-rose-200 border border-rose-300">Overdue</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
@@ -240,17 +243,22 @@ export default function FinancePage() {
     return sortConfig.direction === 'asc' ? '↑' : '↓';
   };
 
-  // Mock data for revenue chart
-  const revenueData = [
-    { month: 'Jan', revenue: 1250000 },
-    { month: 'Feb', revenue: 1890000 },
-    { month: 'Mar', revenue: 1420000 },
-    { month: 'Apr', revenue: 1780000 },
-    { month: 'May', revenue: 2010000 },
-    { month: 'Jun', revenue: financialMetrics.totalRevenue },
+  // Sample data for revenue trend (last 12 months)
+  const revenueTrendData = [
+    { month: 'Jul 2024', revenue: 1100000 },
+    { month: 'Aug 2024', revenue: 1250000 },
+    { month: 'Sep 2024', revenue: 980000 },
+    { month: 'Oct 2024', revenue: 1500000 },
+    { month: 'Nov 2024', revenue: 1700000 },
+    { month: 'Dec 2024', revenue: 2100000 },
+    { month: 'Jan 2025', revenue: 1850000 },
+    { month: 'Feb 2025', revenue: 1920000 },
+    { month: 'Mar 2025', revenue: 2050000 },
+    { month: 'Apr 2025', revenue: 2200000 },
+    { month: 'May 2025', revenue: 2010000 },
+    { month: 'Jun 2025', revenue: financialMetrics.totalRevenue },
   ];
-
-  const maxRevenue = Math.max(...revenueData.map(d => d.revenue));
+  const maxTrendRevenue = Math.max(...revenueTrendData.map(d => d.revenue));
 
   // Pagination logic
   const totalPages = Math.ceil(filteredInvoices.length / invoicesPerPage);
@@ -301,10 +309,10 @@ export default function FinancePage() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold flex items-center gap-2">
-              <span className="h-8 w-8 text-primary font-semibold text-3xl">₹</span>
+              <span className="h-8 w-8 bg-primary/10 text-primary flex items-center justify-center rounded-lg p-1">₹</span>
               Finance Hub
             </h1>
-            <p className="text-muted-foreground">Manage invoices and track financial performance</p>
+            <p className="text-muted-foreground mt-1">Manage invoices and track financial performance</p>
           </div>
           <Button className="gap-2" onClick={() => setIsNewInvoiceOpen(true)}>
             <Plus className="h-4 w-4" /> New Invoice
@@ -319,6 +327,9 @@ export default function FinancePage() {
                 <Plus className="h-5 w-5 text-primary" />
                 Create New Invoice
               </DialogTitle>
+              <DialogDescription>
+                Fill in the details to generate a new invoice
+              </DialogDescription>
             </DialogHeader>
             <CardContent>
               <Form {...form}>
@@ -493,8 +504,8 @@ export default function FinancePage() {
                     <Button variant="outline" className="gap-2" onClick={() => downloadInvoice(selectedInvoice)}>
                       <Download className="h-4 w-4" /> Download PDF
                     </Button>
-                    <Button variant="destructive" className="gap-2" onClick={() => confirmDeleteInvoice(selectedInvoice)}>
-                      <Trash2 className="h-4 w-4 text-red-500" /> Delete
+                    <Button variant="outline" className="gap-2 text-red-500 border-red-300 hover:bg-red-50" onClick={() => confirmDeleteInvoice(selectedInvoice)}>
+                      <Trash2 className="h-4 w-4" /> Delete
                     </Button>
                   </div>
                 </div>
@@ -509,114 +520,124 @@ export default function FinancePage() {
         </Dialog>
 
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid grid-cols-2 w-64">
+          <TabsList className="grid grid-cols-2 w-64 bg-muted">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="invoices">Invoices</TabsTrigger>
           </TabsList>
           
           <TabsContent value="overview" className="space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <Card className="border-0 shadow-sm bg-gradient-to-br from-blue-50 to-indigo-50">
+              <Card className="border shadow-sm bg-card">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-medium flex items-center justify-between">
                     <span>Total Revenue</span>
-                    <span className="h-4 w-4 text-primary font-semibold">₹</span>
+                    <span className="h-6 w-6 bg-primary/10 text-primary flex items-center justify-center rounded-full p-1">₹</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">₹{financialMetrics.totalRevenue.toLocaleString('en-IN')}</div>
-                  <p className="text-xs text-muted-foreground mt-1">+15.2% from last month</p>
+                  <div className="mt-3">
+                    <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                      <span>Annual Target</span>
+                      <span>85%</span>
+                    </div>
+                    <Progress value={85} className="h-2" />
+                  </div>
                 </CardContent>
               </Card>
               
-              <Card className="border-0 shadow-sm bg-gradient-to-br from-green-50 to-emerald-50">
+              <Card className="border shadow-sm bg-card">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-medium flex items-center justify-between">
                     <span>Paid Invoices</span>
-                    <Badge className="bg-green-500 hover:bg-green-600">{financialMetrics.paidCount}</Badge>
+                    <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border border-emerald-300">{financialMetrics.paidCount}</Badge>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">₹{financialMetrics.paidAmount.toLocaleString('en-IN')}</div>
-                  <p className="text-xs text-muted-foreground mt-1">100% collection rate</p>
+                  <div className="mt-3">
+                    <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                      <span>Collection Rate</span>
+                      <span>100%</span>
+                    </div>
+                    <Progress value={100} className="h-2 bg-emerald-200" />
+                  </div>
                 </CardContent>
               </Card>
               
-              <Card className="border-0 shadow-sm bg-gradient-to-br from-amber-50 to-orange-50">
+              <Card className="border shadow-sm bg-card">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-medium flex items-center justify-between">
                     <span>Pending Payments</span>
-                    <Badge className="bg-yellow-500 hover:bg-yellow-600">{financialMetrics.pendingCount}</Badge>
+                    <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-200 border border-amber-300">{financialMetrics.pendingCount}</Badge>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">₹{financialMetrics.pendingAmount.toLocaleString('en-IN')}</div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {financialMetrics.overdueCount > 0 ? `${financialMetrics.overdueCount} invoices overdue` : 'No overdue invoices'}
-                  </p>
+                  <div className="mt-3">
+                    <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                      <span>On Time Rate</span>
+                      <span>72%</span>
+                    </div>
+                    <Progress value={72} className="h-2 bg-amber-200" />
+                  </div>
                 </CardContent>
               </Card>
               
-              <Card className="border-0 shadow-sm bg-gradient-to-br from-red-50 to-rose-50">
+              <Card className="border shadow-sm bg-card">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-medium flex items-center justify-between">
                     <span>Overdue Payments</span>
-                    <Badge variant="destructive">{financialMetrics.overdueCount}</Badge>
+                    <Badge className="bg-rose-100 text-rose-800 hover:bg-rose-200 border border-rose-300">{financialMetrics.overdueCount}</Badge>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">₹{financialMetrics.overdueAmount.toLocaleString('en-IN')}</div>
-                  <p className="text-xs text-muted-foreground mt-1">Needs immediate attention</p>
+                  <div className="mt-3">
+                    <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                      <span>Recovery Rate</span>
+                      <span>45%</span>
+                    </div>
+                    <Progress value={45} className="h-2 bg-rose-200" />
+                  </div>
                 </CardContent>
               </Card>
             </div>
             
             <div className="grid md:grid-cols-2 gap-8">
-              <Card className="shadow-lg">
+              <Card className="border shadow-lg">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <BarChart className="h-5 w-5 text-primary" />
+                    <BarChart2 className="h-5 w-5 text-primary" />
                     Revenue Trend
                   </CardTitle>
-                  <CardDescription>Monthly revenue performance for the last 6 months</CardDescription>
+                  <CardDescription>Monthly revenue performance for the last 12 months</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-end justify-between h-48 gap-2 mt-6">
-                      {revenueData.map((data, index) => (
-                        <TooltipProvider key={index}>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div className="flex flex-col items-center flex-1">
-                                <div
-                                  className="w-full bg-gradient-to-t from-primary to-blue-400 rounded-t-lg"
-                                  style={{ height: `${(data.revenue / maxRevenue) * 100}%` }}
-                                />
-                                <span className="text-xs mt-2 text-muted-foreground">{data.month}</span>
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>₹{data.revenue.toLocaleString('en-IN')}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      ))}
-                    </div>
-                    <div className="flex justify-center mt-4">
-                      <div className="flex items-center gap-2 text-sm">
-                        <div className="h-3 w-3 rounded-full bg-primary"></div>
-                        <span>Revenue (₹)</span>
-                      </div>
-                    </div>
+                  <div className="h-80 w-full">
+                    <ChartContainer config={{ revenue: { label: 'Revenue', color: '#2563eb' } }}>
+                      <RechartsBarChart data={revenueTrendData} margin={{ top: 10, right: 30, left: 0, bottom: 30 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                        <XAxis dataKey="month" angle={-30} textAnchor="end" interval={0} height={60} tick={{ fontSize: 12, fill: '#64748b' }} />
+                        <YAxis tick={{ fontSize: 12, fill: '#64748b' }} tickFormatter={v => `₹${(v/100000).toFixed(1)}L`} />
+                        <Bar dataKey="revenue" fill="#2563eb" radius={[6, 6, 0, 0]} maxBarSize={32} />
+                        <ChartTooltip content={<ChartTooltipContent labelKey="month" nameKey="revenue" />} />
+                      </RechartsBarChart>
+                    </ChartContainer>
+                  </div>
+                  <div className="flex justify-center mt-4">
+                    <ChartContainer config={{ revenue: { label: 'Revenue', color: '#2563eb' } }}>
+                      <ChartLegendContent payload={[{ dataKey: 'revenue', color: '#2563eb', value: 'Revenue' }]} />
+                    </ChartContainer>
                   </div>
                 </CardContent>
               </Card>
               
-              <Card className="shadow-lg">
+              <Card className="border shadow-lg">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Receipt className="h-5 w-5 text-primary" />
-                    Invoice Generator
+                    Quick Invoice
                   </CardTitle>
                   <CardDescription>Create and send invoices to your clients</CardDescription>
                 </CardHeader>
@@ -641,7 +662,7 @@ export default function FinancePage() {
                         name="projectName"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Project Name / Description</FormLabel>
+                            <FormLabel>Project</FormLabel>
                             <FormControl>
                               <Input placeholder="e.g., Website Redesign Q3" {...field} />
                             </FormControl>
@@ -649,69 +670,71 @@ export default function FinancePage() {
                           </FormItem>
                         )}
                       />
-                      <FormField
-                        control={form.control}
-                        name="amount"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Amount (₹)</FormLabel>
-                            <FormControl>
-                              <div className="relative">
-                                <span className="absolute left-3 top-2.5 text-muted-foreground">₹</span>
-                                <Input 
-                                  className="pl-8" 
-                                  type="number" 
-                                  placeholder="e.g., 125000.00" 
-                                  {...field} 
-                                  step="0.01" 
-                                />
-                              </div>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="dueDate"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-col">
-                            <FormLabel>Due Date</FormLabel>
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <FormControl>
-                                  <Button
-                                    variant={"outline"}
-                                    className={cn(
-                                      "w-full pl-3 text-left font-normal",
-                                      !field.value && "text-muted-foreground"
-                                    )}
-                                  >
-                                    {field.value ? (
-                                      format(field.value, "PPP")
-                                    ) : (
-                                      <span>Pick a date</span>
-                                    )}
-                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                  </Button>
-                                </FormControl>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar
-                                  mode="single"
-                                  selected={field.value}
-                                  onSelect={field.onChange}
-                                  disabled={(date) =>
-                                    date < new Date(new Date().setDate(new Date().getDate() - 1))
-                                  }
-                                  initialFocus
-                                />
-                              </PopoverContent>
-                            </Popover>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="amount"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Amount (₹)</FormLabel>
+                              <FormControl>
+                                <div className="relative">
+                                  <span className="absolute left-3 top-2.5 text-muted-foreground">₹</span>
+                                  <Input 
+                                    className="pl-8" 
+                                    type="number" 
+                                    placeholder="125000.00" 
+                                    {...field} 
+                                    step="0.01" 
+                                  />
+                                </div>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="dueDate"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-col">
+                              <FormLabel>Due Date</FormLabel>
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <FormControl>
+                                    <Button
+                                      variant={"outline"}
+                                      className={cn(
+                                        "w-full pl-3 text-left font-normal",
+                                        !field.value && "text-muted-foreground"
+                                      )}
+                                    >
+                                      {field.value ? (
+                                        format(field.value, "dd MMM")
+                                      ) : (
+                                        <span>Select date</span>
+                                      )}
+                                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                    </Button>
+                                  </FormControl>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                  <Calendar
+                                    mode="single"
+                                    selected={field.value}
+                                    onSelect={field.onChange}
+                                    disabled={(date) =>
+                                      date < new Date(new Date().setDate(new Date().getDate() - 1))
+                                    }
+                                    initialFocus
+                                  />
+                                </PopoverContent>
+                              </Popover>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
                       <Button type="submit" className="w-full" disabled={isLoading}>
                         {isLoading ? 'Generating...' : 'Generate Invoice'}
                       </Button>
@@ -723,7 +746,7 @@ export default function FinancePage() {
           </TabsContent>
           
           <TabsContent value="invoices" className="space-y-6">
-            <Card className="shadow-lg border-0 bg-gradient-to-br from-white to-blue-50">
+            <Card className="border shadow-lg bg-card">
               <CardHeader>
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                   <div>
@@ -764,28 +787,28 @@ export default function FinancePage() {
               </CardHeader>
               <CardContent>
                 <div className="rounded-lg border overflow-hidden">
-                  <div className="grid grid-cols-12 bg-muted/50 px-4 py-2 text-sm font-medium">
+                  <div className="grid grid-cols-12 bg-muted/50 px-4 py-3 text-sm font-medium">
                     <div 
-                      className="col-span-2 flex items-center cursor-pointer"
+                      className="col-span-2 flex items-center cursor-pointer hover:text-primary transition-colors"
                       onClick={() => requestSort('id')}
                     >
                       Invoice ID {getSortIcon('id')}
                     </div>
                     <div 
-                      className="col-span-3 flex items-center cursor-pointer"
+                      className="col-span-3 flex items-center cursor-pointer hover:text-primary transition-colors"
                       onClick={() => requestSort('clientName')}
                     >
                       Client {getSortIcon('clientName')}
                     </div>
                     <div className="col-span-3">Project</div>
                     <div 
-                      className="col-span-2 flex items-center cursor-pointer"
+                      className="col-span-2 flex items-center cursor-pointer hover:text-primary transition-colors"
                       onClick={() => requestSort('amount')}
                     >
                       Amount {getSortIcon('amount')}
                     </div>
                     <div 
-                      className="col-span-2 flex items-center cursor-pointer"
+                      className="col-span-2 flex items-center cursor-pointer hover:text-primary transition-colors"
                       onClick={() => requestSort('dueDate')}
                     >
                       Due Date {getSortIcon('dueDate')}
@@ -798,43 +821,45 @@ export default function FinancePage() {
                       paginatedInvoices.map(invoice => (
                         <div 
                           key={invoice.id} 
-                          className="grid grid-cols-12 px-4 py-3 text-sm hover:bg-blue-50 transition-colors group"
+                          className="grid grid-cols-12 px-4 py-3 text-sm hover:bg-muted/20 transition-colors group"
                         >
                           <div className="col-span-2 font-medium text-primary flex items-center">
                             {invoice.id}
                           </div>
-                          <div className="col-span-3">{invoice.clientName}</div>
-                          <div className="col-span-3 text-muted-foreground">{invoice.projectName}</div>
+                          <div className="col-span-3 font-medium">{invoice.clientName}</div>
+                          <div className="col-span-3 text-muted-foreground truncate">{invoice.projectName}</div>
                           <div className="col-span-2 font-medium">₹{invoice.amount.toLocaleString('en-IN')}</div>
                           <div className="col-span-2 flex items-center justify-between">
-                            <div>
+                            <div className="text-sm">
                               {isToday(parseISO(invoice.dueDate)) ? (
-                                <span className="text-orange-500">Today</span>
+                                <span className="text-amber-600 font-medium">Today</span>
                               ) : (
                                 format(parseISO(invoice.dueDate), "dd MMM")
                               )}
                             </div>
                             <div className="flex items-center gap-2">
                               {getInvoiceStatusBadge(invoice.status, invoice.dueDate)}
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                onClick={() => openViewModal(invoice)}
-                                className="h-8 w-8 opacity-70 group-hover:opacity-100"
-                                title="View"
-                              >
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                onClick={() => confirmDeleteInvoice(invoice)}
-                                className="h-8 w-8 opacity-70 group-hover:opacity-100"
-                                title="Delete"
-                              >
-                                <Trash2 className="h-4 w-4 text-red-500" />
-                              </Button>
                             </div>
+                          </div>
+                          <div className="col-span-1 flex items-center gap-1">
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              onClick={() => openViewModal(invoice)}
+                              className="h-8 w-8 opacity-70 group-hover:opacity-100"
+                              title="View"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              onClick={() => confirmDeleteInvoice(invoice)}
+                              className="h-8 w-8 opacity-70 group-hover:opacity-100 text-red-500"
+                              title="Delete"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           </div>
                         </div>
                       ))
@@ -848,7 +873,7 @@ export default function FinancePage() {
                     )}
                   </div>
                   {/* Summary Row */}
-                  <div className="grid grid-cols-12 px-4 py-2 bg-muted/30 text-sm font-semibold border-t">
+                  <div className="grid grid-cols-12 px-4 py-3 bg-muted/30 text-sm font-semibold border-t">
                     <div className="col-span-2">Total</div>
                     <div className="col-span-3"></div>
                     <div className="col-span-3"></div>
