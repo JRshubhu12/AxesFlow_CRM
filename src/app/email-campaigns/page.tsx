@@ -11,7 +11,7 @@ import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useState, useEffect, useRef } from 'react';
-import { Sparkles, Copy, Download, AlertTriangle, ChevronRight, Bookmark, Target, Mail, Send } from 'lucide-react';
+import { Sparkles, Copy, Download, ChevronRight, Mail, Send, LayoutTemplate, ArrowRight, BadgeCheck, Settings, Wand2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -35,8 +35,6 @@ const campaignSchema = z.object({
 
 type CampaignFormValues = z.infer<typeof campaignSchema>;
 
-// Remove fetch polyfill for Node.js (not needed with Next.js 13+)
-
 export default function EmailCampaignsPage() {
   const { toast } = useToast();
   const [generatedCampaignText, setGeneratedCampaignText] = useState<string | null>(null);
@@ -58,12 +56,12 @@ export default function EmailCampaignsPage() {
     },
   });
 
-  // Typing animation effect for Plain Text tab only, with correct handling for intervals and index
+  // Typing animation effect
   useEffect(() => {
     if (generatedCampaignText && !isLoading && activeTab === 'plaintext') {
       setDisplayedText('');
       iRef.current = 0;
-      const chars = Array.from(generatedCampaignText); // Always use generatedCampaignText
+      const chars = Array.from(generatedCampaignText);
       if (typingIntervalRef.current) clearInterval(typingIntervalRef.current);
       typingIntervalRef.current = setInterval(() => {
         setDisplayedText((prev) => {
@@ -89,9 +87,8 @@ export default function EmailCampaignsPage() {
     setIsLoading(true);
     setGeneratedCampaignText(null);
     setProgress(0);
-    setActiveTab('plaintext'); // Switch to Plain Text tab on generate
+    setActiveTab('plaintext');
 
-    // Simulate progress updates
     const interval = setInterval(() => {
       setProgress((prev) => {
         if (prev >= 90) {
@@ -102,10 +99,8 @@ export default function EmailCampaignsPage() {
       });
     }, 300);
 
-    // Simulate delay
     await new Promise(resolve => setTimeout(resolve, 1200));
 
-    // Use the sample email for display
     const emailText = [
       sampleEmail.subject,
       '',
@@ -120,8 +115,8 @@ export default function EmailCampaignsPage() {
     clearInterval(interval);
 
     toast({
-      title: "Sample Campaign Loaded",
-      description: "A sample email campaign is displayed.",
+      title: "Campaign Generated",
+      description: "Your email campaign is ready for review.",
       variant: "default",
     });
 
@@ -154,7 +149,7 @@ export default function EmailCampaignsPage() {
     if (generatedCampaignText) {
       toast({
         title: "Campaign Sent (Simulated)",
-        description: `Email campaign '${form.getValues('campaignName') || 'Untitled Campaign'}' has been sent to sashwatsawarn@gmail.com (and other selected leads).`,
+        description: `Email campaign '${form.getValues('campaignName') || 'Untitled Campaign'}' has been sent to selected leads.`,
         variant: "default",
       });
     } else {
@@ -169,80 +164,72 @@ export default function EmailCampaignsPage() {
   return (
     <MainLayout>
       <div className="space-y-8">
+        {/* Enhanced Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Mail className="h-6 w-6 text-primary" />
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2.5 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600 text-white">
+                <Mail className="h-6 w-6" />
               </div>
-              <h1 className="text-3xl font-bold">Email Campaign Generator</h1>
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Email Campaign Generator</h1>
+                <p className="text-muted-foreground max-w-2xl mt-1">
+                  Craft high-converting email campaigns with AI assistance
+                </p>
+              </div>
             </div>
-            <p className="text-muted-foreground max-w-2xl">
-              Craft high-converting email campaigns with AI assistance. Perfect for outreach, lead generation, and customer engagement.
-            </p>
+          </div>
+          <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-100 dark:border-blue-800/50">
+            <BadgeCheck className="h-5 w-5 text-blue-600 dark:text-blue-300" />
+            <span className="text-sm text-blue-700 dark:text-blue-300 font-medium">AI-powered content generation</span>
           </div>
         </div>
 
         <div className="grid md:grid-cols-2 gap-8">
-          <Card className="shadow-lg border-0">
-            <CardHeader className="border-b">
-              <CardTitle className="flex items-center gap-2">
-                <Target className="h-5 w-5 text-primary" />
-                Campaign Configuration
+          {/* Left Panel - Enhanced Form */}
+          <Card className="shadow-lg border-0 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-950">
+            <CardHeader className="border-b border-gray-100 dark:border-gray-800">
+              <CardTitle className="flex items-center gap-3 text-gray-900 dark:text-white">
+                <Settings className="h-5 w-5 text-indigo-600" />
+                <span>Campaign Configuration</span>
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="mt-1">
                 Define your campaign parameters for optimal results
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-6">
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                  <FormField
-                    control={form.control}
-                    name="campaignName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Campaign Name (Optional)</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="e.g., Q3 SaaS Outreach" 
-                            {...field} 
-                            className="bg-muted/50"
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          Helps with organization and tracking
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <FormField
                       control={form.control}
-                      name="targetIndustry"
+                      name="campaignName"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Target Industry</FormLabel>
+                          <FormLabel className="font-medium text-gray-700 dark:text-gray-300">Campaign Name</FormLabel>
                           <FormControl>
                             <Input 
-                              placeholder="e.g., Healthcare, Fintech" 
+                              placeholder="e.g., Q3 SaaS Outreach" 
                               {...field} 
+                              className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700"
                             />
                           </FormControl>
+                          <FormDescription className="text-gray-500 dark:text-gray-400">
+                            Helps with organization and tracking
+                          </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
+                    
                     <FormField
                       control={form.control}
                       name="tone"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Email Tone</FormLabel>
+                          <FormLabel className="font-medium text-gray-700 dark:text-gray-300">Email Tone</FormLabel>
                           <select
-                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                             {...field}
                           >
                             <option value="professional">Professional</option>
@@ -258,20 +245,39 @@ export default function EmailCampaignsPage() {
 
                   <FormField
                     control={form.control}
+                    name="targetIndustry"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="font-medium text-gray-700 dark:text-gray-300">Target Industry</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="e.g., Healthcare, Fintech" 
+                            {...field} 
+                            className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
                     name="campaignGoal"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="flex items-center gap-2">
-                          <Bookmark className="h-4 w-4" />
+                        <FormLabel className="font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                          <LayoutTemplate className="h-4 w-4 text-indigo-600" />
                           Campaign Goal
                         </FormLabel>
                         <FormControl>
                           <Input 
                             placeholder="e.g., Increase demo bookings by 30%" 
                             {...field} 
+                            className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700"
                           />
                         </FormControl>
-                        <FormDescription>
+                        <FormDescription className="text-gray-500 dark:text-gray-400">
                           Be specific about your desired outcome
                         </FormDescription>
                         <FormMessage />
@@ -284,16 +290,16 @@ export default function EmailCampaignsPage() {
                     name="messageTemplates"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Key Messages & Value Propositions</FormLabel>
+                        <FormLabel className="font-medium text-gray-700 dark:text-gray-300">Key Messages & Value Propositions</FormLabel>
                         <FormControl>
                           <Textarea 
                             placeholder={`Example:\n- Reduce operational costs by 40%\n- Increase customer retention\n- Streamline workflow processes`} 
                             {...field} 
                             rows={5} 
-                            className="min-h-[120px]"
+                            className="min-h-[120px] bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700"
                           />
                         </FormControl>
-                        <FormDescription>
+                        <FormDescription className="text-gray-500 dark:text-gray-400">
                           List the main points you want to communicate
                         </FormDescription>
                         <FormMessage />
@@ -304,18 +310,18 @@ export default function EmailCampaignsPage() {
                   <div className="pt-2">
                     <Button 
                       type="submit" 
-                      className="w-full py-6 text-lg font-medium shadow-sm"
+                      className="w-full py-6 text-lg font-medium shadow-sm bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 transition-all"
                       disabled={isLoading}
                     >
                       {isLoading ? (
                         <>
-                          <Sparkles className="mr-2 h-5 w-5 animate-pulse" /> 
-                          Generating Campaign...
+                          <Wand2 className="mr-2 h-5 w-5 animate-pulse text-white" /> 
+                          <span className="text-white">Generating Campaign...</span>
                         </>
                       ) : (
                         <>
-                          <Sparkles className="mr-2 h-5 w-5" /> 
-                          Generate Campaign
+                          <Wand2 className="mr-2 h-5 w-5 text-white" /> 
+                          <span className="text-white">Generate Campaign</span>
                         </>
                       )}
                     </Button>
@@ -325,20 +331,21 @@ export default function EmailCampaignsPage() {
             </CardContent>
           </Card>
 
-          <Card className="shadow-lg border-0">
-            <CardHeader className="border-b">
+          {/* Right Panel - Enhanced Output */}
+          <Card className="shadow-lg border-0 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-950">
+            <CardHeader className="border-b border-gray-100 dark:border-gray-800">
               <div className="flex justify-between items-center">
                 <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <Sparkles className="h-5 w-5 text-primary" />
-                    Campaign Output
+                  <CardTitle className="flex items-center gap-3 text-gray-900 dark:text-white">
+                    <Sparkles className="h-5 w-5 text-indigo-600" />
+                    <span>Campaign Output</span>
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="mt-1">
                     Review and refine your generated content
                   </CardDescription>
                 </div>
                 {generatedCampaignText && (
-                  <Badge variant="secondary" className="px-3 py-1">
+                  <Badge variant="secondary" className="px-3 py-1.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300">
                     {form.watch('tone') || 'professional'} tone
                   </Badge>
                 )}
@@ -347,13 +354,16 @@ export default function EmailCampaignsPage() {
             <CardContent className="pt-6">
               {isLoading && (
                 <div className="flex flex-col items-center justify-center h-64 space-y-4">
-                  <Progress value={progress} className="w-[80%] h-2" />
+                  <Progress value={progress} className="w-[80%] h-2 bg-gray-200 dark:bg-gray-800" />
                   <div className="text-center space-y-2">
-                    <Sparkles className="h-10 w-10 text-primary animate-pulse mx-auto" />
-                    <p className="text-muted-foreground font-medium">
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-indigo-600 rounded-full opacity-75 animate-ping"></div>
+                      <Sparkles className="h-10 w-10 text-indigo-600 relative mx-auto" />
+                    </div>
+                    <p className="text-gray-700 dark:text-gray-300 font-medium">
                       Crafting your perfect campaign...
                     </p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
                       Analyzing {form.watch('targetIndustry') || 'industry'} best practices
                     </p>
                   </div>
@@ -363,13 +373,22 @@ export default function EmailCampaignsPage() {
               {generatedCampaignText && !isLoading && (
                 <div className="space-y-6">
                   <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                    <TabsList className="grid w-full grid-cols-2">
-                      <TabsTrigger value="preview">Preview</TabsTrigger>
-                      <TabsTrigger value="plaintext">Plain Text</TabsTrigger>
+                    <TabsList className="grid w-full grid-cols-2 bg-gray-100 dark:bg-gray-800 p-1 h-10">
+                      <TabsTrigger 
+                        value="preview" 
+                        className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:dark:bg-gray-700 h-8"
+                      >
+                        Preview
+                      </TabsTrigger>
+                      <TabsTrigger 
+                        value="plaintext" 
+                        className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:dark:bg-gray-700 h-8"
+                      >
+                        Plain Text
+                      </TabsTrigger>
                     </TabsList>
                     <TabsContent value="preview">
-                      <div className="prose prose-sm dark:prose-invert max-w-none p-6 border rounded-lg bg-muted/5 h-[360px] overflow-y-auto font-sans text-[15px]">
-                        {/* Render full campaign output as plain text, preserving line breaks */}
+                      <div className="prose prose-sm dark:prose-invert max-w-none p-6 border rounded-lg bg-white dark:bg-gray-800 h-[360px] overflow-y-auto font-sans text-[15px]">
                         {generatedCampaignText?.split('\n').map((line, idx) => (
                           <span key={idx}>
                             {line}
@@ -379,11 +398,11 @@ export default function EmailCampaignsPage() {
                       </div>
                     </TabsContent>
                     <TabsContent value="plaintext">
-                      <div className="p-4 border rounded-lg bg-muted/5 font-mono text-sm h-[360px] overflow-y-auto whitespace-pre-wrap">
+                      <div className="p-4 border rounded-lg bg-white dark:bg-gray-800 font-mono text-sm h-[360px] overflow-y-auto whitespace-pre-wrap">
                         {generatedCampaignText && !isLoading ? (
                           <TypeAnimation
                             sequence={[generatedCampaignText, 1000]}
-                            speed={100} // Even faster typing speed
+                            speed={100}
                             style={{ whiteSpace: 'pre-line', display: 'block' }}
                             repeat={0}
                             cursor={false}
@@ -399,7 +418,7 @@ export default function EmailCampaignsPage() {
                     <Button 
                       variant="outline" 
                       onClick={copyToClipboard}
-                      className="flex-1"
+                      className="flex-1 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800"
                       disabled={!generatedCampaignText}
                     >
                       <Copy className="mr-2 h-4 w-4" /> Copy
@@ -407,18 +426,19 @@ export default function EmailCampaignsPage() {
                     <Button 
                       variant="outline" 
                       onClick={downloadAsTxt}
-                      className="flex-1"
+                      className="flex-1 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800"
                       disabled={!generatedCampaignText}
                     >
                       <Download className="mr-2 h-4 w-4" /> Download
                     </Button>
                     <Button 
                       variant="default"
-                      className="flex-1"
+                      className="flex-1 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
                       onClick={handleSendToLeads}
                       disabled={!generatedCampaignText}
                     >
-                      <Send className="mr-2 h-4 w-4" /> Send to Leads
+                      <Send className="mr-2 h-4 w-4 text-white" /> 
+                      <span className="text-white">Send to Leads</span>
                     </Button>
                   </div>
                 </div>
@@ -426,18 +446,18 @@ export default function EmailCampaignsPage() {
 
               {!generatedCampaignText && !isLoading && (
                 <div className="text-center py-10">
-                  <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-muted mb-4">
-                    <Mail className="h-5 w-5 text-muted-foreground" />
+                  <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-gradient-to-r from-indigo-100 to-purple-100 dark:from-indigo-900/30 dark:to-purple-900/30 mb-4">
+                    <Mail className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
                   </div>
-                  <h3 className="text-lg font-medium text-muted-foreground mb-1">
+                  <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-1">
                     No campaign generated yet
                   </h3>
-                  <p className="text-sm text-muted-foreground mb-4">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
                     Configure your campaign settings and click "Generate Campaign" to create your first draft.
                   </p>
-                  <div className="p-4 bg-blue-50/50 border border-blue-100 rounded-lg text-sm text-blue-800 dark:text-blue-200 dark:bg-blue-900/30 dark:border-blue-800 max-w-md mx-auto">
+                  <div className="p-4 bg-indigo-50/70 border border-indigo-100 dark:bg-indigo-900/20 dark:border-indigo-800/50 rounded-lg text-sm text-indigo-700 dark:text-indigo-300 max-w-md mx-auto">
                     <div className="flex items-start gap-3">
-                      <Sparkles className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                      <Sparkles className="h-4 w-4 mt-0.5 flex-shrink-0 text-indigo-600 dark:text-indigo-400" />
                       <div>
                         <p className="font-medium mb-1">Pro Tip</p>
                         <p>
@@ -450,6 +470,45 @@ export default function EmailCampaignsPage() {
               )}
             </CardContent>
           </Card>
+        </div>
+
+        {/* Features Section */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-10">
+          <div className="border rounded-xl p-5 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-950">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
+                <LayoutTemplate className="h-5 w-5" />
+              </div>
+              <h3 className="font-semibold text-gray-900 dark:text-white">Professional Templates</h3>
+            </div>
+            <p className="text-gray-600 dark:text-gray-400 text-sm">
+              AI-powered templates optimized for engagement and conversion across industries.
+            </p>
+          </div>
+          
+          <div className="border rounded-xl p-5 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-950">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2 rounded-lg bg-indigo-100 dark:indigo-900/30 text-indigo-600 dark:text-indigo-400">
+                <Sparkles className="h-5 w-5" />
+              </div>
+              <h3 className="font-semibold text-gray-900 dark:text-white">Smart Optimization</h3>
+            </div>
+            <p className="text-gray-600 dark:text-gray-400 text-sm">
+              Our AI analyzes industry trends to optimize subject lines and content structure.
+            </p>
+          </div>
+          
+          <div className="border rounded-xl p-5 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-950">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2 rounded-lg bg-purple-100 dark:purple-900/30 text-purple-600 dark:text-purple-400">
+                <Send className="h-5 w-5" />
+              </div>
+              <h3 className="font-semibold text-gray-900 dark:text-white">One-Click Deployment</h3>
+            </div>
+            <p className="text-gray-600 dark:text-gray-400 text-sm">
+              Integrate with your CRM or send directly to leads with a single click.
+            </p>
+          </div>
         </div>
       </div>
     </MainLayout>
