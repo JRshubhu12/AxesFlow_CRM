@@ -1,7 +1,7 @@
 "use client";
 
 import Link from 'next/link';
-import { Search, ChevronDown, User, Settings, LogOut } from 'lucide-react';
+import { Search, ChevronDown, User, Settings, LogOut, DollarSign, Home, Users, Mail, MessageCircle, FolderKanban, CheckSquare, Users2 } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
@@ -187,6 +187,32 @@ export default function MainLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
+  // Map href to icon component
+  const navIcons: Record<string, JSX.Element> = {
+    '/dashboard': <Home className="mr-2 h-4 w-4" />,
+    '/leads': <Users className="mr-2 h-4 w-4" />,
+    '/email-campaigns': <Mail className="mr-2 h-4 w-4" />,
+    '/communications': <MessageCircle className="mr-2 h-4 w-4" />,
+    '/projects': <FolderKanban className="mr-2 h-4 w-4" />,
+    '/tasks': <CheckSquare className="mr-2 h-4 w-4" />,
+    '/team': <Users2 className="mr-2 h-4 w-4" />,
+    '/finance': <DollarSign className="mr-2 h-4 w-4" />,
+  };
+
+  // --- SAMPLE DATA INJECTION FOR DEMO ---
+  useEffect(() => {
+    // Inject sample agency profile if not present
+    if (!localStorage.getItem('userProfileData')) {
+      localStorage.setItem('userProfileData', JSON.stringify({
+        agencyName: 'Acme Digital',
+        contactEmail: 'hello@acmedigital.com',
+        agencyLogoUrl: 'https://placehold.co/44x44.png?text=AD',
+      }));
+    }
+    // Inject sample notifications (if you have a notification system, add here)
+    // Inject sample sidebar nav items if needed (handled by nav config)
+  }, []);
+
   if (pathname === '/') {
     return <>{children}</>;
   }
@@ -218,6 +244,7 @@ export default function MainLayout({ children }: { children: ReactNode }) {
                   )}
                   title={item.tooltip || item.title}
                 >
+                  {navIcons[item.href] && navIcons[item.href]}
                   <span>{item.title}</span>
                 </Link>
                 {isParentActive && item.subItems && item.subItems.length > 0 && (
