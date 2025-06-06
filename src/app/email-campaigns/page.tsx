@@ -1,515 +1,539 @@
-"use client";
-
-import MainLayout from '@/components/layout/MainLayout';
+'use client';
+import Link from 'next/link';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '@/hooks/use-toast';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
-import * as z from 'zod';
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { useState, useEffect, useRef } from 'react';
-import { Sparkles, Copy, Download, ChevronRight, Mail, Send, LayoutTemplate, ArrowRight, BadgeCheck, Settings, Wand2 } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from '@/components/ui/dropdown-menu';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { 
+  ChevronDown, 
+  Mail, 
+  Calendar, 
+  Filter, 
+  Search, 
+  MoreVertical, 
+  FileEdit, 
+  Copy, 
+  Trash2,
+  BarChart2,
+  Users,
+  Plus,
+  ArrowUpDown
+} from 'lucide-react';
+import MainLayout from '@/components/layout/MainLayout';
+import { format } from 'date-fns';
+import ReactCalendar from 'react-calendar';
+import 'react-calendar/dist/Calendar.css';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Progress } from '@/components/ui/progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import sampleEmail from './sample_email.json';
-import { TypeAnimation } from 'react-type-animation';
 
-// --- Form Validation Schema ---
-const campaignSchema = z.object({
-  targetIndustry: z.string().min(3, {
-    message: "Target industry must be at least 3 characters."
-  }),
-  messageTemplates: z.string().min(10, {
-    message: "Message templates must be at least 10 characters."
-  }),
-  campaignGoal: z.string().min(5, {
-    message: "Campaign goal must be at least 5 characters."
-  }),
-  campaignName: z.string().optional(),
-  tone: z.enum(["professional", "friendly", "persuasive", "urgent"]).default("professional"),
-});
-
-type CampaignFormValues = z.infer<typeof campaignSchema>;
+const mockCampaigns = [
+  {
+    id: 1,
+    name: 'Summer Promotion',
+    type: 'Regular email',
+    lastEdited: new Date(2025, 5, 6, 1, 43),
+    author: 'Shubham Choudhary',
+    status: 'Draft',
+    audience: 'Premium Customers',
+    analytics: { sent: 0, opened: 0, clicked: 0 }
+  },
+  {
+    id: 2,
+    name: 'Product Launch Announcement',
+    type: 'Regular email',
+    lastEdited: new Date(2025, 5, 6, 1, 38),
+    author: 'Shubham Choudhary',
+    status: 'Scheduled',
+    audience: 'All Subscribers',
+    scheduledDate: new Date(2025, 5, 8, 9, 0),
+    analytics: { sent: 0, opened: 0, clicked: 0 }
+  },
+  {
+    id: 3,
+    name: 'Welcome Series #1',
+    type: 'Automated',
+    lastEdited: new Date(2025, 5, 5, 14, 22),
+    author: 'Alex Johnson',
+    status: 'Sent',
+    audience: 'New Users',
+    analytics: { sent: 1243, opened: 842, clicked: 321 }
+  },
+  {
+    id: 4,
+    name: 'Q3 Newsletter',
+    type: 'Regular email',
+    lastEdited: new Date(2025, 5, 4, 11, 15),
+    author: 'Maria Rodriguez',
+    status: 'Sent',
+    audience: 'Active Subscribers',
+    analytics: { sent: 2456, opened: 1567, clicked: 589 }
+  },
+  {
+    id: 5,
+    name: 'Black Friday Preview',
+    type: 'Automated',
+    lastEdited: new Date(2025, 5, 3, 16, 30),
+    author: 'James Wilson',
+    status: 'Scheduled',
+    audience: 'VIP Members',
+    scheduledDate: new Date(2025, 5, 15, 6, 0),
+    analytics: { sent: 0, opened: 0, clicked: 0 }
+  }
+];
 
 export default function EmailCampaignsPage() {
-  const { toast } = useToast();
-  const [generatedCampaignText, setGeneratedCampaignText] = useState<string | null>(null);
-  const [displayedText, setDisplayedText] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [activeTab, setActiveTab] = useState('preview');
-  const typingIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const iRef = useRef(0);
+  const [search, setSearch] = useState('');
+  const [selected, setSelected] = useState<number[]>([]);
+  const [tab, setTab] = useState('list');
+  const [sortConfig, setSortConfig] = useState<{key: string; direction: 'asc' | 'desc'}>({key: 'lastEdited', direction: 'desc'});
 
-  const form = useForm<CampaignFormValues>({
-    resolver: zodResolver(campaignSchema),
-    defaultValues: {
-      targetIndustry: '',
-      messageTemplates: '',
-      campaignGoal: '',
-      campaignName: '',
-      tone: 'professional',
-    },
+  const filtered = mockCampaigns.filter(c => 
+    c.name.toLowerCase().includes(search.toLowerCase()) ||
+    c.audience.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const sortedCampaigns = [...filtered].sort((a, b) => {
+    if (sortConfig.key === 'name') {
+      return sortConfig.direction === 'asc' 
+        ? a.name.localeCompare(b.name) 
+        : b.name.localeCompare(a.name);
+    }
+    if (sortConfig.key === 'lastEdited') {
+      return sortConfig.direction === 'asc' 
+        ? a.lastEdited.getTime() - b.lastEdited.getTime()
+        : b.lastEdited.getTime() - a.lastEdited.getTime();
+    }
+    return 0;
   });
 
-  // Typing animation effect
-  useEffect(() => {
-    if (generatedCampaignText && !isLoading && activeTab === 'plaintext') {
-      setDisplayedText('');
-      iRef.current = 0;
-      const chars = Array.from(generatedCampaignText);
-      if (typingIntervalRef.current) clearInterval(typingIntervalRef.current);
-      typingIntervalRef.current = setInterval(() => {
-        setDisplayedText((prev) => {
-          if (iRef.current >= chars.length) {
-            if (typingIntervalRef.current) clearInterval(typingIntervalRef.current);
-            return prev;
-          }
-          const next = prev + chars[iRef.current];
-          iRef.current++;
-          return next;
-        });
-      }, 12);
-      return () => {
-        if (typingIntervalRef.current) clearInterval(typingIntervalRef.current);
-      };
-    } else {
-      setDisplayedText(generatedCampaignText || '');
-      if (typingIntervalRef.current) clearInterval(typingIntervalRef.current);
-    }
-  }, [generatedCampaignText, isLoading, activeTab]);
-
-  const onSubmit = async (data: CampaignFormValues) => {
-    setIsLoading(true);
-    setGeneratedCampaignText(null);
-    setProgress(0);
-    setActiveTab('plaintext');
-
-    const interval = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 90) {
-          clearInterval(interval);
-          return prev;
-        }
-        return prev + 10;
-      });
-    }, 300);
-
-    await new Promise(resolve => setTimeout(resolve, 1200));
-
-    const emailText = [
-      sampleEmail.subject,
-      '',
-      sampleEmail.greeting,
-      '',
-      sampleEmail.body,
-      '',
-      sampleEmail.signature
-    ].join('\n');
-    setGeneratedCampaignText(emailText);
-    setProgress(100);
-    clearInterval(interval);
-
-    toast({
-      title: "Campaign Generated",
-      description: "Your email campaign is ready for review.",
-      variant: "default",
-    });
-
-    setTimeout(() => setIsLoading(false), 500);
+  const handleSelect = (id: number) => {
+    setSelected(sel => sel.includes(id) ? sel.filter(i => i !== id) : [...sel, id]);
+  };
+  
+  const handleSelectAll = () => {
+    if (selected.length === filtered.length) setSelected([]);
+    else setSelected(filtered.map(c => c.id));
   };
 
-  const copyToClipboard = () => {
-    if (generatedCampaignText) {
-      navigator.clipboard.writeText(generatedCampaignText);
-      toast({ 
-        title: "Copied to clipboard!",
-        description: "The campaign text is ready for pasting into your email client.",
-      });
+  const getStatusVariant = (status: string) => {
+    switch(status.toLowerCase()) {
+      case 'draft': return 'secondary';
+      case 'scheduled': return 'default';
+      case 'sent': return 'success';
+      default: return 'outline';
     }
   };
 
-  const downloadAsTxt = () => {
-    if (generatedCampaignText) {
-      const element = document.createElement('a');
-      const file = new Blob([generatedCampaignText], {type: 'text/plain'});
-      element.href = URL.createObjectURL(file);
-      element.download = `campaign_${form.getValues('campaignName') || 'draft'}.txt`;
-      document.body.appendChild(element);
-      element.click();
-      document.body.removeChild(element);
+  // Prepare marked dates for calendar
+  const emailDateMap = mockCampaigns.reduce((acc, c) => {
+    const key = c.lastEdited.toDateString();
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(c);
+    return acc;
+  }, {} as Record<string, typeof mockCampaigns>);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+
+  const requestSort = (key: string) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
     }
+    setSortConfig({ key, direction });
   };
 
-  const handleSendToLeads = () => {
-    if (generatedCampaignText) {
-      toast({
-        title: "Campaign Sent (Simulated)",
-        description: `Email campaign '${form.getValues('campaignName') || 'Untitled Campaign'}' has been sent to selected leads.`,
-        variant: "default",
-      });
-    } else {
-      toast({
-        title: "Cannot Send",
-        description: "Please generate a campaign first.",
-        variant: "destructive",
-      });
-    }
+  const getSortIcon = (key: string) => {
+    if (sortConfig.key !== key) return null;
+    return sortConfig.direction === 'asc' 
+      ? <ArrowUpDown className="ml-1 h-3 w-3 opacity-70" /> 
+      : <ArrowUpDown className="ml-1 h-3 w-3 rotate-180 opacity-70" />;
   };
 
   return (
     <MainLayout>
-      <div className="space-y-8">
-        {/* Enhanced Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="p-4 md:p-6 w-full max-w-7xl mx-auto">
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
           <div>
-            <div className="flex items-center gap-3 mb-3">
-              <div className="p-2.5 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600 text-white">
-                <Mail className="h-6 w-6" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Email Campaign Generator</h1>
-                <p className="text-muted-foreground max-w-2xl mt-1">
-                  Craft high-converting email campaigns with AI assistance
-                </p>
-              </div>
-            </div>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">Email Campaigns</h1>
+            <p className="text-muted-foreground mt-1">
+              Create and manage your email marketing campaigns
+            </p>
           </div>
-          <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-100 dark:border-blue-800/50">
-            <BadgeCheck className="h-5 w-5 text-blue-600 dark:text-blue-300" />
-            <span className="text-sm text-blue-700 dark:text-blue-300 font-medium">AI-powered content generation</span>
+          <div className="flex gap-2">
+            <Button variant="outline" className="gap-2" onClick={() => window.location.href = '/email-campaigns/analytics-email'}>
+              <BarChart2 size={16} />
+              View Analytics
+            </Button>
+            <Link href="/email-campaigns/create-email">
+              <Button className="gap-2 bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800">
+                <Plus size={16} />
+                Create Campaign
+              </Button>
+            </Link>
           </div>
         </div>
+        
+        <Tabs value={tab} onValueChange={setTab} className="mb-6">
+          <TabsList className="bg-muted/50 p-1 rounded-lg">
+            <TabsTrigger value="list" className="px-4 py-2 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm">
+              List View
+            </TabsTrigger>
+            <TabsTrigger value="calendar" className="px-4 py-2 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm">
+              Calendar
+            </TabsTrigger>
+          </TabsList>
 
-        <div className="grid md:grid-cols-2 gap-8">
-          {/* Left Panel - Enhanced Form */}
-          <Card className="shadow-lg border-0 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-950">
-            <CardHeader className="border-b border-gray-100 dark:border-gray-800">
-              <CardTitle className="flex items-center gap-3 text-gray-900 dark:text-white">
-                <Settings className="h-5 w-5 text-indigo-600" />
-                <span>Campaign Configuration</span>
-              </CardTitle>
-              <CardDescription className="mt-1">
-                Define your campaign parameters for optimal results
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-6">
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    <FormField
-                      control={form.control}
-                      name="campaignName"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="font-medium text-gray-700 dark:text-gray-300">Campaign Name</FormLabel>
-                          <FormControl>
-                            <Input 
-                              placeholder="e.g., Q3 SaaS Outreach" 
-                              {...field} 
-                              className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700"
-                            />
-                          </FormControl>
-                          <FormDescription className="text-gray-500 dark:text-gray-400">
-                            Helps with organization and tracking
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+          <TabsContent value="list">
+            <Card className="overflow-hidden border-0 shadow-md">
+              <CardHeader className="border-b p-4 md:p-6 bg-gradient-to-r from-gray-50 to-white dark:from-gray-900/50 dark:to-gray-900">
+                <div className="flex flex-col md:flex-row md:items-center gap-4">
+                  <div className="relative w-full max-w-xs">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search campaigns, audiences..."
+                      value={search}
+                      onChange={e => setSearch(e.target.value)}
+                      className="pl-10 bg-white dark:bg-gray-800"
                     />
+                  </div>
+                  
+                  <div className="flex flex-wrap items-center gap-2 ml-auto text-sm">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm" className="gap-2 bg-white dark:bg-gray-800">
+                          <Filter size={16} />
+                          Filters
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuLabel>Campaign Type</DropdownMenuLabel>
+                        <DropdownMenuItem>All Types</DropdownMenuItem>
+                        <DropdownMenuItem>Regular Email</DropdownMenuItem>
+                        <DropdownMenuItem>Automated</DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuLabel>Status</DropdownMenuLabel>
+                        <DropdownMenuItem>All Statuses</DropdownMenuItem>
+                        <DropdownMenuItem>Draft</DropdownMenuItem>
+                        <DropdownMenuItem>Scheduled</DropdownMenuItem>
+                        <DropdownMenuItem>Sent</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                     
-                    <FormField
-                      control={form.control}
-                      name="tone"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="font-medium text-gray-700 dark:text-gray-300">Email Tone</FormLabel>
-                          <select
-                            className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                            {...field}
+                    {selected.length > 0 && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">
+                          {selected.length} selected
+                        </span>
+                        <Button variant="outline" size="sm" className="text-destructive">
+                          Delete
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </CardHeader>
+              
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
+                    <thead className="bg-gray-50 dark:bg-gray-800/50 sticky top-0">
+                      <tr>
+                        <th className="w-12 px-4 py-3 text-left">
+                          <Checkbox 
+                            checked={selected.length === filtered.length && filtered.length > 0} 
+                            onCheckedChange={handleSelectAll} 
+                          />
+                        </th>
+                        <th 
+                          className="px-4 py-3 text-left font-semibold text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300"
+                          onClick={() => requestSort('name')}
+                        >
+                          <div className="flex items-center">
+                            Campaign
+                            {getSortIcon('name')}
+                          </div>
+                        </th>
+                        <th className="px-4 py-3 text-left font-semibold text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                          Audience
+                        </th>
+                        <th className="px-4 py-3 text-left font-semibold text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                          Analytics
+                        </th>
+                        <th 
+                          className="px-4 py-3 text-left font-semibold text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300"
+                          onClick={() => requestSort('lastEdited')}
+                        >
+                          <div className="flex items-center">
+                            Last Edited
+                            {getSortIcon('lastEdited')}
+                          </div>
+                        </th>
+                        <th className="px-4 py-3 text-right font-semibold text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200 dark:divide-gray-800 bg-white dark:bg-gray-900">
+                      {filtered.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="text-center py-16 text-muted-foreground">
+                            <div className="flex flex-col items-center gap-3">
+                              <Mail className="h-12 w-12 text-gray-300" />
+                              <h3 className="font-medium text-lg">No campaigns found</h3>
+                              <p className="text-sm max-w-md">
+                                Create your first campaign or adjust your search terms
+                              </p>
+                              <Link href="/email-campaigns/create-email">
+                                <Button className="mt-4 gap-2 bg-gradient-to-r from-blue-600 to-indigo-700">
+                                  <Plus size={16} />
+                                  Create Campaign
+                                </Button>
+                              </Link>
+                            </div>
+                          </td>
+                        </tr>
+                      ) : (
+                        sortedCampaigns.map(c => (
+                          <tr 
+                            key={c.id} 
+                            className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
                           >
-                            <option value="professional">Professional</option>
-                            <option value="friendly">Friendly</option>
-                            <option value="persuasive">Persuasive</option>
-                            <option value="urgent">Urgent</option>
-                          </select>
-                          <FormMessage />
-                        </FormItem>
+                            <td className="px-4 py-4">
+                              <Checkbox 
+                                checked={selected.includes(c.id)} 
+                                onCheckedChange={() => handleSelect(c.id)} 
+                              />
+                            </td>
+                            <td className="px-4 py-4">
+                              <div className="flex flex-col gap-1 min-w-[200px]">
+                                <div className="flex items-center gap-2">
+                                  <div className={`p-1.5 rounded-lg ${
+                                    c.type === 'Automated' 
+                                      ? 'bg-indigo-100 dark:bg-indigo-900/50' 
+                                      : 'bg-blue-100 dark:bg-blue-900/50'
+                                  }`}>
+                                    <Mail className="h-4 w-4 text-indigo-600 dark:text-indigo-300" />
+                                  </div>
+                                  <Link href="#" className="font-medium text-gray-900 dark:text-white hover:underline">
+                                    {c.name}
+                                  </Link>
+                                </div>
+                                <div className="flex items-center gap-2 ml-8">
+                                  <Badge 
+                                    variant={getStatusVariant(c.status)}
+                                    className="text-xs font-normal px-2 py-0.5"
+                                  >
+                                    {c.status}
+                                  </Badge>
+                                  <span className="text-xs text-muted-foreground">{c.type}</span>
+                                </div>
+                                <span className="text-xs text-muted-foreground ml-8">
+                                  By {c.author}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-4">
+                              <div className="flex items-center gap-2 text-sm">
+                                <Users className="h-4 w-4 text-muted-foreground" />
+                                {c.audience}
+                              </div>
+                            </td>
+                            <td className="px-4 py-4">
+                              {c.analytics.sent > 0 ? (
+                                <div className="flex flex-col gap-1.5 text-sm min-w-[180px]">
+                                  <div className="flex justify-between text-xs">
+                                    <span className="font-medium">{c.analytics.sent.toLocaleString()}</span>
+                                    <span className="text-muted-foreground">
+                                      {Math.round((c.analytics.opened / c.analytics.sent) * 100)}% Open
+                                    </span>
+                                    <span className="text-muted-foreground">
+                                      {Math.round((c.analytics.clicked / c.analytics.sent) * 100)}% CTR
+                                    </span>
+                                  </div>
+                                  <Progress 
+                                    value={Math.round((c.analytics.opened / c.analytics.sent) * 100)} 
+                                    className="h-2 bg-gradient-to-r from-blue-500 to-indigo-600 bg-gray-200 dark:bg-gray-800"
+                                  />
+                                </div>
+                              ) : (
+                                <div className="flex flex-col gap-1 min-w-[180px]">
+                                  <span className="text-muted-foreground text-sm">Not sent yet</span>
+                                  {c.status === 'Scheduled' && c.scheduledDate && (
+                                    <Badge variant="outline" className="text-xs py-1 px-2 w-fit">
+                                      <Calendar className="h-3 w-3 mr-1" />
+                                      {format(c.scheduledDate, 'MMM dd, h:mm a')}
+                                    </Badge>
+                                  )}
+                                </div>
+                              )}
+                            </td>
+                            <td className="px-4 py-4 text-sm text-muted-foreground">
+                              {format(c.lastEdited, 'MMM dd, yyyy')}
+                              <div className="text-xs mt-0.5">
+                                {format(c.lastEdited, 'h:mm a')}
+                              </div>
+                            </td>
+                            <td className="px-4 py-4 text-right">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon"
+                                    className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                                  >
+                                    <MoreVertical className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-48">
+                                  <DropdownMenuItem className="gap-2">
+                                    <FileEdit size={16} />
+                                    Edit
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem className="gap-2">
+                                    <Copy size={16} />
+                                    Duplicate
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem className="gap-2 text-destructive focus:bg-destructive/10 focus:text-destructive">
+                                    <Trash2 size={16} />
+                                    Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </td>
+                          </tr>
+                        ))
                       )}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+              <CardFooter className="bg-gray-50 dark:bg-gray-800/50 px-6 py-3 border-t">
+                <div className="text-xs text-muted-foreground">
+                  Showing <span className="font-medium">{filtered.length}</span> of <span className="font-medium">{mockCampaigns.length}</span> campaigns
+                </div>
+              </CardFooter>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="calendar">
+            <Card className="border-0 shadow-lg overflow-hidden">
+              <CardHeader className="bg-gradient-to-r from-gray-50 to-white dark:from-gray-900 dark:to-gray-900/80 border-b p-6">
+                <div className="flex flex-col md:flex-row md:items-center justify-between">
+                  <div>
+                    <CardTitle className="text-xl font-bold">Campaign Calendar</CardTitle>
+                    <CardDescription>
+                      Visualize your email schedule and campaign history
+                    </CardDescription>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setTab('list')}
+                    className="mt-2 md:mt-0"
+                  >
+                    Return to List View
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="p-6 md:p-8">
+                <div className="flex flex-col lg:flex-row gap-8">
+                  <div className="bg-white dark:bg-gray-800 rounded-xl shadow border w-full max-w-md mx-auto">
+                    <ReactCalendar
+                      value={selectedDate}
+                      onChange={date => setSelectedDate(date as Date)}
+                      tileContent={({ date, view }) => {
+                        const key = date.toDateString();
+                        if (emailDateMap[key]) {
+                          return (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="absolute top-1 right-1 block w-2 h-2 rounded-full bg-indigo-500"></span>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  {emailDateMap[key].length} campaign{emailDateMap[key].length > 1 ? 's' : ''}
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          );
+                        }
+                        return null;
+                      }}
+                      tileClassName={({ date }) => 
+                        `relative hover:bg-gray-50 dark:hover:bg-gray-700/50 p-2 ${date.toDateString() === new Date().toDateString() 
+                          ? 'bg-blue-50 dark:bg-blue-900/20' 
+                          : ''}`
+                      }
+                      className="border-0 w-full text-sm"
                     />
                   </div>
-
-                  <FormField
-                    control={form.control}
-                    name="targetIndustry"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="font-medium text-gray-700 dark:text-gray-300">Target Industry</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="e.g., Healthcare, Fintech" 
-                            {...field} 
-                            className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="campaignGoal"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                          <LayoutTemplate className="h-4 w-4 text-indigo-600" />
-                          Campaign Goal
-                        </FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="e.g., Increase demo bookings by 30%" 
-                            {...field} 
-                            className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700"
-                          />
-                        </FormControl>
-                        <FormDescription className="text-gray-500 dark:text-gray-400">
-                          Be specific about your desired outcome
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="messageTemplates"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="font-medium text-gray-700 dark:text-gray-300">Key Messages & Value Propositions</FormLabel>
-                        <FormControl>
-                          <Textarea 
-                            placeholder={`Example:\n- Reduce operational costs by 40%\n- Increase customer retention\n- Streamline workflow processes`} 
-                            {...field} 
-                            rows={5} 
-                            className="min-h-[120px] bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700"
-                          />
-                        </FormControl>
-                        <FormDescription className="text-gray-500 dark:text-gray-400">
-                          List the main points you want to communicate
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="pt-2">
-                    <Button 
-                      type="submit" 
-                      className="w-full py-6 text-lg font-medium shadow-sm bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 transition-all"
-                      disabled={isLoading}
-                    >
-                      {isLoading ? (
-                        <>
-                          <Wand2 className="mr-2 h-5 w-5 animate-pulse text-white" /> 
-                          <span className="text-white">Generating Campaign...</span>
-                        </>
+                  
+                  <div className="flex-1 min-w-[300px]">
+                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow border h-full">
+                      {selectedDate ? (
+                        <div className="p-6">
+                          <h3 className="text-lg font-semibold mb-4">
+                            Campaigns on {format(selectedDate, 'MMMM d, yyyy')}
+                          </h3>
+                          <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
+                            {(emailDateMap[selectedDate.toDateString()] || []).map((c, idx) => (
+                              <div 
+                                key={idx} 
+                                className="p-4 rounded-lg border bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-900/50 hover:shadow-sm transition-shadow"
+                              >
+                                <div className="flex items-start gap-3">
+                                  <div className={`p-2 rounded-lg mt-1 ${
+                                    c.type === 'Automated' 
+                                      ? 'bg-indigo-100 dark:bg-indigo-900/30' 
+                                      : 'bg-blue-100 dark:bg-blue-900/30'
+                                  }`}>
+                                    <Mail className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                                  </div>
+                                  <div className="flex-1">
+                                    <div className="flex justify-between">
+                                      <h4 className="font-medium text-gray-900 dark:text-white">{c.name}</h4>
+                                      <Badge variant={getStatusVariant(c.status)} className="text-xs">
+                                        {c.status}
+                                      </Badge>
+                                    </div>
+                                    <div className="text-sm text-muted-foreground mt-1">{c.type} • {c.audience}</div>
+                                    <div className="flex items-center text-sm text-muted-foreground mt-2">
+                                      <Users className="h-4 w-4 mr-1" />
+                                      By {c.author}
+                                    </div>
+                                    <div className="flex items-center text-sm text-muted-foreground mt-1">
+                                      <Calendar className="h-4 w-4 mr-1" />
+                                      {format(c.lastEdited, 'h:mm a')}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       ) : (
-                        <>
-                          <Wand2 className="mr-2 h-5 w-5 text-white" /> 
-                          <span className="text-white">Generate Campaign</span>
-                        </>
+                        <div className="h-full flex flex-col items-center justify-center p-8 text-center">
+                          <Calendar className="h-12 w-12 text-gray-300 mb-4" />
+                          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                            Select a date to view campaigns
+                          </h3>
+                          <p className="text-muted-foreground max-w-md">
+                            Click on a highlighted date to see campaigns created or scheduled on that day
+                          </p>
+                        </div>
                       )}
-                    </Button>
-                  </div>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
-
-          {/* Right Panel - Enhanced Output */}
-          <Card className="shadow-lg border-0 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-950">
-            <CardHeader className="border-b border-gray-100 dark:border-gray-800">
-              <div className="flex justify-between items-center">
-                <div>
-                  <CardTitle className="flex items-center gap-3 text-gray-900 dark:text-white">
-                    <Sparkles className="h-5 w-5 text-indigo-600" />
-                    <span>Campaign Output</span>
-                  </CardTitle>
-                  <CardDescription className="mt-1">
-                    Review and refine your generated content
-                  </CardDescription>
-                </div>
-                {generatedCampaignText && (
-                  <Badge variant="secondary" className="px-3 py-1.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300">
-                    {form.watch('tone') || 'professional'} tone
-                  </Badge>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent className="pt-6">
-              {isLoading && (
-                <div className="flex flex-col items-center justify-center h-64 space-y-4">
-                  <Progress value={progress} className="w-[80%] h-2 bg-gray-200 dark:bg-gray-800" />
-                  <div className="text-center space-y-2">
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-indigo-600 rounded-full opacity-75 animate-ping"></div>
-                      <Sparkles className="h-10 w-10 text-indigo-600 relative mx-auto" />
-                    </div>
-                    <p className="text-gray-700 dark:text-gray-300 font-medium">
-                      Crafting your perfect campaign...
-                    </p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      Analyzing {form.watch('targetIndustry') || 'industry'} best practices
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {generatedCampaignText && !isLoading && (
-                <div className="space-y-6">
-                  <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                    <TabsList className="grid w-full grid-cols-2 bg-gray-100 dark:bg-gray-800 p-1 h-10">
-                      <TabsTrigger 
-                        value="preview" 
-                        className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:dark:bg-gray-700 h-8"
-                      >
-                        Preview
-                      </TabsTrigger>
-                      <TabsTrigger 
-                        value="plaintext" 
-                        className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:dark:bg-gray-700 h-8"
-                      >
-                        Plain Text
-                      </TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="preview">
-                      <div className="prose prose-sm dark:prose-invert max-w-none p-6 border rounded-lg bg-white dark:bg-gray-800 h-[360px] overflow-y-auto font-sans text-[15px]">
-                        {generatedCampaignText?.split('\n').map((line, idx) => (
-                          <span key={idx}>
-                            {line}
-                            <br />
-                          </span>
-                        ))}
-                      </div>
-                    </TabsContent>
-                    <TabsContent value="plaintext">
-                      <div className="p-4 border rounded-lg bg-white dark:bg-gray-800 font-mono text-sm h-[360px] overflow-y-auto whitespace-pre-wrap">
-                        {generatedCampaignText && !isLoading ? (
-                          <TypeAnimation
-                            sequence={[generatedCampaignText, 1000]}
-                            speed={100}
-                            style={{ whiteSpace: 'pre-line', display: 'block' }}
-                            repeat={0}
-                            cursor={false}
-                          />
-                        ) : (
-                          displayedText
-                        )}
-                      </div>
-                    </TabsContent>
-                  </Tabs>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
-                    <Button 
-                      variant="outline" 
-                      onClick={copyToClipboard}
-                      className="flex-1 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800"
-                      disabled={!generatedCampaignText}
-                    >
-                      <Copy className="mr-2 h-4 w-4" /> Copy
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      onClick={downloadAsTxt}
-                      className="flex-1 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800"
-                      disabled={!generatedCampaignText}
-                    >
-                      <Download className="mr-2 h-4 w-4" /> Download
-                    </Button>
-                    <Button 
-                      variant="default"
-                      className="flex-1 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
-                      onClick={handleSendToLeads}
-                      disabled={!generatedCampaignText}
-                    >
-                      <Send className="mr-2 h-4 w-4 text-white" /> 
-                      <span className="text-white">Send to Leads</span>
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {!generatedCampaignText && !isLoading && (
-                <div className="text-center py-10">
-                  <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-gradient-to-r from-indigo-100 to-purple-100 dark:from-indigo-900/30 dark:to-purple-900/30 mb-4">
-                    <Mail className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
-                  </div>
-                  <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    No campaign generated yet
-                  </h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-                    Configure your campaign settings and click "Generate Campaign" to create your first draft.
-                  </p>
-                  <div className="p-4 bg-indigo-50/70 border border-indigo-100 dark:bg-indigo-900/20 dark:border-indigo-800/50 rounded-lg text-sm text-indigo-700 dark:text-indigo-300 max-w-md mx-auto">
-                    <div className="flex items-start gap-3">
-                      <Sparkles className="h-4 w-4 mt-0.5 flex-shrink-0 text-indigo-600 dark:text-indigo-400" />
-                      <div>
-                        <p className="font-medium mb-1">Pro Tip</p>
-                        <p>
-                          For best results, provide detailed information about your target audience and specific value propositions.
-                        </p>
-                      </div>
                     </div>
                   </div>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Features Section */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-10">
-          <div className="border rounded-xl p-5 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-950">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
-                <LayoutTemplate className="h-5 w-5" />
-              </div>
-              <h3 className="font-semibold text-gray-900 dark:text-white">Professional Templates</h3>
-            </div>
-            <p className="text-gray-600 dark:text-gray-400 text-sm">
-              AI-powered templates optimized for engagement and conversion across industries.
-            </p>
-          </div>
-          
-          <div className="border rounded-xl p-5 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-950">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="p-2 rounded-lg bg-indigo-100 dark:indigo-900/30 text-indigo-600 dark:text-indigo-400">
-                <Sparkles className="h-5 w-5" />
-              </div>
-              <h3 className="font-semibold text-gray-900 dark:text-white">Smart Optimization</h3>
-            </div>
-            <p className="text-gray-600 dark:text-gray-400 text-sm">
-              Our AI analyzes industry trends to optimize subject lines and content structure.
-            </p>
-          </div>
-          
-          <div className="border rounded-xl p-5 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-950">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="p-2 rounded-lg bg-purple-100 dark:purple-900/30 text-purple-600 dark:text-purple-400">
-                <Send className="h-5 w-5" />
-              </div>
-              <h3 className="font-semibold text-gray-900 dark:text-white">One-Click Deployment</h3>
-            </div>
-            <p className="text-gray-600 dark:text-gray-400 text-sm">
-              Integrate with your CRM or send directly to leads with a single click.
-            </p>
-          </div>
-        </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </MainLayout>
   );
