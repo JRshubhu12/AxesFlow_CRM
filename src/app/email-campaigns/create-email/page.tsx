@@ -11,14 +11,17 @@ import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useState, useEffect, useRef } from 'react';
-import { Sparkles, Copy, Download, ChevronRight, Mail, Send, LayoutTemplate, ArrowRight, BadgeCheck, Settings, Wand2 } from 'lucide-react';
+import { Sparkles, Copy, Download, Mail, Send, LayoutTemplate, BadgeCheck, Settings, Wand2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import sampleEmail from './sample_email.json';
+import leadsData from '@/app/leads/sample.json';
 import { TypeAnimation } from 'react-type-animation';
-    
-// --- Form Validation Schema ---
+
+import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription, DialogClose } from '@/components/ui/dialog';
+import { format } from 'date-fns';
+
 const campaignSchema = z.object({
   targetIndustry: z.string().min(3, {
     message: "Target industry must be at least 3 characters."
@@ -34,6 +37,16 @@ const campaignSchema = z.object({
 });
 
 type CampaignFormValues = z.infer<typeof campaignSchema>;
+type Lead = {
+  id: string;
+  name: string;
+  email: string;
+};
+
+function getFirstName(fullName: string | undefined) {
+  if (!fullName) return "";
+  return fullName.trim().split(" ")[0];
+}
 
 export default function EmailCampaignsPage() {
   const { toast } = useToast();
@@ -44,6 +57,13 @@ export default function EmailCampaignsPage() {
   const [activeTab, setActiveTab] = useState('preview');
   const typingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const iRef = useRef(0);
+
+  // Modal state
+  const [sendDialogOpen, setSendDialogOpen] = useState(false);
+  const [selectedLeads, setSelectedLeads] = useState<string[]>([]);
+  const [sendSubject, setSendSubject] = useState('');
+  const [sendTime, setSendTime] = useState<string>(format(new Date(), "yyyy-MM-dd'T'HH:mm"));
+  const [isSending, setIsSending] = useState(false);
 
   const form = useForm<CampaignFormValues>({
     resolver: zodResolver(campaignSchema),
@@ -83,6 +103,20 @@ export default function EmailCampaignsPage() {
     }
   }, [generatedCampaignText, isLoading, activeTab]);
 
+  // Generates a sample email with a placeholder for the first name
+  function generateSampleEmailForName(firstName: string) {
+    const greeting = `Dear ${firstName},`;
+    return [
+      sampleEmail.subject,
+      '',
+      greeting,
+      '',
+      sampleEmail.body,
+      '',
+      sampleEmail.signature,
+    ].join('\n');
+  }
+
   const onSubmit = async (data: CampaignFormValues) => {
     setIsLoading(true);
     setGeneratedCampaignText(null);
@@ -101,15 +135,10 @@ export default function EmailCampaignsPage() {
 
     await new Promise(resolve => setTimeout(resolve, 1200));
 
-    const emailText = [
-      sampleEmail.subject,
-      '',
-      sampleEmail.greeting,
-      '',
-      sampleEmail.body,
-      '',
-      sampleEmail.signature
-    ].join('\n');
+    // Use first name of the first lead as preview
+    const previewFirstName = leadsData.length > 0 ? getFirstName(leadsData[0].name) : "there";
+    const emailText = generateSampleEmailForName(previewFirstName);
+
     setGeneratedCampaignText(emailText);
     setProgress(100);
     clearInterval(interval);
@@ -121,12 +150,58 @@ export default function EmailCampaignsPage() {
     });
 
     setTimeout(() => setIsLoading(false), 500);
+
+    // Modal state defaults
+    setSendSubject(sampleEmail.subject);
+    setSelectedLeads(leadsData.map((lead: Lead) => lead.id));
+    setSendTime(format(new Date(), "yyyy-MM-dd'T'HH:mm"));
+    setTimeout(() => setSendDialogOpen(true), 700); // Open modal after a slight delay
+
+    // Send preview to the first lead for demonstration (could be changed)
+    try {
+      const response = await fetch("/api/send-campaign-email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          from: "onboarding@resend.dev", // Or your verified sender in production
+          to: leadsData.length > 0 ? leadsData[0].email : "",
+          subject: sampleEmail.subject,
+          text: emailText,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        toast({
+          title: "Email Failed",
+          description: data.error || data.message || JSON.stringify(data),
+          variant: "destructive",
+        });
+        // eslint-disable-next-line no-console
+        console.error("Email send error:", data, response.status, response.statusText);
+      } else {
+        toast({
+          title: "Test Email Sent",
+          description: `Campaign was sent to ${leadsData.length > 0 ? leadsData[0].email : ""}.`,
+          variant: "default",
+        });
+      }
+    } catch (e: any) {
+      toast({
+        title: "Email Failed",
+        description: e?.message || String(e) || "Failed to send test email.",
+        variant: "destructive",
+      });
+      // eslint-disable-next-line no-console
+      console.error("Email send exception:", e);
+    }
   };
 
   const copyToClipboard = () => {
     if (generatedCampaignText) {
       navigator.clipboard.writeText(generatedCampaignText);
-      toast({ 
+      toast({
         title: "Copied to clipboard!",
         description: "The campaign text is ready for pasting into your email client.",
       });
@@ -136,7 +211,7 @@ export default function EmailCampaignsPage() {
   const downloadAsTxt = () => {
     if (generatedCampaignText) {
       const element = document.createElement('a');
-      const file = new Blob([generatedCampaignText], {type: 'text/plain'});
+      const file = new Blob([generatedCampaignText], { type: 'text/plain' });
       element.href = URL.createObjectURL(file);
       element.download = `campaign_${form.getValues('campaignName') || 'draft'}.txt`;
       document.body.appendChild(element);
@@ -147,11 +222,7 @@ export default function EmailCampaignsPage() {
 
   const handleSendToLeads = () => {
     if (generatedCampaignText) {
-      toast({
-        title: "Campaign Sent (Simulated)",
-        description: `Email campaign '${form.getValues('campaignName') || 'Untitled Campaign'}' has been sent to selected leads.`,
-        variant: "default",
-      });
+      setSendDialogOpen(true);
     } else {
       toast({
         title: "Cannot Send",
@@ -161,12 +232,73 @@ export default function EmailCampaignsPage() {
     }
   };
 
+  // Send campaign to all selected leads, personalized with their first name
+  const doSendEmail = async () => {
+    setIsSending(true);
+
+    const leadsToSend = leadsData.filter((lead: Lead) => selectedLeads.includes(lead.id));
+    let successCount = 0;
+    let lastError: any = null;
+    for (const lead of leadsToSend) {
+      const personalizedEmailText = generateSampleEmailForName(getFirstName(lead.name));
+      try {
+        const response = await fetch("/api/send-campaign-email", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            from: "onboarding@resend.dev", // Or your verified sender
+            to: lead.email,
+            subject: sendSubject,
+            text: personalizedEmailText,
+          }),
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          lastError = data;
+        } else {
+          successCount++;
+        }
+      } catch (e) {
+        lastError = e;
+      }
+    }
+    setIsSending(false);
+    setSendDialogOpen(false);
+
+    if (successCount === 0 && lastError) {
+      let msg = lastError.message || lastError.error || JSON.stringify(lastError) || "Failed to send campaign to leads.";
+      toast({
+        title: "Campaign Send Failed",
+        description: msg,
+        variant: "destructive",
+      });
+      // eslint-disable-next-line no-console
+      console.error("Bulk email send error:", lastError);
+    } else {
+      toast({
+        title: "Campaign Sent",
+        description: `Campaign was sent to ${successCount} lead${successCount === 1 ? '' : 's'}.`,
+        variant: "default",
+      });
+    }
+  };
+
+  const handleLeadCheckbox = (leadId: string) => {
+    setSelectedLeads((prev) =>
+      prev.includes(leadId)
+        ? prev.filter((id) => id !== leadId)
+        : [...prev, leadId]
+    );
+  };
+
   return (
     <>
       <MainLayout>
         <div className={isLoading ? 'pointer-events-none opacity-50 select-none' : ''}>
           <div className="space-y-8">
-            {/* Enhanced Header */}
+            {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
                 <div className="flex items-center gap-3 mb-3">
@@ -188,7 +320,7 @@ export default function EmailCampaignsPage() {
             </div>
 
             <div className="grid md:grid-cols-2 gap-8">
-              {/* Left Panel - Enhanced Form */}
+              {/* Left: Form */}
               <Card className="shadow-lg border-0 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-950">
                 <CardHeader className="border-b border-gray-100 dark:border-gray-800">
                   <CardTitle className="flex items-center gap-3 text-gray-900 dark:text-white">
@@ -210,9 +342,9 @@ export default function EmailCampaignsPage() {
                             <FormItem>
                               <FormLabel className="font-medium text-gray-700 dark:text-gray-300">Campaign Name</FormLabel>
                               <FormControl>
-                                <Input 
-                                  placeholder="e.g., Q3 SaaS Outreach" 
-                                  {...field} 
+                                <Input
+                                  placeholder="e.g., Q3 SaaS Outreach"
+                                  {...field}
                                   className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700"
                                 />
                               </FormControl>
@@ -223,7 +355,6 @@ export default function EmailCampaignsPage() {
                             </FormItem>
                           )}
                         />
-                        
                         <FormField
                           control={form.control}
                           name="tone"
@@ -244,7 +375,6 @@ export default function EmailCampaignsPage() {
                           )}
                         />
                       </div>
-
                       <FormField
                         control={form.control}
                         name="targetIndustry"
@@ -252,9 +382,9 @@ export default function EmailCampaignsPage() {
                           <FormItem>
                             <FormLabel className="font-medium text-gray-700 dark:text-gray-300">Target Industry</FormLabel>
                             <FormControl>
-                              <Input 
-                                placeholder="e.g., Healthcare, Fintech" 
-                                {...field} 
+                              <Input
+                                placeholder="e.g., Healthcare, Fintech"
+                                {...field}
                                 className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700"
                               />
                             </FormControl>
@@ -262,7 +392,6 @@ export default function EmailCampaignsPage() {
                           </FormItem>
                         )}
                       />
-
                       <FormField
                         control={form.control}
                         name="campaignGoal"
@@ -273,9 +402,9 @@ export default function EmailCampaignsPage() {
                               Campaign Goal
                             </FormLabel>
                             <FormControl>
-                              <Input 
-                                placeholder="e.g., Increase demo bookings by 30%" 
-                                {...field} 
+                              <Input
+                                placeholder="e.g., Increase demo bookings by 30%"
+                                {...field}
                                 className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700"
                               />
                             </FormControl>
@@ -286,7 +415,6 @@ export default function EmailCampaignsPage() {
                           </FormItem>
                         )}
                       />
-
                       <FormField
                         control={form.control}
                         name="messageTemplates"
@@ -294,10 +422,10 @@ export default function EmailCampaignsPage() {
                           <FormItem>
                             <FormLabel className="font-medium text-gray-700 dark:text-gray-300">Key Messages & Value Propositions</FormLabel>
                             <FormControl>
-                              <Textarea 
-                                placeholder={`Example:\n- Reduce operational costs by 40%\n- Increase customer retention\n- Streamline workflow processes`} 
-                                {...field} 
-                                rows={5} 
+                              <Textarea
+                                placeholder={`Example:\n- Reduce operational costs by 40%\n- Increase customer retention\n- Streamline workflow processes`}
+                                {...field}
+                                rows={5}
                                 className="min-h-[120px] bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700"
                               />
                             </FormControl>
@@ -308,21 +436,20 @@ export default function EmailCampaignsPage() {
                           </FormItem>
                         )}
                       />
-
                       <div className="pt-2">
-                        <Button 
-                          type="submit" 
+                        <Button
+                          type="submit"
                           className="w-full py-6 text-lg font-medium shadow-sm bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 transition-all"
                           disabled={isLoading}
                         >
                           {isLoading ? (
                             <>
-                              <Wand2 className="mr-2 h-5 w-5 animate-pulse text-white" /> 
+                              <Wand2 className="mr-2 h-5 w-5 animate-pulse text-white" />
                               <span className="text-white">Generating Campaign...</span>
                             </>
                           ) : (
                             <>
-                              <Wand2 className="mr-2 h-5 w-5 text-white" /> 
+                              <Wand2 className="mr-2 h-5 w-5 text-white" />
                               <span className="text-white">Generate Campaign</span>
                             </>
                           )}
@@ -333,7 +460,7 @@ export default function EmailCampaignsPage() {
                 </CardContent>
               </Card>
 
-              {/* Right Panel - Enhanced Output */}
+              {/* Right: Output */}
               <Card className="shadow-lg border-0 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-950">
                 <CardHeader className="border-b border-gray-100 dark:border-gray-800">
                   <div className="flex justify-between items-center">
@@ -371,19 +498,18 @@ export default function EmailCampaignsPage() {
                       </div>
                     </div>
                   )}
-
                   {generatedCampaignText && !isLoading && (
                     <div className="space-y-6">
                       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                         <TabsList className="grid w-full grid-cols-2 bg-gray-100 dark:bg-gray-800 p-1 h-10">
-                          <TabsTrigger 
-                            value="preview" 
+                          <TabsTrigger
+                            value="preview"
                             className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:dark:bg-gray-700 h-8"
                           >
                             Preview
                           </TabsTrigger>
-                          <TabsTrigger 
-                            value="plaintext" 
+                          <TabsTrigger
+                            value="plaintext"
                             className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:dark:bg-gray-700 h-8"
                           >
                             Plain Text
@@ -392,7 +518,7 @@ export default function EmailCampaignsPage() {
                         <TabsContent value="preview">
                           <div className="prose prose-sm dark:prose-invert max-w-none p-6 border rounded-lg bg-white dark:bg-gray-800 h-[360px] overflow-y-auto font-sans text-[15px]">
                             {generatedCampaignText?.split('\n').map((line, idx) => (
-                              <span key={idx}>
+                              <span key={`${line}-${idx}`}>
                                 {line}
                                 <br />
                               </span>
@@ -415,37 +541,35 @@ export default function EmailCampaignsPage() {
                           </div>
                         </TabsContent>
                       </Tabs>
-
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           onClick={copyToClipboard}
                           className="flex-1 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800"
                           disabled={!generatedCampaignText}
                         >
                           <Copy className="mr-2 h-4 w-4" /> Copy
                         </Button>
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           onClick={downloadAsTxt}
                           className="flex-1 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800"
                           disabled={!generatedCampaignText}
                         >
                           <Download className="mr-2 h-4 w-4" /> Download
                         </Button>
-                        <Button 
+                        <Button
                           variant="default"
                           className="flex-1 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
                           onClick={handleSendToLeads}
                           disabled={!generatedCampaignText}
                         >
-                          <Send className="mr-2 h-4 w-4 text-white" /> 
+                          <Send className="mr-2 h-4 w-4 text-white" />
                           <span className="text-white">Send to Leads</span>
                         </Button>
                       </div>
                     </div>
                   )}
-
                   {!generatedCampaignText && !isLoading && (
                     <div className="text-center py-10">
                       <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-gradient-to-r from-indigo-100 to-purple-100 dark:from-indigo-900/30 dark:to-purple-900/30 mb-4">
@@ -473,7 +597,6 @@ export default function EmailCampaignsPage() {
                 </CardContent>
               </Card>
             </div>
-
             {/* Features Section */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-10">
               <div className="border rounded-xl p-5 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-950">
@@ -487,7 +610,6 @@ export default function EmailCampaignsPage() {
                   AI-powered templates optimized for engagement and conversion across industries.
                 </p>
               </div>
-              
               <div className="border rounded-xl p-5 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-950">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="p-2 rounded-lg bg-indigo-100 dark:indigo-900/30 text-indigo-600 dark:text-indigo-400">
@@ -499,7 +621,6 @@ export default function EmailCampaignsPage() {
                   Our AI analyzes industry trends to optimize subject lines and content structure.
                 </p>
               </div>
-              
               <div className="border rounded-xl p-5 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-950">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="p-2 rounded-lg bg-purple-100 dark:purple-900/30 text-purple-600 dark:text-purple-400">
@@ -515,6 +636,66 @@ export default function EmailCampaignsPage() {
           </div>
         </div>
       </MainLayout>
+      {/* SEND EMAIL MODAL */}
+      <Dialog open={sendDialogOpen} onOpenChange={setSendDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              Send Campaign to Leads
+            </DialogTitle>
+            <DialogDescription>
+              Select which leads to send the campaign to. You can also adjust the subject and schedule send time.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="mb-3">
+              <label className="block text-sm font-medium mb-1">Subject</label>
+              <Input
+                value={sendSubject}
+                onChange={e => setSendSubject(e.target.value)}
+                className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700"
+              />
+            </div>
+            <div className="mb-3">
+              <label className="block text-sm font-medium mb-1">Send Time</label>
+              <Input
+                type="datetime-local"
+                value={sendTime}
+                onChange={e => setSendTime(e.target.value)}
+                className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Select Leads</label>
+              <div className="max-h-48 overflow-y-auto border rounded p-2 bg-gray-50 dark:bg-gray-900/40">
+                {leadsData.map((lead: Lead, idx) => (
+                  <label key={lead.id || idx} className="flex items-center gap-2 py-1 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="accent-indigo-600"
+                      checked={selectedLeads.includes(lead.id)}
+                      onChange={() => handleLeadCheckbox(lead.id)}
+                    />
+                    <span>{lead.name} &lt;{lead.email}&gt;</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button
+              onClick={doSendEmail}
+              disabled={isSending || selectedLeads.length === 0}
+              className="bg-indigo-600 text-white hover:bg-indigo-700"
+            >
+              {isSending ? "Sending..." : "Send Now"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
-}
+}               
