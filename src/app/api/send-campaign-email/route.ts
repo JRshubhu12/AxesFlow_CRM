@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 
-// Make sure to set RESEND_API_KEY in your .env.local
-const resendApiKey = process.env.RESEND_API_KEY;
+// WARNING: Hardcoding API keys is not recommended for production.
+// This is for demonstration ONLY. In production, always use environment variables.
+const resendApiKey = "re_EnQYV3R8_N7aKu2c2c7i8rXctXxMAvVsC"; // <-- Your Resend API Key here
 
 if (!resendApiKey) {
-  throw new Error("Missing RESEND_API_KEY environment variable.");
+  throw new Error("Missing RESEND_API_KEY.");
 }
 const resend = new Resend(resendApiKey);
 
@@ -21,7 +22,6 @@ export async function POST(req: Request) {
       html,
     });
 
-    // Optionally, you can check for a response error property and handle accordingly
     if (response.error) {
       console.error("Resend error:", response.error);
       return NextResponse.json(
