@@ -19,6 +19,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { navItems as appNavItems } from '@/config/nav';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
+import LoadingScreen from '@/components/ui/loading-screen';
 
 // UserNav Component (avatar styled for round and border as in image)
 interface UserNavProps {
@@ -186,6 +187,8 @@ export default function MainLayout({ children }: { children: ReactNode }) {
   const navItems = appNavItems;
   const router = useRouter();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => { setHydrated(true); }, []);
 
   // Map href to icon component
   const navIcons: Record<string, JSX.Element> = {
@@ -213,138 +216,144 @@ export default function MainLayout({ children }: { children: ReactNode }) {
     // Inject sample sidebar nav items if needed (handled by nav config)
   }, []);
 
-  if (pathname === '/') {
-    return <>{children}</>;
-  }
-
+  // Always call all hooks before any return!
+  // Use conditional rendering inside the returned JSX
   return (
-    <div className="flex min-h-screen bg-background">
-      {/* Sidebar */}
-      <div className="w-60 border-r bg-sidebar-background p-0 sticky top-0 h-screen flex flex-col">
-        <div className="mb-3 px-4 pt-5 pb-3"> 
-          <AppLogo />
-        </div>
-        <nav className="space-y-1 px-3 overflow-y-auto flex-grow">
-          {navItems.map((item) => {
-            let isParentActive = pathname === item.href || pathname.startsWith(item.href + '/');
-            if (item.href === '/dashboard' && pathname !== '/dashboard') {
-                isParentActive = false;
-            }
-            const isItemExactlyActive = pathname === item.href;
-            const isActiveForStyling = isItemExactlyActive || (isParentActive && item.href !== '/dashboard' && item.href.length > 1);
-            return (
-              <div key={item.title}>
-                <Link
-                  href={item.href}
-                  className={cn(
-                    "group flex items-center px-3 py-2.5 rounded-md transition-colors text-sm",
-                    isActiveForStyling
-                      ? 'bg-primary text-primary-foreground font-medium hover:bg-primary/90'
-                      : 'text-foreground font-normal hover:bg-muted hover:text-foreground'
-                  )}
-                  title={item.tooltip || item.title}
-                >
-                  {navIcons[item.href] && navIcons[item.href]}
-                  <span>{item.title}</span>
-                </Link>
-                {isParentActive && item.subItems && item.subItems.length > 0 && (
-                  <ul className="ml-4 mt-1 space-y-0.5 pl-3 border-l border-primary/20">
-                    {item.subItems.map(subItem => (
-                      <li key={subItem.title}>
-                        <Link
-                          href={subItem.href}
-                          className={cn(
-                            "group flex items-center px-2 py-1.5 text-xs rounded-md transition-colors w-full",
-                            pathname === subItem.href
-                              ? 'text-primary-foreground font-semibold' 
-                              : 'text-primary-foreground/80 hover:text-primary-foreground' 
-                          )}
-                          title={subItem.tooltip || subItem.title}
-                        >
-                          <span>{subItem.title}</span>
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            );
-          })}
-        </nav>
-      </div>
-
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col overflow-auto">
-        {/* Top Bar - matches the reference image, with bigger icons and styled avatar */}
-        <header
-          className="sticky top-0 z-10 flex h-[56px] items-center border-b bg-white px-8"
-          style={{ boxShadow: 'none' }}
-        >
-          {/* Left: Page Title */}
-          <div className="flex items-center min-w-[180px] mr-5">
-            <PageTitleDisplay />
-          </div>
-
-          {/* Center: Search Bar */}
-          <div className="flex-1 flex justify-center">
-            <div className="relative w-full max-w-lg">
-              <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#a1a1a1]" />
-              <input
-                type="search"
-                placeholder="search for features, settings and more"
-                className="w-full h-[40px] pl-12 pr-4 rounded-full border border-[#bdbdbd] bg-transparent text-[15px] font-normal placeholder:text-[#8d8d8d] focus:outline-none focus:ring-2 focus:ring-primary transition"
-                style={{ boxShadow: 'none' }}
-              />
+    <>
+      {!hydrated ? (
+        <LoadingScreen message="Loading page..." />
+      ) : pathname === '/' ? (
+        <>{children}</>
+      ) : (
+        <div className="flex min-h-screen bg-background">
+          {/* Sidebar */}
+          <div className="w-60 border-r bg-sidebar-background p-0 sticky top-0 h-screen flex flex-col">
+            <div className="mb-3 px-4 pt-5 pb-3"> 
+              <AppLogo />
             </div>
+            <nav className="space-y-1 px-3 overflow-y-auto flex-grow">
+              {navItems.map((item) => {
+                let isParentActive = pathname === item.href || pathname.startsWith(item.href + '/');
+                if (item.href === '/dashboard' && pathname !== '/dashboard') {
+                    isParentActive = false;
+                }
+                const isItemExactlyActive = pathname === item.href;
+                const isActiveForStyling = isItemExactlyActive || (isParentActive && item.href !== '/dashboard' && item.href.length > 1);
+                return (
+                  <div key={item.title}>
+                    <Link
+                      href={item.href}
+                      className={cn(
+                        "group flex items-center px-3 py-2.5 rounded-md transition-colors text-sm",
+                        isActiveForStyling
+                          ? 'bg-primary text-primary-foreground font-medium hover:bg-primary/90'
+                          : 'text-foreground font-normal hover:bg-muted hover:text-foreground'
+                      )}
+                      title={item.tooltip || item.title}
+                    >
+                      {navIcons[item.href] && navIcons[item.href]}
+                      <span>{item.title}</span>
+                    </Link>
+                    {isParentActive && item.subItems && item.subItems.length > 0 && (
+                      <ul className="ml-4 mt-1 space-y-0.5 pl-3 border-l border-primary/20">
+                        {item.subItems.map(subItem => (
+                          <li key={subItem.title}>
+                            <Link
+                              href={subItem.href}
+                              className={cn(
+                                "group flex items-center px-2 py-1.5 text-xs rounded-md transition-colors w-full",
+                                pathname === subItem.href
+                                  ? 'text-primary-foreground font-semibold' 
+                                  : 'text-primary-foreground/80 hover:text-primary-foreground' 
+                              )}
+                              title={subItem.tooltip || subItem.title}
+                            >
+                              <span>{subItem.title}</span>
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                );
+              })}
+            </nav>
           </div>
 
-          <div className="flex items-center gap-12">
-            <Button variant="ghost" size="icon" className="hover:bg-primary/10 h-8 w-8 ml-[-8px]">
-              <Image src="/images/folder.svg" alt="Folder" width={28} height={28} className="w-7 h-7" />
-              <span className="sr-only">Folder</span>
-            </Button>
-            <Button variant="ghost" size="icon" className="hover:bg-accent/10 h-8 w-8">
-              <Image src="/images/Notification.svg" alt="Notifications" width={28} height={28} className="w-7 h-7" />
-              <span className="sr-only">Notifications</span>
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="relative h-8 w-8 flex items-center justify-center rounded-full bg-white shadow-md hover:bg-muted focus:outline-none focus:ring-2 focus:ring-primary/50"
-                >
-                  <span className="absolute inset-0 rounded-full shadow-lg" style={{ boxShadow: '0 2px 8px 0 rgba(0,0,0,0.10)' }} />
-                  <Image src="/images/user.svg" alt="User" width={28} height={28} className="w-7 h-7 relative z-10" />
-                  <span className="sr-only">User</span>
+          {/* Main Content Area */}
+          <div className="flex-1 flex flex-col overflow-auto">
+            {/* Top Bar - matches the reference image, with bigger icons and styled avatar */}
+            <header
+              className="sticky top-0 z-10 flex h-[56px] items-center border-b bg-white px-8"
+              style={{ boxShadow: 'none' }}
+            >
+              {/* Left: Page Title */}
+              <div className="flex items-center min-w-[180px] mr-5">
+                <PageTitleDisplay />
+              </div>
+
+              {/* Center: Search Bar */}
+              <div className="flex-1 flex justify-center">
+                <div className="relative w-full max-w-lg">
+                  <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#a1a1a1]" />
+                  <input
+                    type="search"
+                    placeholder="search for features, settings and more"
+                    className="w-full h-[40px] pl-12 pr-4 rounded-full border border-[#bdbdbd] bg-transparent text-[15px] font-normal placeholder:text-[#8d8d8d] focus:outline-none focus:ring-2 focus:ring-primary transition"
+                    style={{ boxShadow: 'none' }}
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-12">
+                <Button variant="ghost" size="icon" className="hover:bg-primary/10 h-8 w-8 ml-[-8px]">
+                  <Image src="/images/folder.svg" alt="Folder" width={28} height={28} className="w-7 h-7" />
+                  <span className="sr-only">Folder</span>
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-40" align="end" forceMount>
-                <DropdownMenuLabel className="font-normal">Account</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => router.push('/profile')} className="cursor-pointer">
-                  <User className="mr-2 h-4 w-4" />
-                  <span>Profile</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => router.push('/settings')} className="cursor-pointer">
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>Settings</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => router.push('/')} className="cursor-pointer hover:bg-red-100 text-red-600">
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Logout</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </header>
+                <Button variant="ghost" size="icon" className="hover:bg-accent/10 h-8 w-8">
+                  <Image src="/images/Notification.svg" alt="Notifications" width={28} height={28} className="w-7 h-7" />
+                  <span className="sr-only">Notifications</span>
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="relative h-8 w-8 flex items-center justify-center rounded-full bg-white shadow-md hover:bg-muted focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    >
+                      <span className="absolute inset-0 rounded-full shadow-lg" style={{ boxShadow: '0 2px 8px 0 rgba(0,0,0,0.10)' }} />
+                      <Image src="/images/user.svg" alt="User" width={28} height={28} className="w-7 h-7 relative z-10" />
+                      <span className="sr-only">User</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-40" align="end" forceMount>
+                    <DropdownMenuLabel className="font-normal">Account</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => router.push('/profile')} className="cursor-pointer">
+                      <User className="mr-2 h-4 w-4" />
+                      <span>Profile</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => router.push('/settings')} className="cursor-pointer">
+                      <Settings className="mr-2 h-4 w-4" />
+                      <span>Settings</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => router.push('/')} className="cursor-pointer hover:bg-red-100 text-red-600">
+                      <LogOut className="mr-2 h-4 w-4" />
+                      <span>Logout</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </header>
 
-        {/* Page Content */}
-        <main className="flex-1 p-6">
-          {children}
-        </main>
-      </div>
-    </div>
+            {/* Page Content */}
+            <main className="flex-1 p-6">
+              {children}
+            </main>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
