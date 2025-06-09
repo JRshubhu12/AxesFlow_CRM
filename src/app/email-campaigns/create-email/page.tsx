@@ -11,7 +11,7 @@ import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useState, useEffect, useRef } from 'react';
-import { Sparkles, Copy, Download, Mail, Send, LayoutTemplate, BadgeCheck, Settings, Wand2 } from 'lucide-react';
+import { Sparkles, Copy, Download, Mail, Send, LayoutTemplate, BadgeCheck, Settings, Wand2, Search, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -41,6 +41,8 @@ type Lead = {
   id: string;
   name: string;
   email: string;
+  status: string;
+  company: string;
 };
 
 function getFirstName(fullName: string | undefined) {
@@ -64,6 +66,11 @@ export default function EmailCampaignsPage() {
   const [sendSubject, setSendSubject] = useState('');
   const [sendTime, setSendTime] = useState<string>(format(new Date(), "yyyy-MM-dd'T'HH:mm"));
   const [isSending, setIsSending] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [leadsExpanded, setLeadsExpanded] = useState(true);
+
+  const subjectInputRef = useRef<HTMLInputElement>(null);
+  const sendTimeInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<CampaignFormValues>({
     resolver: zodResolver(campaignSchema),
@@ -75,6 +82,22 @@ export default function EmailCampaignsPage() {
       tone: 'professional',
     },
   });
+
+  useEffect(() => {
+    if (sendDialogOpen) {
+      setTimeout(() => {
+        if (subjectInputRef.current) subjectInputRef.current.blur();
+        if (sendTimeInputRef.current) sendTimeInputRef.current.blur();
+      }, 0);
+    }
+  }, [sendDialogOpen]);
+
+  // Filter leads based on search term
+  const filteredLeads = leadsData.filter((lead: Lead) => 
+    lead.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    lead.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (lead.company && lead.company.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
 
   // Typing animation effect
   useEffect(() => {
@@ -93,7 +116,7 @@ export default function EmailCampaignsPage() {
           iRef.current++;
           return next;
         });
-      }, 12);
+      }, 4); // Faster animation: was 12ms, now 4ms
       return () => {
         if (typingIntervalRef.current) clearInterval(typingIntervalRef.current);
       };
@@ -153,9 +176,8 @@ export default function EmailCampaignsPage() {
 
     // Modal state defaults
     setSendSubject(sampleEmail.subject);
-    setSelectedLeads(leadsData.map((lead: Lead) => lead.id));
+    setSelectedLeads([]); // Do not pre-select any leads
     setSendTime(format(new Date(), "yyyy-MM-dd'T'HH:mm"));
-    setTimeout(() => setSendDialogOpen(true), 700); // Open modal after a slight delay
 
     // Send preview to the first lead for demonstration (could be changed)
     try {
@@ -236,7 +258,7 @@ export default function EmailCampaignsPage() {
   const doSendEmail = async () => {
     setIsSending(true);
 
-    const leadsToSend = leadsData.filter((lead: Lead) => selectedLeads.includes(lead.id));
+    const leadsToSend = leadsData.filter((lead: Lead) => selectedLeads.includes(lead.email));
     let successCount = 0;
     let lastError: any = null;
     for (const lead of leadsToSend) {
@@ -285,14 +307,31 @@ export default function EmailCampaignsPage() {
     }
   };
 
-  const handleLeadCheckbox = (leadId: string) => {
+  const handleLeadCheckbox = (leadEmail: string) => {
     setSelectedLeads((prev) =>
-      prev.includes(leadId)
-        ? prev.filter((id) => id !== leadId)
-        : [...prev, leadId]
+      prev.includes(leadEmail)
+        ? prev.filter((email) => email !== leadEmail)
+        : [...prev, leadEmail] // Allow multiple selections
     );
   };
-  
+
+  const toggleSelectAllLeads = () => {
+    if (selectedLeads.length === leadsData.length) {
+      setSelectedLeads([]);
+    } else {
+      setSelectedLeads(leadsData.map((lead: Lead) => lead.email));
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch(status) {
+      case 'active': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
+      case 'prospect': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
+      case 'inactive': return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+      default: return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300';
+    }
+  };
+
   return (
     <>
       <MainLayout>
@@ -318,6 +357,7 @@ export default function EmailCampaignsPage() {
                 <span className="text-sm text-blue-700 dark:text-blue-300 font-medium">AI-powered content generation</span>
               </div>
             </div>
+
             <div className="grid md:grid-cols-2 gap-8">
               {/* Left: Form */}
               <Card className="shadow-lg border-0 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-950">
@@ -458,6 +498,7 @@ export default function EmailCampaignsPage() {
                   </Form>
                 </CardContent>
               </Card>
+
               {/* Right: Output */}
               <Card className="shadow-lg border-0 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-950">
                 <CardHeader className="border-b border-gray-100 dark:border-gray-800">
@@ -634,62 +675,195 @@ export default function EmailCampaignsPage() {
           </div>
         </div>
       </MainLayout>
-      {/* SEND EMAIL MODAL */}
+      {/* Enhanced Send Leads Modal */}
       <Dialog open={sendDialogOpen} onOpenChange={setSendDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>
-              Send Campaign to Leads
-            </DialogTitle>
-            <DialogDescription>
-              Select which leads to send the campaign to. You can also adjust the subject and schedule send time.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <div className="mb-3">
-              <label className="block text-sm font-medium mb-1">Subject</label>
-              <Input
-                value={sendSubject}
-                onChange={e => setSendSubject(e.target.value)}
-                className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700"
-              />
-            </div>
-            <div className="mb-3">
-              <label className="block text-sm font-medium mb-1">Send Time</label>
-              <Input
-                type="datetime-local"
-                value={sendTime}
-                onChange={e => setSendTime(e.target.value)}
-                className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Select Leads</label>
-              <div className="max-h-48 overflow-y-auto border rounded p-2 bg-gray-50 dark:bg-gray-900/40">
-                {leadsData.map((lead: Lead, idx) => (
-                  <label key={lead.id || idx} className="flex items-center gap-2 py-1 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      className="accent-indigo-600"
-                      checked={selectedLeads.includes(lead.id)}
-                      onChange={() => handleLeadCheckbox(lead.id)}
-                    />
-                    <span>{lead.name} &lt;{lead.email}&gt;</span>
-                  </label>
-                ))}
+        <DialogContent className="max-w-3xl bg-white dark:bg-gray-900 rounded-xl">
+          <DialogHeader className="border-b border-gray-200 dark:border-gray-800 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="bg-indigo-100 dark:bg-indigo-900/30 p-2 rounded-lg">
+                <Send className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+              </div>
+              <div>
+                <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">
+                  Send Campaign to Leads
+                </DialogTitle>
+                <DialogDescription className="text-gray-600 dark:text-gray-400">
+                  Select recipients and schedule your campaign delivery
+                </DialogDescription>
               </div>
             </div>
+          </DialogHeader>
+          
+          <div className="py-5 space-y-6">
+            {/* Campaign Info */}
+            <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-medium text-gray-900 dark:text-white">{form.watch('campaignName') || 'Untitled Campaign'}</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{sendSubject}</p>
+                </div>
+                <Badge variant="secondary" className="px-3 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300">
+                  {selectedLeads.length} {selectedLeads.length === 1 ? 'Lead' : 'Leads'} Selected
+                </Badge>
+              </div>
+            </div>
+            
+            {/* Scheduling */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Send Time</label>
+                <Input
+                  type="datetime-local"
+                  value={sendTime}
+                  onChange={e => setSendTime(e.target.value)}
+                  className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 rounded-lg"
+                  ref={sendTimeInputRef}
+                  tabIndex={-1}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Subject Line</label>
+                <Input
+                  ref={subjectInputRef}
+                  value={sendSubject}
+                  onChange={e => setSendSubject(e.target.value)}
+                  className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 rounded-lg"
+                  tabIndex={-1}
+                />
+              </div>
+            </div>
+            
+            {/* Leads Section */}
+            <div className="border rounded-xl overflow-hidden">
+              <div 
+                className="flex justify-between items-center p-4 bg-gray-50 dark:bg-gray-800/50 cursor-pointer"
+                onClick={() => setLeadsExpanded(!leadsExpanded)}
+              >
+                <h3 className="font-medium text-gray-900 dark:text-white">Select Leads</h3>
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
+                    {selectedLeads.length} selected
+                  </Badge>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleSelectAllLeads();
+                    }}
+                    className="text-indigo-600 dark:text-indigo-400"
+                  >
+                    {selectedLeads.length === leadsData.length ? 'Deselect All' : 'Select All'}
+                  </Button>
+                  {leadsExpanded ? 
+                    <ChevronUp className="h-5 w-5 text-gray-500" /> : 
+                    <ChevronDown className="h-5 w-5 text-gray-500" />
+                  }
+                </div>
+              </div>
+              
+              {leadsExpanded && (
+                <div className="p-4 space-y-4 max-h-[300px] overflow-y-auto">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <Input
+                      placeholder="Search leads by name, email or company..."
+                      value={searchTerm}
+                      onChange={e => setSearchTerm(e.target.value)}
+                      className="pl-10 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 rounded-lg"
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-1 gap-2">
+                    {filteredLeads.map((lead: Lead) => (
+                      <div
+                        key={lead.email}
+                        className={`flex items-center gap-4 p-3 rounded-lg border ${
+                          selectedLeads.includes(lead.email)
+                            ? 'border-indigo-300 bg-indigo-50 dark:border-indigo-700 dark:bg-indigo-900/20'
+                            : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50'
+                        } transition-colors`}
+                      >
+                        <div className="flex-shrink-0">
+                          <div className="rounded-full bg-indigo-100 dark:bg-indigo-900/30 h-10 w-10 flex items-center justify-center text-indigo-600 dark:text-indigo-300 font-medium">
+                            {lead.name.charAt(0)}
+                          </div>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium truncate text-gray-900 dark:text-white">{lead.name}</p>
+                            {lead.status && (
+                              <Badge className={`px-2 py-0.5 text-xs ${getStatusColor(lead.status)}`}>
+                                {lead.status}
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 truncate">{lead.email}</p>
+                          {lead.company && (
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate">{lead.company}</p>
+                          )}
+                        </div>
+                        <div>
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                              type="checkbox"
+                              className="sr-only peer"
+                              checked={selectedLeads.includes(lead.email)}
+                              onChange={() => handleLeadCheckbox(lead.email)}
+                            />
+                            <div className={`w-5 h-5 rounded flex items-center justify-center ${
+                              selectedLeads.includes(lead.email)
+                                ? 'bg-indigo-600 border-indigo-600'
+                                : 'border border-gray-300 dark:border-gray-600'
+                            }`}>
+                              {selectedLeads.includes(lead.email) && (
+                                <Check className="h-4 w-4 text-white" />
+                              )}
+                            </div>
+                          </label>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {filteredLeads.length === 0 && (
+                    <div className="text-center py-6">
+                      <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-gray-100 dark:bg-gray-800 mb-3">
+                        <Search className="h-5 w-5 text-gray-500" />
+                      </div>
+                      <p className="text-gray-600 dark:text-gray-400">
+                        No leads found matching "{searchTerm}"
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
-          <DialogFooter>
+          
+          <DialogFooter className="pt-4 border-t border-gray-200 dark:border-gray-800">
             <DialogClose asChild>
-              <Button variant="outline">Cancel</Button>
+              <Button variant="outline" className="rounded-lg">Cancel</Button>
             </DialogClose>
             <Button
               onClick={doSendEmail}
               disabled={isSending || selectedLeads.length === 0}
-              className="bg-indigo-600 text-white hover:bg-indigo-700"
+              className="bg-indigo-600 text-white hover:bg-indigo-700 rounded-lg"
             >
-              {isSending ? "Sending..." : "Send Now"}
+              {isSending ? (
+                <div className="flex items-center">
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Sending to {selectedLeads.length} {selectedLeads.length === 1 ? 'lead' : 'leads'}...
+                </div>
+              ) : (
+                <>
+                  <Send className="mr-2 h-4 w-4" />
+                  Send to {selectedLeads.length} {selectedLeads.length === 1 ? 'Lead' : 'Leads'}
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
