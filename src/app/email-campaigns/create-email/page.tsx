@@ -292,7 +292,7 @@ export default function EmailCampaignsPage() {
         : [...prev, leadId]
     );
   };
-
+  
   return (
     <>
       <MainLayout>
@@ -318,7 +318,6 @@ export default function EmailCampaignsPage() {
                 <span className="text-sm text-blue-700 dark:text-blue-300 font-medium">AI-powered content generation</span>
               </div>
             </div>
-
             <div className="grid md:grid-cols-2 gap-8">
               {/* Left: Form */}
               <Card className="shadow-lg border-0 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-950">
@@ -459,7 +458,6 @@ export default function EmailCampaignsPage() {
                   </Form>
                 </CardContent>
               </Card>
-
               {/* Right: Output */}
               <Card className="shadow-lg border-0 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-950">
                 <CardHeader className="border-b border-gray-100 dark:border-gray-800">
@@ -698,4 +696,4 @@ export default function EmailCampaignsPage() {
       </Dialog>
     </>
   );
-}               
+}

@@ -164,12 +164,16 @@ export default function EmailCampaignsPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" className="gap-2" onClick={() => window.location.href = '/email-campaigns/analytics-email'}>
+            <Button 
+              variant="outline" 
+              className="gap-2 hover:bg-[#6D69C9] hover:text-white transition-colors" 
+              onClick={() => window.location.href = '/email-campaigns/analytics-email'}
+            >
               <BarChart2 size={16} />
               View Analytics
             </Button>
             <Link href="/email-campaigns/create-email">
-              <Button className="gap-2 bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800">
+              <Button className="gap-2" style={{ backgroundColor: '#6D69C9' }}>
                 <Plus size={16} />
                 Create Campaign
               </Button>
@@ -324,7 +328,7 @@ export default function EmailCampaignsPage() {
                                 </div>
                                 <div className="flex items-center gap-2 ml-8">
                                   <Badge 
-                                    variant={getStatusVariant(c.status)}
+                                    variant={getStatusVariant(c.status) === 'success' ? 'default' : getStatusVariant(c.status)}
                                     className="text-xs font-normal px-2 py-0.5"
                                   >
                                     {c.status}
@@ -497,7 +501,7 @@ export default function EmailCampaignsPage() {
                                   <div className="flex-1">
                                     <div className="flex justify-between">
                                       <h4 className="font-medium text-gray-900 dark:text-white">{c.name}</h4>
-                                      <Badge variant={getStatusVariant(c.status)} className="text-xs">
+                                      <Badge variant={getStatusVariant(c.status) === 'success' ? 'default' : getStatusVariant(c.status)} className="text-xs">
                                         {c.status}
                                       </Badge>
                                     </div>

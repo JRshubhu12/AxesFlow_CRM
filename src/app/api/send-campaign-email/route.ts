@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
+
 import { Resend } from "resend";
 
-// Make sure to set RESEND_API_KEY in your .env.local
-const resend = new Resend(process.env.RESEND_API_KEY);
+// NOTE: Hardcoded for demo; use env var in production!
+
+const resendApiKey = "re_4ijr8Coz_Ks7wQ7kTuKhgGsf1hJd86Asc";
+
+const resend = new Resend(resendApiKey);
 
 export async function POST(req: Request) {
   const { to, subject, text, html, from } = await req.json();
@@ -10,26 +14,47 @@ export async function POST(req: Request) {
   try {
     const response = await resend.emails.send({
       from: from || "Acme <onboarding@resend.dev>",
+
       to,
+
       subject,
+
       text,
+
       html,
     });
 
-    // Optionally, you can check for a response error property and handle accordingly
+    // If Resend's API returns error, ensure message is present
+
     if (response.error) {
-      console.error("Resend error:", response.error);
+      const errorMsg =
+        typeof response.error === "string"
+          ? response.error
+          : response.error?.message ||
+            JSON.stringify(response.error) ||
+            "Unknown error";
+
+      console.error("Resend error:", errorMsg);
+
       return NextResponse.json(
-        { error: response.error },
+        { error: errorMsg },
+
         { status: 500 }
       );
     }
 
     return NextResponse.json({ success: true, data: response.data });
   } catch (error: any) {
-    console.error("Email send error:", error);
+    const errorMsg =
+      error?.message ||
+      (typeof error === "string" ? error : JSON.stringify(error)) ||
+      "Failed to send email";
+
+    console.error("Email send error:", errorMsg);
+
     return NextResponse.json(
-      { error: error?.message || "Failed to send email" },
+      { error: errorMsg },
+
       { status: 500 }
     );
   }

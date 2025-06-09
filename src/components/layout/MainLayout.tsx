@@ -278,6 +278,39 @@ export default function MainLayout({ children }: { children: ReactNode }) {
                 );
               })}
             </nav>
+            
+            {/* Separator and User Links */}
+            <div className="px-3 pb-5">
+              <div className="h-px bg-gray-200 dark:bg-gray-700 my-3"></div>
+              <div className="space-y-1">
+                <Link
+                  href="/profile"
+                  className={cn(
+                    "group flex items-center px-3 py-2.5 rounded-md transition-colors text-sm",
+                    pathname === '/profile'
+                      ? 'bg-primary text-primary-foreground font-medium hover:bg-primary/90'
+                      : 'text-foreground font-normal hover:bg-muted hover:text-foreground'
+                  )}
+                  title="Profile"
+                >
+                  <User className="mr-2 h-4 w-4" />
+                  <span>Profile</span>
+                </Link>
+                <Link
+                  href="/settings"
+                  className={cn(
+                    "group flex items-center px-3 py-2.5 rounded-md transition-colors text-sm",
+                    pathname === '/settings'
+                      ? 'bg-primary text-primary-foreground font-medium hover:bg-primary/90'
+                      : 'text-foreground font-normal hover:bg-muted hover:text-foreground'
+                  )}
+                  title="Settings"
+                >
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Settings</span>
+                </Link>
+              </div>
+            </div>
           </div>
 
           {/* Main Content Area */}
