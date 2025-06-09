@@ -640,7 +640,7 @@ export default function TeamPage() {
     toast({
       title: "Team Member Added",
       description: `${newMember.name} has been added.`,
-      variant: "success",
+      variant: "default",
     });
     form.reset();
     setIsAddMemberOpen(false);
@@ -670,7 +670,7 @@ export default function TeamPage() {
     toast({
       title: "Team Created",
       description: `Team "${values.name}" created.`,
-      variant: "success",
+      variant: "default",
     });
     teamForm.reset();
     setIsAddTeamOpen(false);
@@ -689,7 +689,7 @@ export default function TeamPage() {
     if (selectedTeam && selectedTeam.id === teamId) {
       setSelectedTeam(null);
     }
-    toast({ title: "Team deleted", variant: "success" });
+    toast({ title: "Team deleted", variant: "default" });
   };
 
   const handleAssignTask = (memberName: string) => {
@@ -709,7 +709,7 @@ export default function TeamPage() {
     toast({
       title: "Chat Initiated",
       description: `Chat with ${member.name} started. Redirecting...`,
-      variant: "success",
+      variant: "default",
     });
     router.push("/communications?tab=chats");
   };
@@ -718,7 +718,7 @@ export default function TeamPage() {
     toast({
       title: "Meeting Scheduled",
       description: `Meeting with ${member.name} scheduled. Redirecting...`,
-      variant: "success",
+      variant: "default",
     });
     router.push("/communications?tab=meetings");
   };
@@ -787,18 +787,15 @@ export default function TeamPage() {
   }, [teamMembers, searchTerm, statusFilter, departmentFilter]);
 
   const sortedMembers = useMemo(() => {
-    if (!sortConfig) return filteredMembers;
+    if (!sortConfig || !sortConfig.key) return filteredMembers;
     return [...filteredMembers].sort((a, b) => {
-      if (
-        a[sortConfig.key as keyof TeamMember] <
-        b[sortConfig.key as keyof TeamMember]
-      ) {
+      const aValue = a[sortConfig.key as keyof TeamMember];
+      const bValue = b[sortConfig.key as keyof TeamMember];
+      if (aValue === undefined || bValue === undefined) return 0;
+      if (aValue < bValue) {
         return sortConfig.direction === "ascending" ? -1 : 1;
       }
-      if (
-        a[sortConfig.key as keyof TeamMember] >
-        b[sortConfig.key as keyof TeamMember]
-      ) {
+      if (aValue > bValue) {
         return sortConfig.direction === "ascending" ? 1 : -1;
       }
       return 0;
@@ -889,6 +886,51 @@ export default function TeamPage() {
     setAssignTeamId(null);
   };
 
+  // --- Custom multi-select for team assignment ---
+  function MemberCheckboxList({
+    value,
+    onChange,
+    allMembers,
+  }: {
+    value: string[];
+    onChange: (val: string[]) => void;
+    allMembers: TeamMember[];
+  }) {
+    return (
+      <div className="max-h-64 overflow-y-auto flex flex-col gap-2 mt-2">
+        {allMembers.map((member) => (
+          <label
+            key={member.id}
+            className="flex items-center gap-3 px-2 py-1 rounded hover:bg-muted cursor-pointer"
+          >
+            <input
+              type="checkbox"
+              checked={value.includes(member.id)}
+              onChange={() => {
+                if (value.includes(member.id)) {
+                  onChange(value.filter((id) => id !== member.id));
+                } else {
+                  onChange([...value, member.id]);
+                }
+              }}
+            />
+            <Avatar className="h-6 w-6">
+              <AvatarImage src={member.avatar} />
+              <AvatarFallback>
+                {member.name
+                  .split(" ")
+                  .map((n) => n[0])
+                  .join("")}
+              </AvatarFallback>
+            </Avatar>
+            <span className="flex-1">{member.name}</span>
+            <span className="text-xs text-muted-foreground">{member.role}</span>
+          </label>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <MainLayout>
       <div className="space-y-8">
@@ -939,7 +981,6 @@ export default function TeamPage() {
                             <Input
                               placeholder="e.g. Growth Team"
                               autoFocus={false}
-                              ref={teamNameInputRef}
                               {...field}
                             />
                           </FormControl>
@@ -969,36 +1010,12 @@ export default function TeamPage() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Assign Members</FormLabel>
-                          <Select
-                            value={
-                              typeof field.value === "string" ? field.value : ""
-                            }
-                            onValueChange={field.onChange}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Pick a member" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {teamMembers.map((m) => (
-                                <SelectItem value={m.id} key={m.id}>
-                                  <div className="flex items-center gap-2">
-                                    <Avatar className="h-6 w-6">
-                                      <AvatarImage src={m.avatar} />
-                                      <AvatarFallback>
-                                        {m.name
-                                          .split(" ")
-                                          .map((n) => n[0])
-                                          .join("")}
-                                      </AvatarFallback>
-                                    </Avatar>
-                                    <span>{m.name}</span>
-                                  </div>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          {/* Multi-select for team members in team creation */}
+                          <MemberCheckboxList
+                            value={field.value}
+                            onChange={field.onChange}
+                            allMembers={teamMembers}
+                          />
                           <FormMessage />
                         </FormItem>
                       )}
@@ -1311,7 +1328,7 @@ export default function TeamPage() {
         </div>
 
         {/* Tabs for Teams and Members */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as "teams" | "members")}>
           <TabsList className="mb-4">
             <TabsTrigger value="teams">
               <Users className="mr-2 h-4 w-4" />
@@ -1411,6 +1428,240 @@ export default function TeamPage() {
                 </div>
               )}
             </div>
+            {/* Team Details Dialog */}
+            <Dialog open={!!selectedTeam} onOpenChange={(open) => { if (!open) setSelectedTeam(null); }}>
+              <DialogContent className="sm:max-w-2xl rounded-xl p-0 overflow-hidden border-0 shadow-xl">
+                <div className="relative">
+                  {/* Header with gradient background */}
+                  <div className="bg-gradient-to-r from-blue-600 to-blue-800 p-6 text-white">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <DialogTitle className="text-2xl font-bold flex items-center gap-3">
+                          {selectedTeam?.isFavorite && (
+                            <Star className="h-6 w-6 text-yellow-300 fill-yellow-300" />
+                          )}
+                          {selectedTeam?.name}
+                        </DialogTitle>
+                        <DialogDescription className="text-blue-100 mt-1">
+                          {selectedTeam?.description}
+                        </DialogDescription>
+                      </div>
+                      <DialogClose asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-white/80 hover:text-white hover:bg-white/10 rounded-full h-8 w-8"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </DialogClose>
+                    </div>
+                  </div>
+
+                  {/* Content area */}
+                  <div className="p-6 space-y-6">
+                    {/* Stats row */}
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="bg-blue-50 rounded-lg p-3 text-center">
+                        <div className="text-sm text-blue-600 font-medium">Members</div>
+                        <div className="text-2xl font-bold text-blue-800 mt-1">
+                          {selectedTeam?.members.length || 0}
+                        </div>
+                      </div>
+                      <div className="bg-green-50 rounded-lg p-3 text-center">
+                        <div className="text-sm text-green-600 font-medium">Active</div>
+                        <div className="text-2xl font-bold text-green-800 mt-1">
+                          {selectedTeam?.members.filter(m => m.status === "Active").length || 0}
+                        </div>
+                      </div>
+                      <div className="bg-purple-50 rounded-lg p-3 text-center">
+                        <div className="text-sm text-purple-600 font-medium">Tasks</div>
+                        <div className="text-2xl font-bold text-purple-800 mt-1">
+                          {selectedTeam?.members.reduce((sum, m) => sum + m.tasksAssigned, 0) || 0}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Members section */}
+                    <div>
+                      <h3 className="text-lg font-semibold flex items-center gap-2 mb-3 text-gray-700">
+                        <Users2 className="h-5 w-5 text-blue-600" />
+                        Team Members
+                        <Badge variant="outline" className="ml-2">
+                          {selectedTeam?.members.length || 0}
+                        </Badge>
+                      </h3>
+
+                      {selectedTeam && selectedTeam.members.length === 0 ? (
+                        <div className="text-center py-8 text-gray-400">
+                          <Users2 className="mx-auto h-10 w-10" />
+                          <p className="mt-2">No members in this team yet</p>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="mt-3"
+                            onClick={() => {
+                              if (selectedTeam) openAssignDialog(selectedTeam.id);
+                              setSelectedTeam(null);
+                            }}
+                          >
+                            <UserPlus className="mr-2 h-4 w-4" />
+                            Add Members
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {selectedTeam?.members.map((member) => (
+                            <div
+                                                          key={member.id}
+                              className="flex items-center gap-4 p-3 hover:bg-gray-50 rounded-lg transition-colors group relative"
+                            >
+                              <Avatar className="h-10 w-10 border border-gray-200">
+                                <AvatarImage src={member.avatar} />
+                                <AvatarFallback>
+                                  {member.name.split(" ").map(n => n[0]).join("")}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <p className="font-medium truncate">{member.name}</p>
+                                  {member.isFavorite && (
+                                    <Star className="h-3 w-3 text-yellow-400 fill-yellow-400" />
+                                  )}
+                                </div>
+                                <div className="text-sm text-gray-500 truncate">
+                                  {member.role}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Badge
+                                  variant={
+                                    member.status === "Active"
+                                      ? "default"
+                                      : member.status === "On Leave"
+                                      ? "outline"
+                                      : "secondary"
+                                  }
+                                  className="text-xs"
+                                >
+                                  {member.status}
+                                </Badge>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  onClick={() => {
+                                    setSelectedMember(member);
+                                    setIsViewMemberOpen(true);
+                                  }}
+                                >
+                                  <Search className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8 text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  onClick={() => {
+                                    if (window.confirm(`Remove ${member.name} from this team?`)) {
+                                      setTeams((prev) =>
+                                        prev.map((t) =>
+                                          t.id === selectedTeam.id
+                                            ? {
+                                                ...t,
+                                                members: t.members.filter(
+                                                  (m) => m.id !== member.id
+                                                ),
+                                              }
+                                            : t
+                                        )
+                                      );
+                                    }
+                                  }}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Footer with actions */}
+                  <div className="border-t px-6 py-4 bg-gray-50 flex justify-between items-center">
+                    <div className="text-sm text-gray-500">
+                      Last updated: {format(new Date(), "MMM d, yyyy")}
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          if (selectedTeam) {
+                            toggleFavoriteTeam(selectedTeam.id);
+                          }
+                        }}
+                      >
+                        {selectedTeam?.isFavorite ? (
+                          <>
+                            <X className="mr-2 h-4 w-4" /> Remove Favorite
+                          </>
+                        ) : (
+                          <>
+                            <Star className="mr-2 h-4 w-4" /> Mark Favorite
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          if (selectedTeam) {
+                            openAssignDialog(selectedTeam.id);
+                            setSelectedTeam(null);
+                          }
+                        }}
+                      >
+                        <UserPlus className="mr-2 h-4 w-4" /> Add Members
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            {/* Assign Members to Team Dialog */}
+            <Dialog open={!!assignTeamId} onOpenChange={(open) => { if (!open) setAssignTeamId(null); }}>
+              <DialogContent className="sm:max-w-lg rounded-xl">
+                <DialogHeader>
+                  <DialogTitle>
+                    Assign Team Members
+                  </DialogTitle>
+                  <DialogDescription>
+                    Select members to assign to this team.
+                  </DialogDescription>
+                </DialogHeader>
+                <MemberCheckboxList
+                  value={assignMemberIds}
+                  onChange={setAssignMemberIds}
+                  allMembers={teamMembers}
+                />
+                <DialogFooter>
+                  <Button
+                    onClick={() => {
+                      handleAssignMembers();
+                    }}
+                  >
+                    <Check className="h-4 w-4 mr-2" /> Save Assignment
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setAssignTeamId(null)}
+                  >
+                    Cancel
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </TabsContent>
 
           {/* Members Tab */}
@@ -1646,9 +1897,7 @@ export default function TeamPage() {
             {/* View Member Dialog */}
             <Dialog open={isViewMemberOpen} onOpenChange={setIsViewMemberOpen}>
               <DialogContent className="sm:max-w-lg rounded-xl">
-                <DialogHeader>
-                  <DialogTitle>Member Details</DialogTitle>
-                </DialogHeader>
+                {/* Fixed: Only one close button at top */}
                 {selectedMember && (
                   <>
                     <DialogHeader>
@@ -1697,12 +1946,15 @@ export default function TeamPage() {
                           </span>
                         </div>
                         <div className="flex items-center gap-2 text-sm">
-                          <Star className="h-4 w-4 text-yellow-400" />
-                          <span>{selectedMember.performanceRating}</span>
+                          <Users className="h-4 w-4" />
+                          <span className="flex flex-wrap gap-1">
+                            {getMemberTeams(selectedMember.id).map((team) => (
+                              <Badge key={team} variant="outline" className="text-xs">
+                                {team}
+                              </Badge>
+                            ))}
+                          </span>
                         </div>
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        Teams: {getMemberTeams(selectedMember.id).join(", ")}
                       </div>
                     </div>
                   </>
