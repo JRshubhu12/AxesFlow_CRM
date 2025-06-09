@@ -1,7 +1,7 @@
 "use client";
 
 import Link from 'next/link';
-import { Search, ChevronDown, User, Settings, LogOut, DollarSign, Home, Users, Mail, MessageCircle, FolderKanban, CheckSquare, Users2 } from 'lucide-react';
+import { Search, ChevronDown, User, Settings, LogOut, DollarSign, Home, Users, Mail, MessageCircle, FolderKanban, CheckSquare, Users2, Menu } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
@@ -188,6 +188,7 @@ export default function MainLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [hydrated, setHydrated] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   useEffect(() => { setHydrated(true); }, []);
 
   // Map href to icon component
@@ -227,11 +228,11 @@ export default function MainLayout({ children }: { children: ReactNode }) {
       ) : (
         <div className="flex min-h-screen bg-background">
           {/* Sidebar */}
-          <div className="w-60 border-r bg-sidebar-background p-0 sticky top-0 h-screen flex flex-col">
-            <div className="mb-3 px-4 pt-5 pb-3"> 
+          <div className={`border-r bg-sidebar-background p-0 sticky top-0 h-screen flex flex-col transition-all duration-300 ${sidebarCollapsed ? 'w-20' : 'w-60'}`}> 
+            <div className={`mb-3 px-4 pt-5 pb-3 flex items-center transition-all duration-300 ${sidebarCollapsed ? 'justify-center' : ''}`}> 
               <AppLogo />
             </div>
-            <nav className="space-y-1 px-3 overflow-y-auto flex-grow">
+            <nav className={`space-y-1 px-3 overflow-y-auto flex-grow transition-all duration-300 ${sidebarCollapsed ? 'px-1' : 'px-3'}`}>
               {navItems.map((item) => {
                 let isParentActive = pathname === item.href || pathname.startsWith(item.href + '/');
                 if (item.href === '/dashboard' && pathname !== '/dashboard') {
@@ -244,17 +245,19 @@ export default function MainLayout({ children }: { children: ReactNode }) {
                     <Link
                       href={item.href}
                       className={cn(
-                        "group flex items-center px-3 py-2.5 rounded-md transition-colors text-sm",
+                        `group flex items-center rounded-md transition-all duration-300 text-sm ${sidebarCollapsed ? 'justify-center px-0 py-3 w-full' : 'px-3 py-2.5'}`,
                         isActiveForStyling
                           ? 'bg-primary text-primary-foreground font-medium hover:bg-primary/90'
                           : 'text-foreground font-normal hover:bg-muted hover:text-foreground'
                       )}
                       title={item.tooltip || item.title}
                     >
-                      {navIcons[item.href] && navIcons[item.href]}
-                      <span>{item.title}</span>
+                      {navIcons[item.href] && (
+                        <span className="flex items-center justify-center">{navIcons[item.href]}</span>
+                      )}
+                      {!sidebarCollapsed && <span className="ml-2">{item.title}</span>}
                     </Link>
-                    {isParentActive && item.subItems && item.subItems.length > 0 && (
+                    {isParentActive && item.subItems && item.subItems.length > 0 && !sidebarCollapsed && (
                       <ul className="ml-4 mt-1 space-y-0.5 pl-3 border-l border-primary/20">
                         {item.subItems.map(subItem => (
                           <li key={subItem.title}>
@@ -278,39 +281,40 @@ export default function MainLayout({ children }: { children: ReactNode }) {
                 );
               })}
             </nav>
-            
             {/* Separator and User Links */}
-            <div className="px-3 pb-5">
-              <div className="h-px bg-gray-200 dark:bg-gray-700 my-3"></div>
-              <div className="space-y-1">
-                <Link
-                  href="/profile"
-                  className={cn(
-                    "group flex items-center px-3 py-2.5 rounded-md transition-colors text-sm",
-                    pathname === '/profile'
-                      ? 'bg-primary text-primary-foreground font-medium hover:bg-primary/90'
-                      : 'text-foreground font-normal hover:bg-muted hover:text-foreground'
-                  )}
-                  title="Profile"
-                >
-                  <User className="mr-2 h-4 w-4" />
-                  <span>Profile</span>
-                </Link>
-                <Link
-                  href="/settings"
-                  className={cn(
-                    "group flex items-center px-3 py-2.5 rounded-md transition-colors text-sm",
-                    pathname === '/settings'
-                      ? 'bg-primary text-primary-foreground font-medium hover:bg-primary/90'
-                      : 'text-foreground font-normal hover:bg-muted hover:text-foreground'
-                  )}
-                  title="Settings"
-                >
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>Settings</span>
-                </Link>
+            {!sidebarCollapsed && (
+              <div className="px-3 pb-5">
+                <div className="h-px bg-gray-200 dark:bg-gray-700 my-3"></div>
+                <div className="space-y-1">
+                  <Link
+                    href="/profile"
+                    className={cn(
+                      "group flex items-center px-3 py-2.5 rounded-md transition-colors text-sm",
+                      pathname === '/profile'
+                        ? 'bg-primary text-primary-foreground font-medium hover:bg-primary/90'
+                        : 'text-foreground font-normal hover:bg-muted hover:text-foreground'
+                    )}
+                    title="Profile"
+                  >
+                    <User className="mr-2 h-4 w-4" />
+                    <span>Profile</span>
+                  </Link>
+                  <Link
+                    href="/settings"
+                    className={cn(
+                      "group flex items-center px-3 py-2.5 rounded-md transition-colors text-sm",
+                      pathname === '/settings'
+                        ? 'bg-primary text-primary-foreground font-medium hover:bg-primary/90'
+                        : 'text-foreground font-normal hover:bg-muted hover:text-foreground'
+                    )}
+                    title="Settings"
+                  >
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>Settings</span>
+                  </Link>
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Main Content Area */}
@@ -320,6 +324,16 @@ export default function MainLayout({ children }: { children: ReactNode }) {
               className="sticky top-0 z-10 flex h-[56px] items-center border-b bg-white px-8"
               style={{ boxShadow: 'none' }}
             >
+              {/* Sidebar Toggle Button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="mr-3"
+                aria-label="Toggle sidebar"
+                onClick={() => setSidebarCollapsed((prev) => !prev)}
+              >
+                <Image src="/images/menu-collapse.svg" alt="Toggle sidebar" width={28} height={28} />
+              </Button>
               {/* Left: Page Title */}
               <div className="flex items-center min-w-[180px] mr-5">
                 <PageTitleDisplay />
