@@ -143,9 +143,420 @@ const departments = [
   "Customer Support",
 ];
 
+// --- MOCK DATA FOR TEAMS AND MEMBERS ---
+const mockTeamMembers: TeamMember[] = [
+  {
+    id: "T1",
+    name: "Alice Johnson",
+    role: "Frontend Engineer",
+    email: "alice.johnson@example.com",
+    status: "Active",
+    phone: "+1 555-1111",
+    joinDate: "2023-01-10",
+    department: "Engineering",
+    performanceRating: 5,
+    tasksAssigned: 12,
+    tasksCompleted: 11,
+    avatar: "https://randomuser.me/api/portraits/women/1.jpg",
+    skills: ["React", "TypeScript"],
+    lastActive: "Today",
+    bio: "UI specialist.",
+    isFavorite: true,
+  },
+  {
+    id: "T2",
+    name: "Bob Smith",
+    role: "Backend Engineer",
+    email: "bob.smith@example.com",
+    status: "Active",
+    phone: "+1 555-2222",
+    joinDate: "2022-11-15",
+    department: "Engineering",
+    performanceRating: 4,
+    tasksAssigned: 10,
+    tasksCompleted: 8,
+    avatar: "https://randomuser.me/api/portraits/men/2.jpg",
+    skills: ["Node.js", "PostgreSQL"],
+    lastActive: "Yesterday",
+    bio: "API and DB expert.",
+    isFavorite: false,
+  },
+  {
+    id: "T3",
+    name: "Carol Lee",
+    role: "Product Manager",
+    email: "carol.lee@example.com",
+    status: "On Leave",
+    phone: "+1 555-3333",
+    joinDate: "2021-09-01",
+    department: "Product",
+    performanceRating: 5,
+    tasksAssigned: 7,
+    tasksCompleted: 7,
+    avatar: "https://randomuser.me/api/portraits/women/3.jpg",
+    skills: ["Agile", "Scrum"],
+    lastActive: "Last week",
+    bio: "Drives product vision.",
+    isFavorite: false,
+  },
+  {
+    id: "T4",
+    name: "David Kim",
+    role: "Designer",
+    email: "david.kim@example.com",
+    status: "Active",
+    phone: "+1 555-4444",
+    joinDate: "2022-03-20",
+    department: "Design",
+    performanceRating: 4,
+    tasksAssigned: 9,
+    tasksCompleted: 8,
+    avatar: "https://randomuser.me/api/portraits/men/4.jpg",
+    skills: ["Figma", "UX"],
+    lastActive: "Today",
+    bio: "UX/UI designer.",
+    isFavorite: false,
+  },
+  {
+    id: "T5",
+    name: "Eva Green",
+    role: "QA Engineer",
+    email: "eva.green@example.com",
+    status: "Active",
+    phone: "+1 555-5555",
+    joinDate: "2023-02-14",
+    department: "Engineering",
+    performanceRating: 3,
+    tasksAssigned: 6,
+    tasksCompleted: 6,
+    avatar: "https://randomuser.me/api/portraits/women/5.jpg",
+    skills: ["Testing", "Automation"],
+    lastActive: "Today",
+    bio: "Ensures quality.",
+    isFavorite: false,
+  },
+  {
+    id: "T6",
+    name: "Frank Moore",
+    role: "Sales Lead",
+    email: "frank.moore@example.com",
+    status: "Active",
+    phone: "+1 555-6666",
+    joinDate: "2021-12-01",
+    department: "Sales",
+    performanceRating: 5,
+    tasksAssigned: 15,
+    tasksCompleted: 14,
+    avatar: "https://randomuser.me/api/portraits/men/6.jpg",
+    skills: ["CRM", "Negotiation"],
+    lastActive: "Today",
+    bio: "Top sales performer.",
+    isFavorite: true,
+  },
+  {
+    id: "T7",
+    name: "Grace Lin",
+    role: "Marketing Specialist",
+    email: "grace.lin@example.com",
+    status: "Active",
+    phone: "+1 555-7777",
+    joinDate: "2022-07-10",
+    department: "Marketing",
+    performanceRating: 4,
+    tasksAssigned: 8,
+    tasksCompleted: 7,
+    avatar: "https://randomuser.me/api/portraits/women/7.jpg",
+    skills: ["SEO", "Content"],
+    lastActive: "Yesterday",
+    bio: "Drives campaigns.",
+    isFavorite: false,
+  },
+  {
+    id: "T8",
+    name: "Henry Adams",
+    role: "Support Agent",
+    email: "henry.adams@example.com",
+    status: "Inactive",
+    phone: "+1 555-8888",
+    joinDate: "2023-04-01",
+    department: "Customer Support",
+    performanceRating: 2,
+    tasksAssigned: 5,
+    tasksCompleted: 3,
+    avatar: "https://randomuser.me/api/portraits/men/8.jpg",
+    skills: ["Zendesk", "Empathy"],
+    lastActive: "Last month",
+    bio: "Customer support.",
+    isFavorite: false,
+  },
+  {
+    id: "T9",
+    name: "Ivy Chen",
+    role: "HR Manager",
+    email: "ivy.chen@example.com",
+    status: "Active",
+    phone: "+1 555-9999",
+    joinDate: "2020-10-10",
+    department: "HR",
+    performanceRating: 5,
+    tasksAssigned: 10,
+    tasksCompleted: 10,
+    avatar: "https://randomuser.me/api/portraits/women/9.jpg",
+    skills: ["Recruiting", "Onboarding"],
+    lastActive: "Today",
+    bio: "People operations.",
+    isFavorite: true,
+  },
+  {
+    id: "T10",
+    name: "Jack Lee",
+    role: "Finance Analyst",
+    email: "jack.lee@example.com",
+    status: "Active",
+    phone: "+1 555-1010",
+    joinDate: "2022-05-05",
+    department: "Finance",
+    performanceRating: 4,
+    tasksAssigned: 7,
+    tasksCompleted: 6,
+    avatar: "https://randomuser.me/api/portraits/men/10.jpg",
+    skills: ["Excel", "Forecasting"],
+    lastActive: "Yesterday",
+    bio: "Finance and analytics.",
+    isFavorite: false,
+  },
+  // 10 more members for variety
+  {
+    id: "T11",
+    name: "Kate Brown",
+    role: "Designer",
+    email: "kate.brown@example.com",
+    status: "Active",
+    phone: "+1 555-1112",
+    joinDate: "2023-03-01",
+    department: "Design",
+    performanceRating: 3,
+    tasksAssigned: 4,
+    tasksCompleted: 4,
+    avatar: "https://randomuser.me/api/portraits/women/11.jpg",
+    skills: ["Illustrator", "Branding"],
+    lastActive: "Today",
+    bio: "Brand designer.",
+    isFavorite: false,
+  },
+  {
+    id: "T12",
+    name: "Leo White",
+    role: "Engineer",
+    email: "leo.white@example.com",
+    status: "Inactive",
+    phone: "+1 555-1212",
+    joinDate: "2021-08-15",
+    department: "Engineering",
+    performanceRating: 2,
+    tasksAssigned: 3,
+    tasksCompleted: 2,
+    avatar: "https://randomuser.me/api/portraits/men/12.jpg",
+    skills: ["Go", "Docker"],
+    lastActive: "Last week",
+    bio: "DevOps specialist.",
+    isFavorite: false,
+  },
+  {
+    id: "T13",
+    name: "Mona Patel",
+    role: "Product Owner",
+    email: "mona.patel@example.com",
+    status: "Active",
+    phone: "+1 555-1313",
+    joinDate: "2022-09-09",
+    department: "Product",
+    performanceRating: 4,
+    tasksAssigned: 6,
+    tasksCompleted: 6,
+    avatar: "https://randomuser.me/api/portraits/women/13.jpg",
+    skills: ["Roadmap", "Stakeholder"],
+    lastActive: "Today",
+    bio: "Owns product backlog.",
+    isFavorite: false,
+  },
+  {
+    id: "T14",
+    name: "Nate Black",
+    role: "Sales Rep",
+    email: "nate.black@example.com",
+    status: "Active",
+    phone: "+1 555-1414",
+    joinDate: "2023-01-20",
+    department: "Sales",
+    performanceRating: 3,
+    tasksAssigned: 5,
+    tasksCompleted: 4,
+    avatar: "https://randomuser.me/api/portraits/men/14.jpg",
+    skills: ["Pitching", "CRM"],
+    lastActive: "Yesterday",
+    bio: "Sales team.",
+    isFavorite: false,
+  },
+  {
+    id: "T15",
+    name: "Olivia King",
+    role: "Support Lead",
+    email: "olivia.king@example.com",
+    status: "On Leave",
+    phone: "+1 555-1515",
+    joinDate: "2021-06-30",
+    department: "Customer Support",
+    performanceRating: 4,
+    tasksAssigned: 8,
+    tasksCompleted: 7,
+    avatar: "https://randomuser.me/api/portraits/women/15.jpg",
+    skills: ["Zendesk", "Training"],
+    lastActive: "Last week",
+    bio: "Leads support team.",
+    isFavorite: false,
+  },
+  {
+    id: "T16",
+    name: "Paul Young",
+    role: "HR Specialist",
+    email: "paul.young@example.com",
+    status: "Active",
+    phone: "+1 555-1616",
+    joinDate: "2022-02-02",
+    department: "HR",
+    performanceRating: 3,
+    tasksAssigned: 4,
+    tasksCompleted: 3,
+    avatar: "https://randomuser.me/api/portraits/men/16.jpg",
+    skills: ["Payroll", "Benefits"],
+    lastActive: "Today",
+    bio: "HR operations.",
+    isFavorite: false,
+  },
+  {
+    id: "T17",
+    name: "Quinn Fox",
+    role: "Finance Manager",
+    email: "quinn.fox@example.com",
+    status: "Active",
+    phone: "+1 555-1717",
+    joinDate: "2020-12-12",
+    department: "Finance",
+    performanceRating: 5,
+    tasksAssigned: 9,
+    tasksCompleted: 9,
+    avatar: "https://randomuser.me/api/portraits/men/17.jpg",
+    skills: ["Budgeting", "Reporting"],
+    lastActive: "Yesterday",
+    bio: "Finance lead.",
+    isFavorite: true,
+  },
+  {
+    id: "T18",
+    name: "Rita Hall",
+    role: "Marketing Lead",
+    email: "rita.hall@example.com",
+    status: "Active",
+    phone: "+1 555-1818",
+    joinDate: "2023-05-05",
+    department: "Marketing",
+    performanceRating: 4,
+    tasksAssigned: 7,
+    tasksCompleted: 6,
+    avatar: "https://randomuser.me/api/portraits/women/18.jpg",
+    skills: ["Strategy", "Brand"],
+    lastActive: "Today",
+    bio: "Heads marketing.",
+    isFavorite: false,
+  },
+  {
+    id: "T19",
+    name: "Sam Wu",
+    role: "Engineer",
+    email: "sam.wu@example.com",
+    status: "Inactive",
+    phone: "+1 555-1919",
+    joinDate: "2021-04-04",
+    department: "Engineering",
+    performanceRating: 2,
+    tasksAssigned: 2,
+    tasksCompleted: 1,
+    avatar: "https://randomuser.me/api/portraits/men/19.jpg",
+    skills: ["Python", "CI/CD"],
+    lastActive: "Last month",
+    bio: "Automation engineer.",
+    isFavorite: false,
+  },
+  {
+    id: "T20",
+    name: "Tina Rose",
+    role: "Product Designer",
+    email: "tina.rose@example.com",
+    status: "Active",
+    phone: "+1 555-2020",
+    joinDate: "2022-10-10",
+    department: "Design",
+    performanceRating: 4,
+    tasksAssigned: 5,
+    tasksCompleted: 5,
+    avatar: "https://randomuser.me/api/portraits/women/20.jpg",
+    skills: ["Sketch", "Prototyping"],
+    lastActive: "Today",
+    bio: "UX prototyper.",
+    isFavorite: false,
+  },
+];
+
+const mockTeams: Team[] = [
+  {
+    id: "team-1",
+    name: "Frontend Wizards",
+    description: "Building beautiful UIs.",
+    members: mockTeamMembers.filter((m) => ["T1", "T4", "T11", "T20"].includes(m.id)),
+    isFavorite: true,
+  },
+  {
+    id: "team-2",
+    name: "Backend Gurus",
+    description: "API and database experts.",
+    members: mockTeamMembers.filter((m) => ["T2", "T5", "T12", "T19"].includes(m.id)),
+    isFavorite: false,
+  },
+  {
+    id: "team-3",
+    name: "Product Masters",
+    description: "Product strategy and management.",
+    members: mockTeamMembers.filter((m) => ["T3", "T13", "T15"].includes(m.id)),
+    isFavorite: false,
+  },
+  {
+    id: "team-4",
+    name: "Design Dreamers",
+    description: "Creative design team.",
+    members: mockTeamMembers.filter((m) => ["T4", "T11", "T20"].includes(m.id)),
+    isFavorite: false,
+  },
+  {
+    id: "team-5",
+    name: "Sales Stars",
+    description: "Top sales performers.",
+    members: mockTeamMembers.filter((m) => ["T6", "T14"].includes(m.id)),
+    isFavorite: true,
+  },
+  {
+    id: "team-6",
+    name: "Support Squad",
+    description: "Customer support heroes.",
+    members: mockTeamMembers.filter((m) => ["T8", "T15"].includes(m.id)),
+    isFavorite: false,
+  },
+];
+// --- END MOCK DATA ---
+
 export default function TeamPage() {
-  const [teams, setTeams] = useState<Team[]>([]);
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [teams, setTeams] = useState<Team[]>(() => mockTeams);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>(() => mockTeamMembers);
   const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
   const [isViewMemberOpen, setIsViewMemberOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
@@ -171,17 +582,12 @@ export default function TeamPage() {
   });
 
   useEffect(() => {
-    // Initialize teams and members from localStorage or use initial data
-    const storedTeams = localStorage.getItem("teams");
-    const storedMembers = localStorage.getItem("teamMembers");
-    if (storedTeams && storedMembers) {
-      setTeams(JSON.parse(storedTeams));
-      setTeamMembers(JSON.parse(storedMembers));
-    } else {
-      setTeams([]);
-      setTeamMembers([]);
-      localStorage.setItem("teams", JSON.stringify([]));
-      localStorage.setItem("teamMembers", JSON.stringify([]));
+    // Optionally, sync to localStorage if not present
+    if (!localStorage.getItem("teams")) {
+      localStorage.setItem("teams", JSON.stringify(mockTeams));
+    }
+    if (!localStorage.getItem("teamMembers")) {
+      localStorage.setItem("teamMembers", JSON.stringify(mockTeamMembers));
     }
   }, []);
 
@@ -976,7 +1382,7 @@ export default function TeamPage() {
                             <TooltipTrigger asChild>
                               <Avatar className="h-8 w-8 ring-2 ring-white">
                                 <AvatarImage src={member.avatar} />
-                                <AvatarFallback>{member.name.split(" ").map(n=>n[0]).join("")}</AvatarFallback>
+                                <AvatarFallback>{member.name.split(" ").map(n => n[0]).join("")}</AvatarFallback>
                               </Avatar>
                             </TooltipTrigger>
                             <TooltipContent>{member.name}</TooltipContent>
@@ -1088,10 +1494,7 @@ export default function TeamPage() {
                           <Avatar className="h-8 w-8">
                             <AvatarImage src={member.avatar} />
                             <AvatarFallback>
-                              {member.name
-                                .split(" ")
-                                .map((n) => n[0])
-                                .join("")}
+                              {member.name.split(" ").map(n => n[0]).join("")}
                             </AvatarFallback>
                           </Avatar>
                           <div>
@@ -1107,63 +1510,33 @@ export default function TeamPage() {
                       <TableCell>
                         <div className="flex items-center gap-1">
                           <span>{member.email}</span>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-7 w-7"
-                            onClick={() => copyToClipboard(member.email)}
-                          >
+                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => copyToClipboard(member.email)}>
                             <Clipboard className="h-4 w-4" />
                           </Button>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge
-                          variant={member.status === "Active" ? "default" : member.status === "On Leave" ? "outline" : "secondary"}
-                        >
+                        <Badge variant={member.status === "Active" ? "default" : member.status === "On Leave" ? "outline" : "secondary"}>
                           {member.status}
                         </Badge>
                       </TableCell>
                       <TableCell>{member.department}</TableCell>
                       <TableCell>
-                        <span>
-                          {member.tasksCompleted}/{member.tasksAssigned}
-                        </span>
-                        <Progress
-                          value={
-                            member.tasksAssigned
-                              ? (member.tasksCompleted / member.tasksAssigned) *
-                                100
-                              : 0
-                          }
-                          className="h-1 mt-1"
-                        />
+                        <span>{member.tasksCompleted}/{member.tasksAssigned}</span>
+                        <Progress value={member.tasksAssigned ? (member.tasksCompleted / member.tasksAssigned) * 100 : 0} className="h-1 mt-1" />
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
-                          {Array(Math.round(member.performanceRating || 0))
-                            .fill(null)
-                            .map((_, idx) => (
-                              <Star
-                                key={idx}
-                                className="h-3 w-3 text-yellow-400"
-                              />
-                            ))}
-                          <span className="text-xs ml-1">
-                            {member.performanceRating?.toFixed(1) ?? "-"}
-                          </span>
+                          {Array(Math.round(member.performanceRating || 0)).fill(null).map((_, idx) => (
+                            <Star key={idx} className="h-3 w-3 text-yellow-400" />
+                          ))}
+                          <span className="text-xs ml-1">{member.performanceRating?.toFixed(1) ?? "-"}</span>
                         </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
                           {getMemberTeams(member.id).map((team) => (
-                            <Badge
-                              key={team}
-                              variant="outline"
-                              className="text-xs"
-                            >
-                              {team}
-                            </Badge>
+                            <Badge key={team} variant="outline" className="text-xs">{team}</Badge>
                           ))}
                         </div>
                       </TableCell>
@@ -1324,221 +1697,20 @@ export default function TeamPage() {
                           </span>
                         </div>
                         <div className="flex items-center gap-2 text-sm">
-                          <Activity className="h-4 w-4" />
-                          <span>{selectedMember.lastActive}</span>
+                          <Star className="h-4 w-4 text-yellow-400" />
+                          <span>{selectedMember.performanceRating}</span>
                         </div>
                       </div>
-                      <Separator />
-                      <div>
-                        <div className="font-medium mb-1">Skills</div>
-                        <div className="flex gap-2 flex-wrap">
-                          {selectedMember.skills?.length ? (
-                            selectedMember.skills.map((skill) => (
-                              <Badge key={skill} variant="outline">
-                                {skill}
-                              </Badge>
-                            ))
-                          ) : (
-                            <span className="text-muted-foreground text-xs">
-                              No skills listed
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="font-medium mb-1">Teams</div>
-                        <div className="flex gap-2 flex-wrap">
-                          {getMemberTeams(selectedMember.id).length ? (
-                            getMemberTeams(selectedMember.id).map((team) => (
-                              <Badge key={team} variant="secondary">
-                                {team}
-                              </Badge>
-                            ))
-                          ) : (
-                            <span className="text-muted-foreground text-xs">
-                              No team assigned
-                            </span>
-                          )}
-                        </div>
+                      <div className="text-sm text-muted-foreground">
+                        Teams: {getMemberTeams(selectedMember.id).join(", ")}
                       </div>
                     </div>
-                    <DialogFooter>
-                      <DialogClose asChild>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="w-full"
-                        >
-                          Close
-                        </Button>
-                      </DialogClose>
-                    </DialogFooter>
                   </>
                 )}
               </DialogContent>
             </Dialog>
           </TabsContent>
         </Tabs>
-
-        {/* Team Details Dialog */}
-        <Dialog
-          open={!!selectedTeam}
-          onOpenChange={() => setSelectedTeam(null)}
-        >
-          <DialogContent className="sm:max-w-2xl rounded-xl p-0 overflow-hidden">
-            <DialogHeader>
-              <DialogTitle>Team Details</DialogTitle>
-            </DialogHeader>
-            {selectedTeam && (
-              <div className="flex flex-col md:flex-row">
-                {/* Left: Team Info */}
-                <div className="md:w-1/3 bg-gradient-to-b from-primary/10 to-white/0 flex flex-col items-center justify-center p-8">
-                  <div className="flex items-center gap-2 mb-4">
-                    <Users className="h-10 w-10 text-primary" />
-                    <h3 className="text-2xl font-bold">{selectedTeam.name}</h3>
-                    {selectedTeam.isFavorite && (
-                      <Star className="h-6 w-6 text-yellow-400 ml-2" />
-                    )}
-                  </div>
-                  <p className="text-muted-foreground mb-2 text-center">
-                    {selectedTeam.description}
-                  </p>
-                  <Badge
-                    variant="secondary"
-                    className="px-4 py-1 text-base mb-4"
-                  >
-                    {selectedTeam.members.length}{" "}
-                    {selectedTeam.members.length === 1 ? "member" : "members"}
-                  </Badge>
-                </div>
-                {/* Right: Members List */}
-                <div className="flex-1 flex flex-col justify-between p-8 space-y-6">
-                  <h4 className="font-semibold mb-2">Team Members</h4>
-                  <div className="space-y-3">
-                    {selectedTeam.members.length ? (
-                      selectedTeam.members.map((member) => (
-                        <div
-                          key={member.id}
-                          className="flex items-center gap-4 p-2 rounded-lg hover:bg-muted/10"
-                        >
-                          <Avatar className="h-10 w-10">
-                            <AvatarImage
-                              src={member.avatar}
-                              alt={member.name}
-                            />
-                            <AvatarFallback className="bg-primary/10">
-                              {member.name
-                                .split(" ")
-                                .map((n) => n[0])
-                                .join("")}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium truncate">
-                              {member.name}
-                            </p>
-                            <p className="text-sm text-muted-foreground truncate">
-                              {member.role}
-                            </p>
-                          </div>
-                          <Badge
-                            variant={
-                              member.status === "Active" ? "default" : "outline"
-                            }
-                            className={`text-xs ${member.status === "Active" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}`}
-                          >
-                            {member.status}
-                          </Badge>
-                          <span className="text-xs text-muted-foreground ml-2">
-                            {member.tasksAssigned} tasks
-                          </span>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            className="ml-2"
-                            onClick={() => {
-                              // Remove member from team
-                              setTeams((prev) => {
-                                const updated = prev.map((team) =>
-                                  team.id === selectedTeam.id
-                                    ? {
-                                        ...team,
-                                        members: team.members.filter(
-                                          (m) => m.id !== member.id
-                                        ),
-                                      }
-                                    : team
-                                );
-                                localStorage.setItem(
-                                  "teams",
-                                  JSON.stringify(updated)
-                                );
-                                // Also update selectedTeam in dialog
-                                const updatedSelected = updated.find(
-                                  (t) => t.id === selectedTeam.id
-                                );
-                                setSelectedTeam(updatedSelected || null);
-                                return updated;
-                              });
-                            }}
-                          >
-                            Remove
-                          </Button>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="text-muted-foreground text-sm">
-                        No members assigned.
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
-
-        {/* Assign Team Member Dialog */}
-        <Dialog open={!!assignTeamId} onOpenChange={open => !open && setAssignTeamId(null)}>
-          <DialogContent className="sm:max-w-lg rounded-xl">
-            <DialogHeader>
-              <DialogTitle>Assign Team Members</DialogTitle>
-              <DialogDescription>Select members to assign to this team.</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              {/* Custom multi-select with checkboxes */}
-              <div className="flex flex-col gap-2 max-h-64 overflow-y-auto">
-                {teamMembers.map((member) => (
-                  <label key={member.id} className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={assignMemberIds.includes(member.id)}
-                      onChange={e => {
-                        if (e.target.checked) {
-                          setAssignMemberIds(ids => [...ids, member.id]);
-                        } else {
-                          setAssignMemberIds(ids => ids.filter(id => id !== member.id));
-                        }
-                      }}
-                      className="accent-primary h-4 w-4 rounded"
-                    />
-                    <Avatar className="h-6 w-6">
-                      <AvatarImage src={member.avatar} />
-                      <AvatarFallback>{member.name.split(" ").map(n => n[0]).join("")}</AvatarFallback>
-                    </Avatar>
-                    <span>{member.name}</span>
-                    <span className="text-xs text-muted-foreground ml-2">{member.role}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-            <DialogFooter>
-              <Button onClick={handleAssignMembers} className="w-full">
-                <Check className="h-4 w-4 mr-2" /> Assign Members
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </div>
     </MainLayout>
   );
