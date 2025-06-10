@@ -312,6 +312,16 @@ export default function MainLayout({ children }: { children: ReactNode }) {
                     <Settings className="mr-2 h-4 w-4" />
                     <span>Settings</span>
                   </Link>
+                  <button
+                    onClick={() => router.push('/')}
+                    className={cn(
+                      "group flex items-center px-3 py-2.5 rounded-md transition-colors text-sm w-full cursor-pointer hover:bg-red-100 text-red-600 mt-1"
+                    )}
+                    title="Logout"
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Logout</span>
+                  </button>
                 </div>
               </div>
             )}
