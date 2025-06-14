@@ -32,6 +32,9 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegendContent } from '@/components/ui/chart';
 import { Bar, XAxis, YAxis, CartesianGrid, BarChart as RechartsBarChart, ResponsiveContainer } from 'recharts';
 import { BarChart2 } from 'lucide-react';
+import { PDFDownloadLink } from '@react-pdf/renderer';
+import { InvoicePDF } from '@/components/finance/InvoicePDF';
+import { InvoicePDFActions } from '@/components/finance/InvoicePDF';
 
 // Define the Invoice interface
 export interface Invoice {
@@ -64,6 +67,14 @@ const initialInvoicesData: Invoice[] = [
 
 const LOCAL_STORAGE_KEY = 'financeInvoices';
 
+// Helper to cast status to union type
+function castInvoicesStatus(arr: any[]): Invoice[] {
+  return arr.map(inv => ({
+    ...inv,
+    status: inv.status === 'Paid' ? 'Paid' : inv.status === 'Pending' ? 'Pending' : 'Overdue',
+  }));
+}
+
 export default function FinancePage() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
@@ -82,7 +93,12 @@ export default function FinancePage() {
   useEffect(() => {
     const storedInvoices = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (storedInvoices) {
-      setInvoices(JSON.parse(storedInvoices));
+      // Parse and map status to correct union type
+      const parsed = JSON.parse(storedInvoices).map((inv: any) => ({
+        ...inv,
+        status: inv.status === 'Paid' ? 'Paid' : inv.status === 'Pending' ? 'Pending' : 'Overdue',
+      }));
+      setInvoices(parsed);
     } else {
       setInvoices(initialInvoicesData);
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(initialInvoicesData));
@@ -157,8 +173,8 @@ export default function FinancePage() {
     defaultValues: {
       clientName: '',
       projectName: '',
-      amount: undefined,
-      dueDate: undefined,
+      amount: undefined, // Fix: use undefined for number
+      dueDate: undefined, // Fix: use undefined for date
     },
   });
 
@@ -173,15 +189,15 @@ export default function FinancePage() {
       status: 'Pending',
       issuedDate: format(new Date(), "yyyy-MM-dd"),
     };
-
     const updatedInvoices = [...invoices, newInvoice];
-    setInvoices(updatedInvoices);
+    setInvoices(castInvoicesStatus(updatedInvoices));
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedInvoices));
-
     toast({
       title: "Invoice Generated",
       description: `Invoice for ${newInvoice.clientName} - ${newInvoice.projectName} created.`,
     });
+    setSelectedInvoice(newInvoice); // Open the view dialog for the new invoice
+    setIsViewInvoiceOpen(true);
     form.reset();
     setIsLoading(false);
   };
@@ -276,7 +292,7 @@ export default function FinancePage() {
     const updatedInvoices = invoices.map(inv =>
       inv.id === invoice.id ? { ...inv, status: 'Paid' } : inv
     );
-    setInvoices(updatedInvoices);
+    setInvoices(castInvoicesStatus(updatedInvoices));
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedInvoices));
     toast({
       title: 'Invoice Marked as Paid',
@@ -293,7 +309,7 @@ export default function FinancePage() {
   const deleteInvoice = () => {
     if (!invoiceToDelete) return;
     const updatedInvoices = invoices.filter(inv => inv.id !== invoiceToDelete.id);
-    setInvoices(updatedInvoices);
+    setInvoices(castInvoicesStatus(updatedInvoices));
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedInvoices));
     toast({
       title: 'Invoice Deleted',
@@ -302,7 +318,7 @@ export default function FinancePage() {
     setIsDeleteDialogOpen(false);
     setInvoiceToDelete(null);
   };
-
+  
   return (
     <MainLayout>
       <div className="space-y-8">
@@ -374,6 +390,7 @@ export default function FinancePage() {
                               type="number" 
                               placeholder="e.g., 125000.00" 
                               {...field} 
+                              value={field.value ?? ''} // Fix: never pass undefined
                               step="0.01" 
                             />
                           </div>
@@ -501,9 +518,7 @@ export default function FinancePage() {
                     </p>
                   </div>
                   <div className="flex gap-2">
-                    <Button variant="outline" className="gap-2" onClick={() => downloadInvoice(selectedInvoice)}>
-                      <Download className="h-4 w-4" /> Download PDF
-                    </Button>
+                    <InvoicePDFActions invoice={selectedInvoice} />
                     <Button variant="outline" className="gap-2 text-red-500 border-red-300 hover:bg-red-50" onClick={() => confirmDeleteInvoice(selectedInvoice)}>
                       <Trash2 className="h-4 w-4" /> Delete
                     </Button>
@@ -685,6 +700,7 @@ export default function FinancePage() {
                                     type="number" 
                                     placeholder="125000.00" 
                                     {...field} 
+                                    value={field.value ?? ''} // Fix: never pass undefined
                                     step="0.01" 
                                   />
                                 </div>
@@ -823,9 +839,7 @@ export default function FinancePage() {
                           key={invoice.id} 
                           className="grid grid-cols-12 px-4 py-3 text-sm hover:bg-muted/20 transition-colors group"
                         >
-                          <div className="col-span-2 font-medium text-primary flex items-center">
-                            {invoice.id}
-                          </div>
+                          <div className="col-span-2 font-medium text-primary flex items-center">{invoice.id}</div>
                           <div className="col-span-3 font-medium">{invoice.clientName}</div>
                           <div className="col-span-3 text-muted-foreground truncate">{invoice.projectName}</div>
                           <div className="col-span-2 font-medium">₹{invoice.amount.toLocaleString('en-IN')}</div>
@@ -863,7 +877,7 @@ export default function FinancePage() {
                           </div>
                         </div>
                       ))
-                    ) : (
+                    ): (
                       <div className="text-center py-12">
                         <div className="text-muted-foreground mb-4">No invoices found</div>
                         <Button onClick={() => { setSearchTerm(''); setStatusFilter('all'); }}>

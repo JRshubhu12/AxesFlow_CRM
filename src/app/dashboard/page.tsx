@@ -14,6 +14,7 @@ import {
   CartesianGrid,
   Tooltip as RechartsTooltip,
 } from 'recharts';
+import { useRouter } from 'next/navigation';
 
 // --- DATA ---
 const kpiData = [
@@ -108,6 +109,7 @@ const upcomingMeetingsData = [
 
 export default function DashboardPage() {
   const [currentDate, setCurrentDate] = useState('');
+  const router = useRouter();
 
   useEffect(() => {
     const today = new Date();
@@ -227,7 +229,9 @@ export default function DashboardPage() {
                           </span>
                         ))}
                       </div>
-                      <Button className="bg-[#6D69C9] hover:bg-[#5a57a6] text-white mt-2 h-7 rounded-lg text-xs font-semibold shadow-none w-full">
+                      <Button className="bg-[#6D69C9] hover:bg-[#5a57a6] text-white mt-2 h-7 rounded-lg text-xs font-semibold shadow-none w-full"
+                        onClick={() => router.push('/tasks')}
+                      >
                         View Task
                       </Button>
                     </div>
@@ -293,7 +297,9 @@ export default function DashboardPage() {
                       </td>
                       <td className="py-2 px-3 font-semibold text-[#313144] text-sm">{meeting.host}</td>
                       <td className="py-2 px-3">
-                        <Button className="bg-[#6D69C9] hover:bg-[#5a57a6] text-white rounded-lg h-8 px-5 text-sm font-semibold shadow-none">
+                        <Button className="bg-[#6D69C9] hover:bg-[#5a57a6] text-white rounded-lg h-8 px-5 text-sm font-semibold shadow-none"
+                          onClick={() => router.push('/communications')}
+                        >
                           View
                         </Button>
                       </td>

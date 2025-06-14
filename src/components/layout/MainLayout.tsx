@@ -20,6 +20,7 @@ import { navItems as appNavItems } from '@/config/nav';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import LoadingScreen from '@/components/ui/loading-screen';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 // UserNav Component (avatar styled for round and border as in image)
 interface UserNavProps {
@@ -75,8 +76,8 @@ function UserNav({ agencyNameProp, userEmailProp, agencyLogoUrlProp }: UserNavPr
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-12 w-12 rounded-full p-0 hover:bg-transparent">
-          <Avatar className="h-11 w-11 rounded-full border-2 border-[#e0e0e0] shadow" style={{ boxShadow: '0 1px 6px 0 #eeeeee' }}>
+        <Button variant="ghost" className="relative h-16 w-16 rounded-full p-0 hover:bg-transparent">
+          <Avatar className="h-15 w-15 rounded-full border-2 border-[#e0e0e0] shadow" style={{ boxShadow: '0 1.5px 10px 0 #eeeeee' }}>
             <AvatarImage src={agencyLogoUrl || "https://placehold.co/44x44.png?text=A"} alt={agencyName || "User"} />
             <AvatarFallback>{agencyName ? agencyName.charAt(0).toUpperCase() : "U"}</AvatarFallback>
           </Avatar>
@@ -201,6 +202,7 @@ export default function MainLayout({ children }: { children: ReactNode }) {
     '/tasks': <CheckSquare className="mr-2 h-4 w-4" />,
     '/team': <Users2 className="mr-2 h-4 w-4" />,
     '/finance': <DollarSign className="mr-2 h-4 w-4" />,
+    '/uploads': <FolderKanban className="mr-2 h-4 w-4" />,
   };
 
   // --- SAMPLE DATA INJECTION FOR DEMO ---
@@ -363,14 +365,81 @@ export default function MainLayout({ children }: { children: ReactNode }) {
               </div>
 
               <div className="flex items-center gap-12">
-                <Button variant="ghost" size="icon" className="hover:bg-primary/10 h-8 w-8 ml-[-8px]">
+                <Button variant="ghost" size="icon" className="hover:bg-primary/10 h-8 w-8 ml-[-8px]" onClick={() => router.push('/uploads')}>
                   <Image src="/images/folder.svg" alt="Folder" width={28} height={28} className="w-7 h-7" />
                   <span className="sr-only">Folder</span>
                 </Button>
-                <Button variant="ghost" size="icon" className="hover:bg-accent/10 h-8 w-8">
-                  <Image src="/images/Notification.svg" alt="Notifications" width={28} height={28} className="w-7 h-7" />
-                  <span className="sr-only">Notifications</span>
-                </Button>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="ghost" size="icon" className="hover:bg-accent/10 h-8 w-8 relative">
+                      <Image src="/images/Notification.svg" alt="Notifications" width={28} height={28} className="w-7 h-7" />
+                      <span className="sr-only">Notifications</span>
+                      <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-white text-[10px] font-bold border-2 border-white shadow p-0 leading-none">1</span>
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent align="end" className="w-96 p-0 rounded-xl shadow-2xl border-0 bg-white">
+                    <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-primary/10 to-white rounded-t-xl">
+                      <span className="font-semibold text-lg text-primary">Notifications</span>
+                      <button className="text-xs text-primary hover:underline">Mark all as read</button>
+                    </div>
+                    <ul className="divide-y">
+                      <li className="group flex items-start gap-3 p-4 hover:bg-muted/60 transition cursor-pointer relative">
+                        <span className="inline-block mt-1">
+                          <span className="h-2 w-2 rounded-full bg-red-500 inline-block mr-2"></span>
+                        </span>
+                        <div className="flex-1">
+                          <div className="font-medium text-base">New file uploaded</div>
+                          <div className="text-xs text-muted-foreground">Sarah Miller uploaded "Q3 Report.pdf" to Team Alpha.</div>
+                          <div className="text-xs text-muted-foreground mt-1">2 minutes ago</div>
+                        </div>
+                        <button className="ml-2 p-1 rounded hover:bg-red-50 transition" title="Remove notification">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-red-500 group-hover:text-red-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path d="M3 6h18" strokeWidth="2" strokeLinecap="round" />
+                            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6h16z" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            <path d="M10 11v6M14 11v6" strokeWidth="2" strokeLinecap="round" />
+                          </svg>
+                        </button>
+                      </li>
+                      <li className="group flex items-start gap-3 p-4 hover:bg-muted/60 transition cursor-pointer relative">
+                        <span className="inline-block mt-1">
+                          <span className="h-2 w-2 rounded-full bg-blue-500 inline-block mr-2"></span>
+                        </span>
+                        <div className="flex-1">
+                          <div className="font-medium text-base">Meeting scheduled</div>
+                          <div className="text-xs text-muted-foreground">Project Sync scheduled for tomorrow at 10:00 AM.</div>
+                          <div className="text-xs text-muted-foreground mt-1">1 hour ago</div>
+                        </div>
+                        <button className="ml-2 p-1 rounded hover:bg-red-50 transition" title="Remove notification">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-red-500 group-hover:text-red-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path d="M3 6h18" strokeWidth="2" strokeLinecap="round" />
+                            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6h16z" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            <path d="M10 11v6M14 11v6" strokeWidth="2" strokeLinecap="round" />
+                          </svg>
+                        </button>
+                      </li>
+                      <li className="group flex items-start gap-3 p-4 hover:bg-muted/60 transition cursor-pointer relative">
+                        <span className="inline-block mt-1">
+                          <span className="h-2 w-2 rounded-full bg-green-500 inline-block mr-2"></span>
+                        </span>
+                        <div className="flex-1">
+                          <div className="font-medium text-base">Payment received</div>
+                          <div className="text-xs text-muted-foreground">$1,200 received from TechPro Services.</div>
+                          <div className="text-xs text-muted-foreground mt-1">Yesterday</div>
+                        </div>
+                        <button className="ml-2 p-1 rounded hover:bg-red-50 transition" title="Remove notification">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-red-500 group-hover:text-red-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path d="M3 6h18" strokeWidth="2" strokeLinecap="round" />
+                            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6h16z" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            <path d="M10 11v6M14 11v6" strokeWidth="2" strokeLinecap="round" />
+                          </svg>
+                        </button>
+                      </li>
+                    </ul>
+                    <div className="text-center py-3 border-t bg-gray-50 rounded-b-xl">
+                      <button className="text-primary text-sm font-medium hover:underline">View all notifications</button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button

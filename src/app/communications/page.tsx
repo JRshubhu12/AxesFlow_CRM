@@ -5,7 +5,7 @@ import MainLayout from '@/components/layout/MainLayout';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CalendarDays, MessageCircle, FileText, Video, Phone, Users, Clock, MessageSquare as MessageSquareIcon, Link as LinkIcon, Loader2, Search, Download, Share2, MoreVertical } from 'lucide-react';
+import { CalendarDays, MessageCircle, Video, Phone, Users, Clock, MessageSquare as MessageSquareIcon, Link as LinkIcon, Loader2, Search, Download, Share2, MoreVertical } from 'lucide-react';
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -42,15 +42,6 @@ export interface Chat {
   avatar?: string;
 }
 
-interface FileData {
-  id: string;
-  name: string;
-  type: 'Document' | 'Archive' | 'Image' | string;
-  size: string;
-  uploaded: string;
-  status: 'Shared' | 'Internal' | 'Draft';
-}
-
 const initialMeetingsData: Meeting[] = [
   { id: 'M001', title: 'Client Kick-off: Project Alpha', type: 'Video Call', dateTime: format(new Date(2024, 7, 1, 10, 0), "PPp"), status: 'Scheduled', participants: ['John D.', 'Sarah P.'], googleMeetLink: 'https://meet.google.com/abc-def-ghi' },
   { id: 'M002', title: 'Internal Strategy Session', type: 'In-Person', dateTime: format(new Date(2024, 6, 28, 14, 0), "PPp"), status: 'Completed', participants: ['Team A', 'Team B'] },
@@ -62,16 +53,6 @@ const initialChatsData: Chat[] = [
   { id: 'CHAT002', contact: 'John Davis (TechPro Services)', lastMessage: 'Thanks for the information!', timestamp: format(new Date(2024, 6, 27, 10, 0), "PPp"), status: 'Read', unreadCount: 0, avatar: '/avatars/john.png' },
   { id: 'CHAT003', contact: 'Internal Team Chat', lastMessage: 'Meeting notes are ready.', timestamp: format(new Date(2024, 6, 28, 11, 0), "PPp"), status: 'Read', unreadCount: 0, avatar: '/avatars/team.png' },
 ];
-
-const initialFilesData: FileData[] = [
-  { id: 'F001', name: 'Project Alpha Proposal.pdf', type: 'Document', size: '2.5 MB', uploaded: format(new Date(2024, 6, 25), "yyyy-MM-dd"), status: 'Shared' },
-  { id: 'F002', name: 'Client Assets.zip', type: 'Archive', size: '50 MB', uploaded: format(new Date(2024, 6, 20), "yyyy-MM-dd"), status: 'Internal' },
-  { id: 'F003', name: 'Meeting Notes - 2024-07-28.docx', type: 'Document', size: '120 KB', uploaded: format(new Date(2024, 6, 28), "yyyy-MM-dd"), status: 'Draft' },
-];
-
-const LOCAL_STORAGE_KEY_MEETINGS = 'meetingsData';
-const LOCAL_STORAGE_KEY_CHATS = 'chatsData';
-const LOCAL_STORAGE_KEY_FILES = 'filesData';
 
 const getStatusBadgeVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
   switch (status.toLowerCase()) {
@@ -93,19 +74,6 @@ const getStatusBadgeVariant = (status: string): "default" | "secondary" | "destr
   }
 };
 
-const getFileIconColor = (type: string) => {
-  switch (type.toLowerCase()) {
-    case 'document':
-      return 'text-blue-500';
-    case 'archive':
-      return 'text-purple-500';
-    case 'image':
-      return 'text-green-500';
-    default:
-      return 'text-gray-500';
-  }
-};
-
 function CommunicationsPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -116,26 +84,21 @@ function CommunicationsPageContent() {
   const [meetingsData, setMeetingsData] = useState<Meeting[]>([]);
   const [chatsData, setChatsData] = useState<Chat[]>([]);
   const [isLoadingChats, setIsLoadingChats] = useState(false);
-  const [filesData, setFilesData] = useState<FileData[]>([]);
 
   useEffect(() => {
-    const storedMeetings = localStorage.getItem(LOCAL_STORAGE_KEY_MEETINGS);
+    const storedMeetings = localStorage.getItem('meetingsData');
     setMeetingsData(storedMeetings ? JSON.parse(storedMeetings) : initialMeetingsData);
-    if (!storedMeetings) localStorage.setItem(LOCAL_STORAGE_KEY_MEETINGS, JSON.stringify(initialMeetingsData));
-
-    const storedFiles = localStorage.getItem(LOCAL_STORAGE_KEY_FILES);
-    setFilesData(storedFiles ? JSON.parse(storedFiles) : initialFilesData);
-    if (!storedFiles) localStorage.setItem(LOCAL_STORAGE_KEY_FILES, JSON.stringify(initialFilesData));
+    if (!storedMeetings) localStorage.setItem('meetingsData', JSON.stringify(initialMeetingsData));
   }, []);
 
   const fetchChatsFromLocalStorage = () => {
     setIsLoadingChats(true);
-    const storedChats = localStorage.getItem(LOCAL_STORAGE_KEY_CHATS);
+    const storedChats = localStorage.getItem('chatsData');
     if (storedChats) {
       setChatsData(JSON.parse(storedChats));
     } else {
       setChatsData(initialChatsData);
-      localStorage.setItem(LOCAL_STORAGE_KEY_CHATS, JSON.stringify(initialChatsData));
+      localStorage.setItem('chatsData', JSON.stringify(initialChatsData));
     }
     setIsLoadingChats(false);
   };
@@ -148,14 +111,18 @@ function CommunicationsPageContent() {
 
   useEffect(() => {
     const tabParam = searchParams.get('tab');
-    if (tabParam && (tabParam === 'meetings' || tabParam === 'chats' || tabParam === 'files')) {
+    if (tabParam && (tabParam === 'meetings' || tabParam === 'chats')) {
       setActiveTab(tabParam);
     }
   }, [searchParams]);
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
-    router.push(`/communications?tab=${value}`, { scroll: false });
+    if (value === 'chats') {
+      router.push('/communications/chats');
+    } else {
+      router.push(`/communications?tab=${value}`, { scroll: false });
+    }
   };
 
   const filteredMeetings = meetingsData.filter(meeting =>
@@ -168,11 +135,6 @@ function CommunicationsPageContent() {
     chat.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const filteredFiles = filesData.filter(file =>
-    file.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    file.type.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
   return (
     <MainLayout>
       <div className="space-y-6">
@@ -183,7 +145,7 @@ function CommunicationsPageContent() {
             </div>
             <div>
               <h1 className="text-2xl font-bold">Communication Hub</h1>
-              <p className="text-muted-foreground">Organize your meetings, chats, and files in one place</p>
+              <p className="text-muted-foreground">Organize your meetings and chats in one place</p>
             </div>
           </div>
           <div className="w-full md:w-auto">
@@ -200,7 +162,7 @@ function CommunicationsPageContent() {
         </div>
 
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="meetings" className="flex items-center gap-2 py-3">
               <CalendarDays className="h-4 w-4" />
               <span>Meetings</span>
@@ -208,10 +170,6 @@ function CommunicationsPageContent() {
             <TabsTrigger value="chats" className="flex items-center gap-2 py-3">
               <MessageCircle className="h-4 w-4" />
               <span>Chats</span>
-            </TabsTrigger>
-            <TabsTrigger value="files" className="flex items-center gap-2 py-3">
-              <FileText className="h-4 w-4" />
-              <span>Files</span>
             </TabsTrigger>
           </TabsList>
 
@@ -306,140 +264,6 @@ function CommunicationsPageContent() {
                                 <DropdownMenuItem>View Details</DropdownMenuItem>
                                 <DropdownMenuItem>Edit</DropdownMenuItem>
                                 <DropdownMenuItem className="text-red-600">Cancel</DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="chats">
-            <Card className="border-none shadow-sm">
-              <CardHeader className="border-b">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                  <div>
-                    <CardTitle>Chats</CardTitle>
-                    <CardDescription>Recent conversations</CardDescription>
-                  </div>
-                  <Button variant="outline" className="gap-2">
-                    <MessageCircle className="h-4 w-4" />
-                    New Chat
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="p-0">
-                {isLoadingChats ? (
-                  <div className="flex justify-center items-center py-10">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    <p className="ml-2 text-muted-foreground">Loading chats...</p>
-                  </div>
-                ) : filteredChats.length === 0 ? (
-                  <div className="p-8 text-center">
-                    <p className="text-muted-foreground">No chats found</p>
-                  </div>
-                ) : (
-                  <div className="divide-y">
-                    {filteredChats.map(chat => (
-                      <div key={chat.id} className="p-4 hover:bg-muted/50 transition-colors">
-                        <div className="flex items-start gap-4">
-                          <Avatar className="h-10 w-10 border">
-                            <AvatarImage src={chat.avatar} />
-                            <AvatarFallback>{chat.contact?.charAt(0) || 'C'}</AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between gap-2">
-                              <h3 className="font-semibold truncate">{chat.contact || 'Chat'}</h3>
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs text-muted-foreground whitespace-nowrap">
-                                  {chat.timestamp}
-                                </span>
-                                {chat.unreadCount > 0 && (
-                                  <Badge variant="destructive" className="h-5 w-5 flex items-center justify-center p-0">
-                                    {chat.unreadCount}
-                                  </Badge>
-                                )}
-                              </div>
-                            </div>
-                            <p className="text-sm text-muted-foreground truncate">
-                              {chat.lastMessage}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="files">
-            <Card className="border-none shadow-sm">
-              <CardHeader className="border-b">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                  <div>
-                    <CardTitle>Files</CardTitle>
-                    <CardDescription>Shared documents and assets</CardDescription>
-                  </div>
-                  <Button variant="outline" className="gap-2">
-                    <FileText className="h-4 w-4" />
-                    Upload File
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="p-0">
-                {filteredFiles.length === 0 ? (
-                  <div className="p-8 text-center">
-                    <p className="text-muted-foreground">No files found</p>
-                  </div>
-                ) : (
-                  <div className="divide-y">
-                    {filteredFiles.map(file => (
-                      <div key={file.id} className="p-4 hover:bg-muted/50 transition-colors">
-                        <div className="flex items-center gap-4">
-                          <div className={`p-3 rounded-lg ${getFileIconColor(file.type)}/10`}>
-                            <FileText className={`h-5 w-5 ${getFileIconColor(file.type)}`} />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between gap-2">
-                              <h3 className="font-semibold truncate">{file.name}</h3>
-                              <Badge
-                                variant={getStatusBadgeVariant(file.status)}
-                                className="capitalize"
-                              >
-                                {file.status}
-                              </Badge>
-                            </div>
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                              <span>{file.type}</span>
-                              <span>•</span>
-                              <span>{file.size}</span>
-                              <span>•</span>
-                              <span>Uploaded: {file.uploaded}</span>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <Download className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <Share2 className="h-4 w-4" />
-                            </Button>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8">
-                                  <MoreVertical className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem>View Details</DropdownMenuItem>
-                                <DropdownMenuItem>Rename</DropdownMenuItem>
-                                <DropdownMenuItem className="text-red-600">Delete</DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </div>

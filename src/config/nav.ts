@@ -19,4 +19,5 @@ export const navItems: NavItem[] = [
   { title: 'Tasks', href: '/tasks', tooltip: 'Task Board' },
   { title: 'Teams', href: '/team', tooltip: 'Team Members' },
   { title: 'Finance', href: '/finance', tooltip: 'Finance Overview' },
+  { title: 'Uploads', href: '/uploads', tooltip: 'Uploaded Files' },
 ];
